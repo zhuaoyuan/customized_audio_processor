@@ -1,0 +1,272 @@
+{
+ "short": "xfzx",
+ "src": "C:\\projects\\local\\audio_processer\\work\\audio-edit\\wav\\xfzx.wav",
+ "sample_rate": 16000,
+ "orig_dur_s": 3047.2,
+ "clean_dur_s": 2942.79,
+ "kept": [
+  [
+   8.44,
+   33.27,
+   0.0,
+   24.83
+  ],
+  [
+   45.64,
+   54.87,
+   24.83,
+   34.06
+  ],
+  [
+   59.46,
+   60.7,
+   34.06,
+   35.3
+  ],
+  [
+   64.55,
+   1383.48,
+   35.3,
+   1354.23
+  ],
+  [
+   1387.27,
+   1431.48,
+   1354.23,
+   1398.44
+  ],
+  [
+   1434.09,
+   1717.43,
+   1398.44,
+   1681.78
+  ],
+  [
+   1722.02,
+   1728.95,
+   1681.78,
+   1688.71
+  ],
+  [
+   1733.13,
+   1734.01,
+   1688.71,
+   1689.59
+  ],
+  [
+   1736.9,
+   1740.7,
+   1689.59,
+   1693.39
+  ],
+  [
+   1744.2,
+   2025.91,
+   1693.39,
+   1975.1
+  ],
+  [
+   2030.69,
+   2046.71,
+   1975.1,
+   1991.12
+  ],
+  [
+   2049.25,
+   2388.19,
+   1991.12,
+   2330.06
+  ],
+  [
+   2392.49,
+   2435.23,
+   2330.06,
+   2372.8
+  ],
+  [
+   2437.73,
+   2534.55,
+   2372.8,
+   2469.62
+  ],
+  [
+   2537.67,
+   2785.91,
+   2469.62,
+   2717.86
+  ],
+  [
+   2788.93,
+   2850.07,
+   2717.86,
+   2779.0
+  ],
+  [
+   2856.87,
+   2890.49,
+   2779.0,
+   2812.62
+  ],
+  [
+   2894.34,
+   2897.79,
+   2812.62,
+   2816.07
+  ],
+  [
+   2901.0,
+   2952.95,
+   2816.07,
+   2868.02
+  ],
+  [
+   2957.61,
+   2967.71,
+   2868.02,
+   2878.12
+  ],
+  [
+   2973.86,
+   2999.71,
+   2878.12,
+   2903.97
+  ],
+  [
+   3006.31,
+   3045.13,
+   2903.97,
+   2942.79
+  ]
+ ],
+ "removed": [
+  {
+   "start": 0.0,
+   "end": 8.44,
+   "reason": "head_trim"
+  },
+  {
+   "start": 33.27,
+   "end": 45.64,
+   "reason": "internal_pause"
+  },
+  {
+   "start": 54.87,
+   "end": 59.46,
+   "reason": "internal_pause"
+  },
+  {
+   "start": 60.7,
+   "end": 64.55,
+   "reason": "internal_pause"
+  },
+  {
+   "start": 1383.48,
+   "end": 1387.27,
+   "reason": "internal_pause"
+  },
+  {
+   "start": 1431.48,
+   "end": 1434.09,
+   "reason": "internal_pause"
+  },
+  {
+   "start": 1717.43,
+   "end": 1722.02,
+   "reason": "internal_pause"
+  },
+  {
+   "start": 1728.95,
+   "end": 1733.13,
+   "reason": "internal_pause"
+  },
+  {
+   "start": 1734.01,
+   "end": 1736.9,
+   "reason": "internal_pause"
+  },
+  {
+   "start": 1740.7,
+   "end": 1744.2,
+   "reason": "internal_pause"
+  },
+  {
+   "start": 2025.91,
+   "end": 2030.69,
+   "reason": "internal_pause"
+  },
+  {
+   "start": 2046.71,
+   "end": 2049.25,
+   "reason": "internal_pause"
+  },
+  {
+   "start": 2388.19,
+   "end": 2392.49,
+   "reason": "internal_pause"
+  },
+  {
+   "start": 2435.23,
+   "end": 2437.73,
+   "reason": "internal_pause"
+  },
+  {
+   "start": 2534.55,
+   "end": 2537.67,
+   "reason": "internal_pause"
+  },
+  {
+   "start": 2785.91,
+   "end": 2788.93,
+   "reason": "internal_pause"
+  },
+  {
+   "start": 2850.07,
+   "end": 2856.87,
+   "reason": "internal_pause"
+  },
+  {
+   "start": 2890.49,
+   "end": 2894.34,
+   "reason": "internal_pause"
+  },
+  {
+   "start": 2897.79,
+   "end": 2901.0,
+   "reason": "internal_pause"
+  },
+  {
+   "start": 2952.95,
+   "end": 2957.61,
+   "reason": "internal_pause"
+  },
+  {
+   "start": 2967.71,
+   "end": 2973.86,
+   "reason": "internal_pause"
+  },
+  {
+   "start": 2999.71,
+   "end": 3006.31,
+   "reason": "internal_pause"
+  },
+  {
+   "start": 3045.13,
+   "end": 3047.2,
+   "reason": "tail_trim"
+  }
+ ],
+ "crop": {
+  "orig_dur_s": 3047.2,
+  "clean_dur_s": 2942.79,
+  "head_trim_s": 8.44,
+  "tail_trim_s": 2.07,
+  "internal_cut_s": 93.9,
+  "total_cut_s": 104.41,
+  "cut_ratio": 0.0343,
+  "n_internal_cuts": 21,
+  "speech_preserved_ratio": 0.99901,
+  "continuous_preserved_ratio": 1.0,
+  "fragments_preserved_ratio": 0.99791
+ },
+ "note": "kept 每项=[orig_start, orig_end, clean_start, clean_end]（秒）；clean.wav 时间轴 = kept 依次拼接"
+}

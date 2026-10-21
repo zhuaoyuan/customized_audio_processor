@@ -1,0 +1,61 @@
+{
+ "short": "24_形而上学",
+ "n_segments": 928,
+ "n_with_text": 921,
+ "n_no_content": 7,
+ "n_chars_cn": 15910,
+ "n_chars_total": 17967,
+ "audio_dur_s": 4673.294,
+ "seg_cover_s": 3463.4,
+ "seg_cover_ratio_of_file": 0.7411,
+ "avg_seg_s": 3.732,
+ "median_seg_s": 2.83,
+ "n_paras": 108,
+ "asr": {
+  "load_s": 3.18,
+  "wall_s": 204.44,
+  "decode_s": 196.87,
+  "rtf": 0.0437,
+  "rtf_decode": 0.0421,
+  "threads": 8
+ },
+ "vad": {
+  "n_segments": 928,
+  "speech_ratio": 0.7411,
+  "timings": {
+   "load_s": 0.32,
+   "probs_s": 18.21,
+   "segment_s": 7.04,
+   "total_s": 25.57
+  },
+  "params": {
+   "vad_model": "work\\venv\\Lib\\site-packages\\faster_whisper\\assets\\silero_vad_v6.onnx",
+   "threshold": 0.5,
+   "neg_threshold": 0.35,
+   "min_speech": 0.6,
+   "min_silence": 0.45,
+   "max_speech": 30.0,
+   "max_gap": 0.2,
+   "pad": 0.12,
+   "refine_10ms": true
+  }
+ },
+ "diar": {
+  "raw_speakers": null,
+  "merged_speakers": null,
+  "merge_sweep": [],
+  "clusters": []
+ },
+ "speaker_stats": {
+  "主讲": {
+   "segs": 928,
+   "dur_s": 3463.4,
+   "ratio_of_speech": 1.0,
+   "chars_cn": 15910
+  }
+ },
+ "assign_stats": {},
+ "main_ratio_of_speech": 1.0,
+ "n_other_labels": 0,
+ "map_applied": false
+}

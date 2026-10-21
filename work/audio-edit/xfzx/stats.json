@@ -1,0 +1,201 @@
+{
+ "short": "xfzx",
+ "src": "C:\\projects\\local\\audio_processer\\work\\audio-edit\\wav\\xfzx.wav",
+ "denoise_mode": "afftdn",
+ "target_asl_dbfs": -20.0,
+ "limiter_limit_db": -2.0,
+ "pilot": null,
+ "timing": {
+  "load_s": 0.07,
+  "denoise_s": 0.0,
+  "vad_s": 6.7,
+  "crop_s": 0.05,
+  "measure_pre_s": 10.34,
+  "speaker_s": 0.0,
+  "render_v1_s": 31.69,
+  "render_v2_s": 41.7
+ },
+ "vad": {
+  "n_segments": 1005,
+  "speech_total_s": 2092.52,
+  "speech_ratio": 0.6867,
+  "continuous": {
+   "n": 213,
+   "total_s": 1097.41,
+   "mean_s": 5.15,
+   "longest_s": 16.19
+  },
+  "fragments": {
+   "n": 792,
+   "total_s": 995.11,
+   "mean_s": 1.26
+  },
+  "long_pauses": {
+   "n": 22,
+   "total_s": 108.11,
+   "longest_s": 12.87,
+   "internal_n": 21,
+   "internal_total_s": 104.4
+  }
+ },
+ "crop": {
+  "orig_dur_s": 3047.2,
+  "clean_dur_s": 2942.79,
+  "head_trim_s": 8.44,
+  "tail_trim_s": 2.07,
+  "internal_cut_s": 93.9,
+  "total_cut_s": 104.41,
+  "cut_ratio": 0.0343,
+  "n_internal_cuts": 21,
+  "speech_preserved_ratio": 0.99901,
+  "continuous_preserved_ratio": 1.0,
+  "fragments_preserved_ratio": 0.99791
+ },
+ "pre": {
+  "speech_asl_dbfs": -41.479,
+  "n_active_frames": 104272,
+  "n_speech_frames": 109732,
+  "speech_sec": 1097.32,
+  "percentile": {
+   "p10": -55.01,
+   "p25": -51.95,
+   "p50": -47.85,
+   "p75": -43.42,
+   "p90": -39.16
+  },
+  "window5min": {
+   "n_windows": 10,
+   "p5": -44.94,
+   "p95": -37.9,
+   "spread": 7.04,
+   "half": 3.52,
+   "mean": -42.31,
+   "std": 2.66
+  },
+  "source_speech_asl_dbfs": -39.445,
+  "source_r128": {
+   "lufs": -42.7,
+   "lra": 10.3,
+   "tp_dbtp": 4.1
+  },
+  "lufs_minus_asl": -3.26
+ },
+ "base_gain_db": 21.48,
+ "variants": {
+  "v1": {
+   "speech_asl_dbfs": -20.077,
+   "n_active_frames": 108261,
+   "n_speech_frames": 109732,
+   "speech_sec": 1097.32,
+   "percentile": {
+    "p10": -31.6,
+    "p25": -28.57,
+    "p50": -24.46,
+    "p75": -20.05,
+    "p90": -15.91
+   },
+   "window5min": {
+    "n_windows": 10,
+    "p5": -21.95,
+    "p95": -18.07,
+    "spread": 3.88,
+    "half": 1.94,
+    "mean": -20.52,
+    "std": 1.35
+   },
+   "r128": {
+    "lufs": -21.7,
+    "lra": 9.7,
+    "tp_dbtp": -1.3
+   },
+   "asl_dev_db": -0.08,
+   "limit_iterations": 3,
+   "clipped_final": 0,
+   "gain_db_min": 21.48,
+   "gain_db_max": 21.48,
+   "gain_db_mean": 21.48,
+   "gain_rate_db_s_max": 0.0,
+   "clip_samples_pre_limiter": 13769,
+   "limiter": {
+    "limit_db": -4.1,
+    "trigger_frames": 2956,
+    "trigger_ratio": 0.01004,
+    "max_over_db": 27.86,
+    "tp_retries": 1
+   },
+   "gain": {
+    "type": "static",
+    "gain_db": 21.48,
+    "gain_rate_db_s_max": 0.0
+   }
+  },
+  "v2": {
+   "speech_asl_dbfs": -20.02,
+   "n_active_frames": 108519,
+   "n_speech_frames": 109732,
+   "speech_sec": 1097.32,
+   "percentile": {
+    "p10": -30.82,
+    "p25": -27.81,
+    "p50": -23.85,
+    "p75": -19.73,
+    "p90": -15.98
+   },
+   "window5min": {
+    "n_windows": 10,
+    "p5": -20.75,
+    "p95": -19.31,
+    "spread": 1.44,
+    "half": 0.72,
+    "mean": -20.11,
+    "std": 0.48
+   },
+   "r128": {
+    "lufs": -21.4,
+    "lra": 8.2,
+    "tp_dbtp": -0.9
+   },
+   "asl_dev_db": -0.02,
+   "limit_iterations": 3,
+   "clipped_final": 0,
+   "gain_db_min": 18.48,
+   "gain_db_max": 24.48,
+   "gain_db_mean": 23.12,
+   "gain_rate_db_s_max": 0.82,
+   "clip_samples_pre_limiter": 12802,
+   "limiter": {
+    "limit_db": -3.7,
+    "trigger_frames": 3166,
+    "trigger_ratio": 0.01076,
+    "max_over_db": 24.71,
+    "tp_retries": 2
+   },
+   "gain": {
+    "win_s": 20.0,
+    "hop_s": 5.0,
+    "clamp_db": 3.0,
+    "max_rate_db_s": 1.5,
+    "n_windows_used": 477,
+    "degraded": false,
+    "gain_min": 18.48,
+    "gain_max": 24.48,
+    "gain_mean": 23.12,
+    "max_actual_rate_db_s": 0.82,
+    "control_centers_s": [
+     10.0,
+     15.0,
+     20.0,
+     25.0,
+     30.0
+    ],
+    "type": "static+slow_adaptive"
+   }
+  }
+ },
+ "v2_clamp_db": 3.0,
+ "clean_variant": "v2",
+ "speaker_v3": {
+  "method": "skipped"
+ },
+ "timing_total_s": 90.7
+}

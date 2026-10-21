@@ -1,0 +1,110 @@
+[
+ {
+  "label": "29047f54-be78-4f6a-967c-6152432f53a8",
+  "msgs": 29,
+  "inputTokens": 137434,
+  "outputTokens": 37434,
+  "cacheReadTokens": 2705024,
+  "cacheWriteTokens": 0,
+  "totalTokens": 2879892,
+  "tool_calls": 56,
+  "web_requests": 11,
+  "dur_min": 6.473316666666666
+ },
+ {
+  "label": "2a38e0d2-5cc4-423f-9122-a6b59215b7b8",
+  "msgs": 33,
+  "inputTokens": 224072,
+  "outputTokens": 40210,
+  "cacheReadTokens": 3875456,
+  "cacheWriteTokens": 0,
+  "totalTokens": 4139738,
+  "tool_calls": 88,
+  "web_requests": 27,
+  "dur_min": 6.606066666666667
+ },
+ {
+  "label": "364c7121-b5db-4dd1-83a8-16385bbdbe19",
+  "msgs": 84,
+  "inputTokens": 55860,
+  "outputTokens": 67554,
+  "cacheReadTokens": 5371520,
+  "cacheWriteTokens": 0,
+  "totalTokens": 5494934,
+  "tool_calls": 120,
+  "web_requests": 0,
+  "dur_min": 17.743716666666668
+ },
+ {
+  "label": "7d38a5a5-9f7a-4767-9dac-aa99dd415666",
+  "msgs": 106,
+  "inputTokens": 88337,
+  "outputTokens": 102158,
+  "cacheReadTokens": 10978048,
+  "cacheWriteTokens": 0,
+  "totalTokens": 11168543,
+  "tool_calls": 119,
+  "web_requests": 0,
+  "dur_min": 34.745066666666666
+ },
+ {
+  "label": "979ca1e1-8f37-46f1-83c6-0bae0f4359e9",
+  "msgs": 98,
+  "inputTokens": 120574,
+  "outputTokens": 101374,
+  "cacheReadTokens": 12872960,
+  "cacheWriteTokens": 0,
+  "totalTokens": 13094908,
+  "tool_calls": 113,
+  "web_requests": 0,
+  "dur_min": 47.8312
+ },
+ {
+  "label": "dda3160d-5a30-4bd4-b2e0-3cde8ff7578d",
+  "msgs": 106,
+  "inputTokens": 138178,
+  "outputTokens": 126182,
+  "cacheReadTokens": 16284160,
+  "cacheWriteTokens": 0,
+  "totalTokens": 16548520,
+  "tool_calls": 148,
+  "web_requests": 0,
+  "dur_min": 37.1879
+ },
+ {
+  "label": "e1b39627-fa00-45a0-8151-2dae11355728",
+  "msgs": 24,
+  "inputTokens": 29058,
+  "outputTokens": 32864,
+  "cacheReadTokens": 785664,
+  "cacheWriteTokens": 0,
+  "totalTokens": 847586,
+  "tool_calls": 23,
+  "web_requests": 0,
+  "dur_min": 3.4895833333333335
+ },
+ {
+  "label": "f90e9f75-7c33-4921-a53f-a4cc029abfaf",
+  "msgs": 144,
+  "inputTokens": 127266,
+  "outputTokens": 200109,
+  "cacheReadTokens": 27125120,
+  "cacheWriteTokens": 0,
+  "totalTokens": 27452495,
+  "tool_calls": 228,
+  "web_requests": 0,
+  "dur_min": 50.109516666666664
+ },
+ {
+  "label": "session-e7ab5b3f-cce9-4793-ba42-639bc7f8f040",
+  "msgs": 274,
+  "inputTokens": 242170,
+  "outputTokens": 234596,
+  "cacheReadTokens": 65062144,
+  "cacheWriteTokens": 0,
+  "totalTokens": 65538910,
+  "tool_calls": 336,
+  "web_requests": 5,
+  "dur_min": 653.2508
+ }
+]

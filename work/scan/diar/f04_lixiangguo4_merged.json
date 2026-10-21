@@ -1,0 +1,75 @@
+{
+ "short": "f04_lixiangguo4",
+ "start_s": 414.7,
+ "dur_s": 600.0,
+ "merge_th_cosine": 0.7,
+ "raw_num_speakers": 10,
+ "raw_n_segments": 100,
+ "merged_num_speakers": 6,
+ "merged_speakers_ge1s": 2,
+ "num_effective_speakers": 1,
+ "effective_share_min": 0.05,
+ "speech_total_s": 500.7,
+ "main_dur_s": 494.7,
+ "main_share_of_speech": 0.9880358166503881,
+ "nonmain_speech_s": 6.0,
+ "merged_speakers": [
+  {
+   "raw_clusters": [
+    0,
+    3,
+    25,
+    1
+   ],
+   "dur_s": 494.7,
+   "share": 0.9880358166503881
+  },
+  {
+   "raw_clusters": [
+    10
+   ],
+   "dur_s": 4.1,
+   "share": 0.008189173912088217
+  },
+  {
+   "raw_clusters": [
+    2
+   ],
+   "dur_s": 0.5,
+   "share": 0.001044619013663936
+  },
+  {
+   "raw_clusters": [
+    30
+   ],
+   "dur_s": 0.5,
+   "share": 0.0009767087909783264
+  },
+  {
+   "raw_clusters": [
+    7
+   ],
+   "dur_s": 0.5,
+   "share": 0.0009107959277834701
+  },
+  {
+   "raw_clusters": [
+    27
+   ],
+   "dur_s": 0.4,
+   "share": 0.0008428857050978604
+  }
+ ],
+ "raw_per_speaker_s": {
+  "3": 473.0,
+  "0": 10.2,
+  "25": 7.5,
+  "1": 5.8,
+  "10": 4.1,
+  "2": 0.5,
+  "30": 0.5,
+  "7": 0.5,
+  "27": 0.4,
+  "34": 0.3
+ }
+}

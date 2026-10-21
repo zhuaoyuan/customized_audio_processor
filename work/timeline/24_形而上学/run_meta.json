@@ -1,0 +1,15 @@
+{
+ "short": "24_形而上学",
+ "src": "data\\24_【复旦哲学系丁耘】 亚里士多德《形而上学》(01)_normal..m4a",
+ "audio_used": "work\\audio-edit\\xes\\clean.wav",
+ "time_base": "clean",
+ "mapping": "work\\audio-edit\\xes\\mapping.json",
+ "threads": 8,
+ "clean_from_audio_edit": true,
+ "timings": {
+  "decode_s": 0.4,
+  "vad_s": 11.5,
+  "asr_s": 103.1,
+  "build_s": 0.2
+ }
+}

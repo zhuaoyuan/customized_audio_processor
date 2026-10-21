@@ -1,0 +1,42 @@
+[
+  {
+    "tag": "gtcrn_onnx",
+    "file": "s1_mid_gtcrn.wav",
+    "dur": 30.0,
+    "rms_dbfs": -16.84,
+    "peak_dbfs": -0.2,
+    "p1": -73.08,
+    "p10": -66.81,
+    "p50": -29.4,
+    "p90": -11.08,
+    "p99": -6.91,
+    "snr_proxy": 55.73,
+    "noise_floor_dbfs": -69.27,
+    "speech_level_dbfs": -8.62,
+    "snr_est_db": 60.66,
+    "wall_s": 1.48,
+    "rtf": 0.0493,
+    "model_mb": 0.51,
+    "load_s": 0.06
+  },
+  {
+    "tag": "gtcrn_onnx",
+    "file": "mono_600_60_gtcrn.wav",
+    "dur": 60.0,
+    "rms_dbfs": -18.57,
+    "peak_dbfs": -1.9,
+    "p1": -69.34,
+    "p10": -62.31,
+    "p50": -28.29,
+    "p90": -13.8,
+    "p99": -8.78,
+    "snr_proxy": 48.51,
+    "noise_floor_dbfs": -65.17,
+    "speech_level_dbfs": -11.02,
+    "snr_est_db": 54.15,
+    "wall_s": 2.94,
+    "rtf": 0.049,
+    "model_mb": 0.51,
+    "load_s": 0.06
+  }
+]

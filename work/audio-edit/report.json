@@ -1,0 +1,1581 @@
+{
+ "target_speech_asl_dbfs": -20.0,
+ "recommended_variant": {
+  "variant": "v2",
+  "reason": "V2 同时满足跨文件 ±0.5dB 与同一文件 5min 波动 ±1.5dB；V1 不满足内部波动要求。V2 的慢变增益默认 ±3dB，仅 wlx 因内部 5min 波动达 ±4.1dB 放宽到 ±6dB（仍为 20s 窗/1s 平滑/≤1.5dB/s 变化率）。",
+  "checks": {
+   "v2_dev_le_0.5": true,
+   "v2_fluct_le_1.5": true,
+   "v2_tp_le_-1": false,
+   "v2_limiter_le_5pct": true,
+   "v1_fluct_le_1.5": false
+  },
+  "per_file_v2_clamp_db": {
+   "xfzx": 3.0,
+   "lxg1": 3.0,
+   "xes": 3.0,
+   "lxg4": 3.0,
+   "wlx": 6.0,
+   "ly": 3.0
+  },
+  "tp_exceptions": [
+   {
+    "file": "xfzx",
+    "variant": "v2",
+    "tp_dbtp": -0.9
+   }
+  ],
+  "tp_note": "首轮实测最高 +0.80 dBTP（样本峰限幅点 -2dBFS 不等于真峰值 -1dBTP）；已加入真峰值回读+下调 ceiling 的自适应重做，6 文件 V2 中仅 xfzx 残余 -0.90 dBTP；生产应改用真峰值限幅器（ceiling -2.5~-3.0 dBFS）或 loudnorm TP 门控",
+  "fallback": "v1（只做整体响度统一、要求保真优先或后续要重新做变速/拼接时）",
+  "v3_status": "默认关闭（单说话人数据上退化为 V1；碎片聚类不稳，见 V3 负结果）",
+  "limiter": "alimiter 采样峰值限幅；若测得真峰值 > -1 dBTP 自动下调限幅点重做（±0.3dB 余量）"
+ },
+ "denoise": {
+  "mode": "afftdn",
+  "filter": "highpass=f=80,afftdn=nr=12:nf=-30:tn=1",
+  "compare_file": "denoise_compare.json"
+ },
+ "cross_file": {
+  "target_dbfs": -20.0,
+  "before_source_asl": {
+   "n": 6,
+   "min": -39.45,
+   "max": -9.57,
+   "mean": -19.34,
+   "sigma": 10.492,
+   "range": 29.87
+  },
+  "before_pre_asl": {
+   "n": 6,
+   "min": -41.48,
+   "max": -10.13,
+   "mean": -19.91,
+   "sigma": 11.06,
+   "range": 31.35
+  },
+  "after_v1_asl": {
+   "n": 6,
+   "min": -20.12,
+   "max": -20.0,
+   "mean": -20.03,
+   "sigma": 0.049,
+   "range": 0.12
+  },
+  "after_v2_asl": {
+   "n": 6,
+   "min": -20.08,
+   "max": -20.0,
+   "mean": -20.02,
+   "sigma": 0.028,
+   "range": 0.08
+  },
+  "after_v3_asl": {
+   "n": 0
+  },
+  "v1_dev_abs_max": 0.12,
+  "v2_dev_abs_max": 0.08,
+  "v1_fluct_half": {
+   "n": 6,
+   "min": 1.5,
+   "max": 4.12,
+   "mean": 2.25,
+   "sigma": 0.877,
+   "range": 2.62
+  },
+  "v2_fluct_half": {
+   "n": 6,
+   "min": 0.26,
+   "max": 1.44,
+   "mean": 0.67,
+   "sigma": 0.423,
+   "range": 1.18
+  },
+  "v1_max_rate": {
+   "n": 6,
+   "min": 0.0,
+   "max": 0.0,
+   "mean": 0.0,
+   "sigma": 0.0,
+   "range": 0.0
+  },
+  "v2_max_rate": {
+   "n": 6,
+   "min": 0.61,
+   "max": 0.99,
+   "mean": 0.72,
+   "sigma": 0.14,
+   "range": 0.38
+  },
+  "v1_gain_span": {
+   "n": 6,
+   "min": 0.0,
+   "max": 0.0,
+   "mean": 0.0,
+   "sigma": 0.0,
+   "range": 0.0
+  },
+  "v2_gain_span": {
+   "n": 6,
+   "min": 6.0,
+   "max": 9.99,
+   "mean": 6.66,
+   "sigma": 1.487,
+   "range": 3.99
+  },
+  "v1_tp_dbtp": {
+   "n": 6,
+   "min": -5.1,
+   "max": -1.1,
+   "mean": -2.9,
+   "sigma": 1.774,
+   "range": 4.0
+  },
+  "v2_tp_dbtp": {
+   "n": 6,
+   "min": -3.3,
+   "max": -0.9,
+   "mean": -1.63,
+   "sigma": 0.803,
+   "range": 2.4
+  },
+  "v1_lufs": {
+   "n": 6,
+   "min": -21.7,
+   "max": -20.2,
+   "mean": -20.95,
+   "sigma": 0.512,
+   "range": 1.5
+  },
+  "v2_lufs": {
+   "n": 6,
+   "min": -21.4,
+   "max": -19.8,
+   "mean": -20.72,
+   "sigma": 0.53,
+   "range": 1.6
+  },
+  "limiter_trigger_ratio_max": {
+   "v1": 0.02438,
+   "v2": 0.02643,
+   "v3": null
+  },
+  "cut_ratio_total": {
+   "sum_orig_s": 34563.2,
+   "sum_clean_s": 32193.5,
+   "overall": 0.0686
+  }
+ },
+ "files": [
+  {
+   "short": "xfzx",
+   "name": "0_20140227-丁耘 西方哲学",
+   "orig_dur_s": 3047.2,
+   "clean_dur_s": 2942.79,
+   "cut_ratio": 0.0343,
+   "head_trim_s": 8.44,
+   "tail_trim_s": 2.07,
+   "internal_cut_s": 93.9,
+   "n_internal_cuts": 21,
+   "speech_ratio": 0.6867,
+   "cont_n": 213,
+   "cont_total_s": 1097.41,
+   "frag_n": 792,
+   "frag_total_s": 995.11,
+   "long_pause_n": 22,
+   "long_pause_total_s": 108.11,
+   "source_lufs": -42.7,
+   "source_tp_dbtp": 4.1,
+   "source_asl_dbfs": -39.445,
+   "pre_asl_dbfs": -41.479,
+   "lufs_minus_asl_db": -3.26,
+   "speech_percentile": {
+    "p10": -55.01,
+    "p25": -51.95,
+    "p50": -47.85,
+    "p75": -43.42,
+    "p90": -39.16
+   },
+   "pre_window5min": {
+    "n_windows": 10,
+    "p5": -44.94,
+    "p95": -37.9,
+    "spread": 7.04,
+    "half": 3.52,
+    "mean": -42.31,
+    "std": 2.66
+   },
+   "rtf": 0.0298,
+   "wall_s": 90.7,
+   "timing": {
+    "load_s": 0.07,
+    "denoise_s": 0.0,
+    "vad_s": 6.7,
+    "crop_s": 0.05,
+    "measure_pre_s": 10.34,
+    "speaker_s": 0.0,
+    "render_v1_s": 31.69,
+    "render_v2_s": 41.7
+   },
+   "denoise_mode": "afftdn",
+   "v2_clamp_db": 3.0,
+   "variants": {
+    "v1": {
+     "asl_out_dbfs": -20.077,
+     "dev_db": -0.08,
+     "window5min": {
+      "n_windows": 10,
+      "p5": -21.95,
+      "p95": -18.07,
+      "spread": 3.88,
+      "half": 1.94,
+      "mean": -20.52,
+      "std": 1.35
+     },
+     "lufs": -21.7,
+     "lra": 9.7,
+     "tp_dbtp": -1.3,
+     "limiter": {
+      "limit_db": -4.1,
+      "trigger_frames": 2956,
+      "trigger_ratio": 0.01004,
+      "max_over_db": 27.86,
+      "tp_retries": 1
+     },
+     "clipped_final": 0,
+     "gain_db_min": 21.48,
+     "gain_db_max": 21.48,
+     "gain_rate_db_s_max": 0.0,
+     "limit_iterations": 3,
+     "gain": {
+      "type": "static",
+      "gain_db": 21.48,
+      "gain_rate_db_s_max": 0.0
+     }
+    },
+    "v2": {
+     "asl_out_dbfs": -20.02,
+     "dev_db": -0.02,
+     "window5min": {
+      "n_windows": 10,
+      "p5": -20.75,
+      "p95": -19.31,
+      "spread": 1.44,
+      "half": 0.72,
+      "mean": -20.11,
+      "std": 0.48
+     },
+     "lufs": -21.4,
+     "lra": 8.2,
+     "tp_dbtp": -0.9,
+     "limiter": {
+      "limit_db": -3.7,
+      "trigger_frames": 3166,
+      "trigger_ratio": 0.01076,
+      "max_over_db": 24.71,
+      "tp_retries": 2
+     },
+     "clipped_final": 0,
+     "gain_db_min": 18.48,
+     "gain_db_max": 24.48,
+     "gain_rate_db_s_max": 0.82,
+     "limit_iterations": 3,
+     "gain": {
+      "win_s": 20.0,
+      "hop_s": 5.0,
+      "clamp_db": 3.0,
+      "max_rate_db_s": 1.5,
+      "n_windows_used": 477,
+      "degraded": false,
+      "gain_min": 18.48,
+      "gain_max": 24.48,
+      "gain_mean": 23.12,
+      "max_actual_rate_db_s": 0.82,
+      "control_centers_s": [
+       10.0,
+       15.0,
+       20.0,
+       25.0,
+       30.0
+      ],
+      "type": "static+slow_adaptive"
+     }
+    }
+   }
+  },
+  {
+   "short": "lxg1",
+   "name": "20_丁耘理想国.古希腊哲学(20141219)",
+   "orig_dur_s": 6151.41,
+   "clean_dur_s": 5783.59,
+   "cut_ratio": 0.0598,
+   "head_trim_s": 141.88,
+   "tail_trim_s": 5.06,
+   "internal_cut_s": 220.88,
+   "n_internal_cuts": 44,
+   "speech_ratio": 0.7012,
+   "cont_n": 489,
+   "cont_total_s": 2569.35,
+   "frag_n": 1343,
+   "frag_total_s": 1744.1,
+   "long_pause_n": 47,
+   "long_pause_total_s": 366.49,
+   "source_lufs": -23.3,
+   "source_tp_dbtp": -0.1,
+   "source_asl_dbfs": -23.116,
+   "pre_asl_dbfs": -23.174,
+   "lufs_minus_asl_db": -0.18,
+   "speech_percentile": {
+    "p10": -41.04,
+    "p25": -35.66,
+    "p50": -30.11,
+    "p75": -25.24,
+    "p90": -20.85
+   },
+   "pre_window5min": {
+    "n_windows": 20,
+    "p5": -26.65,
+    "p95": -20.7,
+    "spread": 5.96,
+    "half": 2.98,
+    "mean": -23.83,
+    "std": 2.12
+   },
+   "rtf": 0.0229,
+   "wall_s": 140.95,
+   "timing": {
+    "load_s": 0.1,
+    "denoise_s": 0.0,
+    "vad_s": 9.7,
+    "crop_s": 0.07,
+    "measure_pre_s": 18.14,
+    "speaker_s": 0.0,
+    "render_v1_s": 58.58,
+    "render_v2_s": 54.08
+   },
+   "denoise_mode": "afftdn",
+   "v2_clamp_db": 3.0,
+   "variants": {
+    "v1": {
+     "asl_out_dbfs": -20.123,
+     "dev_db": -0.12,
+     "window5min": {
+      "n_windows": 20,
+      "p5": -22.85,
+      "p95": -18.28,
+      "spread": 4.57,
+      "half": 2.29,
+      "mean": -20.54,
+      "std": 1.64
+     },
+     "lufs": -20.5,
+     "lra": 9.8,
+     "tp_dbtp": -1.1,
+     "limiter": {
+      "limit_db": -3.9,
+      "trigger_frames": 14102,
+      "trigger_ratio": 0.02438,
+      "max_over_db": 7.89,
+      "tp_retries": 1
+     },
+     "clipped_final": 0,
+     "gain_db_min": 3.17,
+     "gain_db_max": 3.17,
+     "gain_rate_db_s_max": 0.0,
+     "limit_iterations": 3,
+     "gain": {
+      "type": "static",
+      "gain_db": 3.17,
+      "gain_rate_db_s_max": 0.0
+     }
+    },
+    "v2": {
+     "asl_out_dbfs": -20.08,
+     "dev_db": -0.08,
+     "window5min": {
+      "n_windows": 20,
+      "p5": -21.18,
+      "p95": -19.27,
+      "spread": 1.91,
+      "half": 0.95,
+      "mean": -20.15,
+      "std": 0.7
+     },
+     "lufs": -20.4,
+     "lra": 7.8,
+     "tp_dbtp": -1.3,
+     "limiter": {
+      "limit_db": -4.1,
+      "trigger_frames": 15284,
+      "trigger_ratio": 0.02643,
+      "max_over_db": 10.08,
+      "tp_retries": 1
+     },
+     "clipped_final": 0,
+     "gain_db_min": 0.17,
+     "gain_db_max": 6.17,
+     "gain_rate_db_s_max": 0.63,
+     "limit_iterations": 3,
+     "gain": {
+      "win_s": 20.0,
+      "hop_s": 5.0,
+      "clamp_db": 3.0,
+      "max_rate_db_s": 1.5,
+      "n_windows_used": 1058,
+      "degraded": false,
+      "gain_min": 0.17,
+      "gain_max": 6.17,
+      "gain_mean": 4.17,
+      "max_actual_rate_db_s": 0.63,
+      "control_centers_s": [
+       10.0,
+       15.0,
+       20.0,
+       25.0,
+       30.0
+      ],
+      "type": "static+slow_adaptive"
+     }
+    }
+   }
+  },
+  {
+   "short": "xes",
+   "name": "24_亚里士多德《形而上学》(01)",
+   "orig_dur_s": 4673.29,
+   "clean_dur_s": 3875.76,
+   "cut_ratio": 0.1707,
+   "head_trim_s": 7.28,
+   "tail_trim_s": 27.04,
+   "internal_cut_s": 763.21,
+   "n_internal_cuts": 60,
+   "speech_ratio": 0.6185,
+   "cont_n": 335,
+   "cont_total_s": 1770.15,
+   "frag_n": 857,
+   "frag_total_s": 1120.39,
+   "long_pause_n": 64,
+   "long_pause_total_s": 810.15,
+   "source_lufs": -10.0,
+   "source_tp_dbtp": 3.7,
+   "source_asl_dbfs": -9.574,
+   "pre_asl_dbfs": -10.129,
+   "lufs_minus_asl_db": -0.43,
+   "speech_percentile": {
+    "p10": -25.04,
+    "p25": -20.86,
+    "p50": -15.36,
+    "p75": -9.84,
+    "p90": -5.75
+   },
+   "pre_window5min": {
+    "n_windows": 13,
+    "p5": -12.43,
+    "p95": -8.38,
+    "spread": 4.05,
+    "half": 2.02,
+    "mean": -10.38,
+    "std": 1.34
+   },
+   "rtf": 0.0154,
+   "wall_s": 71.85,
+   "timing": {
+    "load_s": 0.11,
+    "denoise_s": 9.16,
+    "vad_s": 7.79,
+    "crop_s": 0.04,
+    "measure_pre_s": 14.35,
+    "speaker_s": 0.0,
+    "render_v1_s": 18.06,
+    "render_v2_s": 22.1
+   },
+   "denoise_mode": "afftdn",
+   "v2_clamp_db": 3.0,
+   "variants": {
+    "v1": {
+     "asl_out_dbfs": -19.998,
+     "dev_db": 0.0,
+     "window5min": {
+      "n_windows": 13,
+      "p5": -22.3,
+      "p95": -18.25,
+      "spread": 4.05,
+      "half": 2.02,
+      "mean": -20.25,
+      "std": 1.34
+     },
+     "lufs": -20.2,
+     "lra": 9.5,
+     "tp_dbtp": -5.1,
+     "limiter": {
+      "limit_db": -2.0,
+      "trigger_frames": 0,
+      "trigger_ratio": 0.0,
+      "max_over_db": 0.0
+     },
+     "clipped_final": 0,
+     "gain_db_min": -9.87,
+     "gain_db_max": -9.87,
+     "gain_rate_db_s_max": 0.0,
+     "limit_iterations": 1,
+     "gain": {
+      "type": "static",
+      "gain_db": -9.87,
+      "gain_rate_db_s_max": 0.0
+     }
+    },
+    "v2": {
+     "asl_out_dbfs": -20.002,
+     "dev_db": -0.0,
+     "window5min": {
+      "n_windows": 13,
+      "p5": -20.33,
+      "p95": -19.66,
+      "spread": 0.67,
+      "half": 0.33,
+      "mean": -20.0,
+      "std": 0.23
+     },
+     "lufs": -19.8,
+     "lra": 7.9,
+     "tp_dbtp": -3.3,
+     "limiter": {
+      "limit_db": -2.0,
+      "trigger_frames": 0,
+      "trigger_ratio": 0.0,
+      "max_over_db": 0.0
+     },
+     "clipped_final": 0,
+     "gain_db_min": -12.87,
+     "gain_db_max": -6.87,
+     "gain_rate_db_s_max": 0.63,
+     "limit_iterations": 2,
+     "gain": {
+      "win_s": 20.0,
+      "hop_s": 5.0,
+      "clamp_db": 3.0,
+      "max_rate_db_s": 1.5,
+      "n_windows_used": 711,
+      "degraded": false,
+      "gain_min": -12.87,
+      "gain_max": -6.87,
+      "gain_mean": -9.32,
+      "max_actual_rate_db_s": 0.63,
+      "control_centers_s": [
+       10.0,
+       15.0,
+       20.0,
+       25.0,
+       30.0
+      ],
+      "type": "static+slow_adaptive"
+     }
+    }
+   }
+  },
+  {
+   "short": "lxg4",
+   "name": "4_丁耘理想国.古希腊哲学(第四卷)",
+   "orig_dur_s": 8294.98,
+   "clean_dur_s": 8065.11,
+   "cut_ratio": 0.0277,
+   "head_trim_s": 38.87,
+   "tail_trim_s": 4.41,
+   "internal_cut_s": 186.59,
+   "n_internal_cuts": 45,
+   "speech_ratio": 0.7427,
+   "cont_n": 720,
+   "cont_total_s": 3945.59,
+   "frag_n": 1639,
+   "frag_total_s": 2215.23,
+   "long_pause_n": 46,
+   "long_pause_total_s": 219.94,
+   "source_lufs": -12.1,
+   "source_tp_dbtp": 5.7,
+   "source_asl_dbfs": -10.762,
+   "pre_asl_dbfs": -10.976,
+   "lufs_minus_asl_db": -1.34,
+   "speech_percentile": {
+    "p10": -35.49,
+    "p25": -25.51,
+    "p50": -17.37,
+    "p75": -11.74,
+    "p90": -7.35
+   },
+   "pre_window5min": {
+    "n_windows": 27,
+    "p5": -12.6,
+    "p95": -9.62,
+    "spread": 2.99,
+    "half": 1.49,
+    "mean": -11.05,
+    "std": 1.03
+   },
+   "rtf": 0.0186,
+   "wall_s": 154.38,
+   "timing": {
+    "load_s": 0.28,
+    "denoise_s": 23.04,
+    "vad_s": 27.54,
+    "crop_s": 0.15,
+    "measure_pre_s": 33.08,
+    "speaker_s": 0.0,
+    "render_v1_s": 28.62,
+    "render_v2_s": 41.17
+   },
+   "denoise_mode": "afftdn",
+   "v2_clamp_db": 3.0,
+   "variants": {
+    "v1": {
+     "asl_out_dbfs": -20.001,
+     "dev_db": -0.0,
+     "window5min": {
+      "n_windows": 27,
+      "p5": -21.63,
+      "p95": -18.64,
+      "spread": 2.99,
+      "half": 1.5,
+      "mean": -20.08,
+      "std": 1.03
+     },
+     "lufs": -21.4,
+     "lra": 10.8,
+     "tp_dbtp": -3.9,
+     "limiter": {
+      "limit_db": -2.0,
+      "trigger_frames": 0,
+      "trigger_ratio": 0.0,
+      "max_over_db": 0.0
+     },
+     "clipped_final": 0,
+     "gain_db_min": -9.02,
+     "gain_db_max": -9.02,
+     "gain_rate_db_s_max": 0.0,
+     "limit_iterations": 1,
+     "gain": {
+      "type": "static",
+      "gain_db": -9.02,
+      "gain_rate_db_s_max": 0.0
+     }
+    },
+    "v2": {
+     "asl_out_dbfs": -20.003,
+     "dev_db": -0.0,
+     "window5min": {
+      "n_windows": 27,
+      "p5": -20.4,
+      "p95": -19.75,
+      "spread": 0.65,
+      "half": 0.33,
+      "mean": -20.0,
+      "std": 0.22
+     },
+     "lufs": -21.2,
+     "lra": 8.8,
+     "tp_dbtp": -1.9,
+     "limiter": {
+      "limit_db": -2.0,
+      "trigger_frames": 1,
+      "trigger_ratio": 0.0,
+      "max_over_db": 0.24
+     },
+     "clipped_final": 0,
+     "gain_db_min": -12.02,
+     "gain_db_max": -6.02,
+     "gain_rate_db_s_max": 0.64,
+     "limit_iterations": 2,
+     "gain": {
+      "win_s": 20.0,
+      "hop_s": 5.0,
+      "clamp_db": 3.0,
+      "max_rate_db_s": 1.5,
+      "n_windows_used": 1520,
+      "degraded": false,
+      "gain_min": -12.02,
+      "gain_max": -6.02,
+      "gain_mean": -8.59,
+      "max_actual_rate_db_s": 0.64,
+      "control_centers_s": [
+       10.0,
+       15.0,
+       20.0,
+       25.0,
+       30.0
+      ],
+      "type": "static+slow_adaptive"
+     }
+    }
+   }
+  },
+  {
+   "short": "wlx",
+   "name": "亚里士多德《物理学》(05-20100401)",
+   "orig_dur_s": 6325.74,
+   "clean_dur_s": 6182.59,
+   "cut_ratio": 0.0226,
+   "head_trim_s": 3.16,
+   "tail_trim_s": 3.81,
+   "internal_cut_s": 136.18,
+   "n_internal_cuts": 32,
+   "speech_ratio": 0.8159,
+   "cont_n": 588,
+   "cont_total_s": 4164.04,
+   "frag_n": 721,
+   "frag_total_s": 997.12,
+   "long_pause_n": 32,
+   "long_pause_total_s": 152.18,
+   "source_lufs": -12.0,
+   "source_tp_dbtp": 1.7,
+   "source_asl_dbfs": -11.193,
+   "pre_asl_dbfs": -11.203,
+   "lufs_minus_asl_db": -0.81,
+   "speech_percentile": {
+    "p10": -32.72,
+    "p25": -27.64,
+    "p50": -20.5,
+    "p75": -13.25,
+    "p90": -7.74
+   },
+   "pre_window5min": {
+    "n_windows": 21,
+    "p5": -18.19,
+    "p95": -9.93,
+    "spread": 8.26,
+    "half": 4.13,
+    "mean": -11.83,
+    "std": 2.46
+   },
+   "rtf": 0.015,
+   "wall_s": 94.7,
+   "timing": {
+    "load_s": 0.11,
+    "denoise_s": 0.0,
+    "vad_s": 10.12,
+    "crop_s": 0.09,
+    "measure_pre_s": 19.57,
+    "speaker_s": 0.0,
+    "render_v1_s": 26.35,
+    "render_v2_s": 38.13
+   },
+   "denoise_mode": "afftdn",
+   "v2_clamp_db": 6.0,
+   "variants": {
+    "v1": {
+     "asl_out_dbfs": -20.0,
+     "dev_db": 0.0,
+     "window5min": {
+      "n_windows": 21,
+      "p5": -26.98,
+      "p95": -18.74,
+      "spread": 8.25,
+      "half": 4.12,
+      "mean": -20.63,
+      "std": 2.45
+     },
+     "lufs": -20.8,
+     "lra": 14.1,
+     "tp_dbtp": -4.9,
+     "limiter": {
+      "limit_db": -2.0,
+      "trigger_frames": 0,
+      "trigger_ratio": 0.0,
+      "max_over_db": 0.0,
+      "tp_retries": 0
+     },
+     "clipped_final": 0,
+     "gain_db_min": -8.8,
+     "gain_db_max": -8.8,
+     "gain_rate_db_s_max": 0.0,
+     "limit_iterations": 1,
+     "gain": {
+      "type": "static",
+      "gain_db": -8.8,
+      "gain_rate_db_s_max": 0.0
+     }
+    },
+    "v2": {
+     "asl_out_dbfs": -20.002,
+     "dev_db": -0.0,
+     "window5min": {
+      "n_windows": 21,
+      "p5": -22.3,
+      "p95": -19.41,
+      "spread": 2.89,
+      "half": 1.44,
+      "mean": -20.05,
+      "std": 0.93
+     },
+     "lufs": -20.6,
+     "lra": 9.3,
+     "tp_dbtp": -1.2,
+     "limiter": {
+      "limit_db": -2.0,
+      "trigger_frames": 131,
+      "trigger_ratio": 0.00021,
+      "max_over_db": 1.99,
+      "tp_retries": 0
+     },
+     "clipped_final": 0,
+     "gain_db_min": -12.79,
+     "gain_db_max": -2.8,
+     "gain_rate_db_s_max": 0.99,
+     "limit_iterations": 2,
+     "gain": {
+      "win_s": 20.0,
+      "hop_s": 5.0,
+      "clamp_db": 6.0,
+      "max_rate_db_s": 1.5,
+      "n_windows_used": 1220,
+      "degraded": false,
+      "gain_min": -12.79,
+      "gain_max": -2.8,
+      "gain_mean": -7.79,
+      "max_actual_rate_db_s": 0.99,
+      "control_centers_s": [
+       10.0,
+       15.0,
+       20.0,
+       25.0,
+       30.0
+      ],
+      "type": "static+slow_adaptive"
+     }
+    }
+   }
+  },
+  {
+   "short": "ly",
+   "name": "孔子《论语》(06)",
+   "orig_dur_s": 6070.62,
+   "clean_dur_s": 5343.69,
+   "cut_ratio": 0.1197,
+   "head_trim_s": 146.23,
+   "tail_trim_s": 27.18,
+   "internal_cut_s": 553.52,
+   "n_internal_cuts": 85,
+   "speech_ratio": 0.6874,
+   "cont_n": 494,
+   "cont_total_s": 2637.36,
+   "frag_n": 1135,
+   "frag_total_s": 1535.62,
+   "long_pause_n": 90,
+   "long_pause_total_s": 726.68,
+   "source_lufs": -23.6,
+   "source_tp_dbtp": -1.2,
+   "source_asl_dbfs": -21.931,
+   "pre_asl_dbfs": -22.508,
+   "lufs_minus_asl_db": -1.67,
+   "speech_percentile": {
+    "p10": -42.17,
+    "p25": -35.72,
+    "p50": -28.71,
+    "p75": -23.45,
+    "p90": -19.15
+   },
+   "pre_window5min": {
+    "n_windows": 18,
+    "p5": -24.02,
+    "p95": -20.79,
+    "spread": 3.23,
+    "half": 1.62,
+    "mean": -22.7,
+    "std": 1.15
+   },
+   "rtf": 0.0147,
+   "wall_s": 89.4,
+   "timing": {
+    "load_s": 0.21,
+    "denoise_s": 14.54,
+    "vad_s": 11.68,
+    "crop_s": 0.09,
+    "measure_pre_s": 18.98,
+    "speaker_s": 0.0,
+    "render_v1_s": 19.58,
+    "render_v2_s": 23.94
+   },
+   "denoise_mode": "afftdn",
+   "v2_clamp_db": 3.0,
+   "variants": {
+    "v1": {
+     "asl_out_dbfs": -20.004,
+     "dev_db": -0.0,
+     "window5min": {
+      "n_windows": 18,
+      "p5": -21.53,
+      "p95": -18.3,
+      "spread": 3.23,
+      "half": 1.61,
+      "mean": -20.2,
+      "std": 1.15
+     },
+     "lufs": -21.1,
+     "lra": 10.1,
+     "tp_dbtp": -1.1,
+     "limiter": {
+      "limit_db": -2.0,
+      "trigger_frames": 195,
+      "trigger_ratio": 0.00036,
+      "max_over_db": 3.31
+     },
+     "clipped_final": 0,
+     "gain_db_min": 2.51,
+     "gain_db_max": 2.51,
+     "gain_rate_db_s_max": 0.0,
+     "limit_iterations": 1,
+     "gain": {
+      "type": "static",
+      "gain_db": 2.51,
+      "gain_rate_db_s_max": 0.0
+     }
+    },
+    "v2": {
+     "asl_out_dbfs": -20.004,
+     "dev_db": -0.0,
+     "window5min": {
+      "n_windows": 18,
+      "p5": -20.25,
+      "p95": -19.73,
+      "spread": 0.53,
+      "half": 0.26,
+      "mean": -20.01,
+      "std": 0.2
+     },
+     "lufs": -20.9,
+     "lra": 8.1,
+     "tp_dbtp": -1.2,
+     "limiter": {
+      "limit_db": -2.0,
+      "trigger_frames": 482,
+      "trigger_ratio": 0.0009,
+      "max_over_db": 5.21
+     },
+     "clipped_final": 0,
+     "gain_db_min": -0.49,
+     "gain_db_max": 5.51,
+     "gain_rate_db_s_max": 0.61,
+     "limit_iterations": 2,
+     "gain": {
+      "win_s": 20.0,
+      "hop_s": 5.0,
+      "clamp_db": 3.0,
+      "max_rate_db_s": 1.5,
+      "n_windows_used": 1009,
+      "degraded": false,
+      "gain_min": -0.49,
+      "gain_max": 5.51,
+      "gain_mean": 3.01,
+      "max_actual_rate_db_s": 0.61,
+      "control_centers_s": [
+       10.0,
+       15.0,
+       55.0,
+       60.0,
+       65.0
+      ],
+      "type": "static+slow_adaptive"
+     }
+    }
+   }
+  }
+ ],
+ "v3": {
+  "file": "xes",
+  "speaker_source": {
+   "method": "official_sherpa_offline",
+   "json": "C:\\projects\\local\\audio_processer\\work\\diar\\final_diar.json",
+   "n_speakers": 72,
+   "main_label": 0
+  },
+  "variants": {
+   "v1": {
+    "asl_out": -19.999,
+    "dev": 0.0,
+    "fluct_half": 2.21,
+    "tp": -4.3,
+    "gain_min": -7.47,
+    "gain_max": -7.47,
+    "rate": 0.0,
+    "group_asl_after": null
+   },
+   "v2": {
+    "asl_out": -19.998,
+    "dev": 0.0,
+    "fluct_half": 0.46,
+    "tp": -2.4,
+    "gain_min": -10.47,
+    "gain_max": -4.47,
+    "rate": 0.64,
+    "group_asl_after": null
+   },
+   "v3": {
+    "asl_out": -19.999,
+    "dev": 0.0,
+    "fluct_half": 2.21,
+    "tp": -4.3,
+    "gain_min": -7.39,
+    "gain_max": -7.39,
+    "rate": 0.0,
+    "group_asl_after": {
+     "0": {
+      "asl_dbfs": -20.08,
+      "speech_sec": 1689.44,
+      "dev_db": -0.08
+     },
+     "5": {
+      "asl_dbfs": -15.91,
+      "speech_sec": 11.74,
+      "dev_db": 4.09
+     },
+     "9": {
+      "asl_dbfs": -18.16,
+      "speech_sec": 6.59,
+      "dev_db": 1.84
+     }
+    }
+   }
+  }
+ },
+ "simulated_offsets": {
+  "target_dbfs": -20.0,
+  "n": 15,
+  "offsets": [
+   -12.0,
+   -8.0,
+   -4.0,
+   3.0,
+   6.0
+  ],
+  "dev_abs_max": 0.041,
+  "dev_abs_mean": 0.015,
+  "pass_within_0.5": 15,
+  "rows": [
+   {
+    "asl_in_dbfs": -24.44,
+    "gain_db": 4.44,
+    "asl_out_dbfs": -20.01,
+    "dev_db": -0.01,
+    "speech_sec": 1.4,
+    "file": "xes",
+    "start_s": 453.67,
+    "end_s": 462.32,
+    "clip_dur_s": 8.65,
+    "offset_db": -12.0
+   },
+   {
+    "asl_in_dbfs": -17.53,
+    "gain_db": -2.47,
+    "asl_out_dbfs": -20.029,
+    "dev_db": -0.029,
+    "speech_sec": 7.7,
+    "file": "xes",
+    "start_s": 1404.65,
+    "end_s": 1414.29,
+    "clip_dur_s": 9.64,
+    "offset_db": -8.0
+   },
+   {
+    "asl_in_dbfs": -16.71,
+    "gain_db": -3.29,
+    "asl_out_dbfs": -19.99,
+    "dev_db": 0.01,
+    "speech_sec": 5.0,
+    "file": "xes",
+    "start_s": 2331.79,
+    "end_s": 2338.71,
+    "clip_dur_s": 6.92,
+    "offset_db": -4.0
+   },
+   {
+    "asl_in_dbfs": -9.57,
+    "gain_db": -10.43,
+    "asl_out_dbfs": -19.96,
+    "dev_db": 0.04,
+    "speech_sec": 7.0,
+    "file": "xes",
+    "start_s": 3256.65,
+    "end_s": 3265.05,
+    "clip_dur_s": 8.4,
+    "offset_db": 3.0
+   },
+   {
+    "asl_in_dbfs": -3.59,
+    "gain_db": -16.41,
+    "asl_out_dbfs": -19.999,
+    "dev_db": 0.001,
+    "speech_sec": 3.7,
+    "file": "xes",
+    "start_s": 4191.19,
+    "end_s": 4198.59,
+    "clip_dur_s": 7.4,
+    "offset_db": 6.0
+   },
+   {
+    "asl_in_dbfs": -13.92,
+    "gain_db": -6.08,
+    "asl_out_dbfs": -20.036,
+    "dev_db": -0.036,
+    "speech_sec": 16.0,
+    "file": "wlx",
+    "start_s": 623.87,
+    "end_s": 642.28,
+    "clip_dur_s": 18.41,
+    "offset_db": -4.0
+   },
+   {
+    "asl_in_dbfs": -7.07,
+    "gain_db": -12.93,
+    "asl_out_dbfs": -20.0,
+    "dev_db": -0.0,
+    "speech_sec": 12.1,
+    "file": "wlx",
+    "start_s": 1900.57,
+    "end_s": 1913.72,
+    "clip_dur_s": 13.15,
+    "offset_db": 3.0
+   },
+   {
+    "asl_in_dbfs": -5.09,
+    "gain_db": -14.91,
+    "asl_out_dbfs": -19.959,
+    "dev_db": 0.041,
+    "speech_sec": 5.5,
+    "file": "wlx",
+    "start_s": 3152.82,
+    "end_s": 3160.29,
+    "clip_dur_s": 7.47,
+    "offset_db": 6.0
+   },
+   {
+    "asl_in_dbfs": -28.12,
+    "gain_db": 8.12,
+    "asl_out_dbfs": -20.018,
+    "dev_db": -0.018,
+    "speech_sec": 18.3,
+    "file": "wlx",
+    "start_s": 4424.76,
+    "end_s": 4444.02,
+    "clip_dur_s": 19.26,
+    "offset_db": -12.0
+   },
+   {
+    "asl_in_dbfs": -18.58,
+    "gain_db": -1.42,
+    "asl_out_dbfs": -20.024,
+    "dev_db": -0.024,
+    "speech_sec": 8.7,
+    "file": "wlx",
+    "start_s": 5691.41,
+    "end_s": 5702.05,
+    "clip_dur_s": 10.64,
+    "offset_db": -8.0
+   },
+   {
+    "asl_in_dbfs": -13.75,
+    "gain_db": -6.25,
+    "asl_out_dbfs": -20.0,
+    "dev_db": -0.0,
+    "speech_sec": 7.9,
+    "file": "ly",
+    "start_s": 602.36,
+    "end_s": 612.23,
+    "clip_dur_s": 9.87,
+    "offset_db": 6.0
+   },
+   {
+    "asl_in_dbfs": -33.48,
+    "gain_db": 13.48,
+    "asl_out_dbfs": -19.998,
+    "dev_db": 0.002,
+    "speech_sec": 3.1,
+    "file": "ly",
+    "start_s": 1821.22,
+    "end_s": 1827.22,
+    "clip_dur_s": 6.0,
+    "offset_db": -12.0
+   },
+   {
+    "asl_in_dbfs": -28.39,
+    "gain_db": 8.39,
+    "asl_out_dbfs": -19.999,
+    "dev_db": 0.001,
+    "speech_sec": 5.4,
+    "file": "ly",
+    "start_s": 3044.94,
+    "end_s": 3051.31,
+    "clip_dur_s": 6.37,
+    "offset_db": -8.0
+   },
+   {
+    "asl_in_dbfs": -28.06,
+    "gain_db": 8.06,
+    "asl_out_dbfs": -19.999,
+    "dev_db": 0.001,
+    "speech_sec": 6.4,
+    "file": "ly",
+    "start_s": 4237.28,
+    "end_s": 4245.71,
+    "clip_dur_s": 8.43,
+    "offset_db": -4.0
+   },
+   {
+    "asl_in_dbfs": -15.62,
+    "gain_db": -4.38,
+    "asl_out_dbfs": -19.993,
+    "dev_db": 0.007,
+    "speech_sec": 5.2,
+    "file": "ly",
+    "start_s": 5448.26,
+    "end_s": 5455.35,
+    "clip_dur_s": 7.09,
+    "offset_db": 3.0
+   }
+  ],
+  "wall_s": 6.5
+ },
+ "denoise_compare": {
+  "chunks": [
+   {
+    "file": "xes",
+    "start": 600.0,
+    "end": 900.0,
+    "dur": 300.0,
+    "orig": {
+     "speech_rms_db": -10.84,
+     "noise_rms_db": -13.08,
+     "noise_floor_p10_db": -27.79,
+     "snr_proxy_db": 2.24,
+     "speech_ratio": 0.4513
+    },
+    "highpass": {
+     "speech_rms_db": -10.93,
+     "noise_rms_db": -13.17,
+     "noise_floor_p10_db": -27.84,
+     "snr_proxy_db": 2.24,
+     "speech_ratio": 0.4441,
+     "rtf": 0.0003,
+     "wall_s": 0.08,
+     "speech_delta_db": -0.09,
+     "noise_delta_db": -0.09,
+     "snr_delta_db": 0.0
+    },
+    "afftdn": {
+     "speech_rms_db": -10.88,
+     "noise_rms_db": -13.83,
+     "noise_floor_p10_db": -31.16,
+     "snr_proxy_db": 2.95,
+     "speech_ratio": 0.4208,
+     "rtf": 0.0021,
+     "wall_s": 0.64,
+     "speech_delta_db": -0.04,
+     "noise_delta_db": -0.75,
+     "snr_delta_db": 0.71
+    },
+    "arnndn": {
+     "speech_rms_db": -12.65,
+     "noise_rms_db": -16.79,
+     "noise_floor_p10_db": -52.86,
+     "snr_proxy_db": 4.14,
+     "speech_ratio": 0.4132,
+     "rtf": 0.0074,
+     "wall_s": 2.21,
+     "speech_delta_db": -1.81,
+     "noise_delta_db": -3.71,
+     "snr_delta_db": 1.9
+    }
+   },
+   {
+    "file": "wlx",
+    "start": 1200.0,
+    "end": 1500.0,
+    "dur": 300.0,
+    "orig": {
+     "speech_rms_db": -17.83,
+     "noise_rms_db": -26.83,
+     "noise_floor_p10_db": -36.87,
+     "snr_proxy_db": 9.0,
+     "speech_ratio": 0.7902
+    },
+    "highpass": {
+     "speech_rms_db": -17.89,
+     "noise_rms_db": -26.93,
+     "noise_floor_p10_db": -37.24,
+     "snr_proxy_db": 9.04,
+     "speech_ratio": 0.7987,
+     "rtf": 0.0003,
+     "wall_s": 0.09,
+     "speech_delta_db": -0.06,
+     "noise_delta_db": -0.1,
+     "snr_delta_db": 0.04
+    },
+    "afftdn": {
+     "speech_rms_db": -16.78,
+     "noise_rms_db": -24.27,
+     "noise_floor_p10_db": -47.49,
+     "snr_proxy_db": 7.49,
+     "speech_ratio": 0.5654,
+     "rtf": 0.0026,
+     "wall_s": 0.77,
+     "speech_delta_db": 1.05,
+     "noise_delta_db": 2.56,
+     "snr_delta_db": -1.51
+    },
+    "arnndn": {
+     "speech_rms_db": -20.1,
+     "noise_rms_db": -37.96,
+     "noise_floor_p10_db": -58.91,
+     "snr_proxy_db": 17.86,
+     "speech_ratio": 0.5144,
+     "rtf": 0.0085,
+     "wall_s": 2.54,
+     "speech_delta_db": -2.27,
+     "noise_delta_db": -11.13,
+     "snr_delta_db": 8.86
+    }
+   },
+   {
+    "file": "ly",
+    "start": 2400.0,
+    "end": 2700.0,
+    "dur": 300.0,
+    "orig": {
+     "speech_rms_db": -22.65,
+     "noise_rms_db": -25.91,
+     "noise_floor_p10_db": -29.84,
+     "snr_proxy_db": 3.26,
+     "speech_ratio": 0.3251
+    },
+    "highpass": {
+     "speech_rms_db": -24.47,
+     "noise_rms_db": -31.43,
+     "noise_floor_p10_db": -48.5,
+     "snr_proxy_db": 6.95,
+     "speech_ratio": 0.3741,
+     "rtf": 0.0004,
+     "wall_s": 0.12,
+     "speech_delta_db": -1.82,
+     "noise_delta_db": -5.52,
+     "snr_delta_db": 3.69
+    },
+    "afftdn": {
+     "speech_rms_db": -24.36,
+     "noise_rms_db": -31.51,
+     "noise_floor_p10_db": -50.15,
+     "snr_proxy_db": 7.15,
+     "speech_ratio": 0.3936,
+     "rtf": 0.0026,
+     "wall_s": 0.77,
+     "speech_delta_db": -1.71,
+     "noise_delta_db": -5.6,
+     "snr_delta_db": 3.89
+    },
+    "arnndn": {
+     "speech_rms_db": -25.3,
+     "noise_rms_db": -48.13,
+     "noise_floor_p10_db": -69.0,
+     "snr_proxy_db": 22.84,
+     "speech_ratio": 0.3203,
+     "rtf": 0.0096,
+     "wall_s": 2.88,
+     "speech_delta_db": -2.65,
+     "noise_delta_db": -22.22,
+     "snr_delta_db": 19.58
+    }
+   }
+  ],
+  "summary": {
+   "highpass": {
+    "speech_delta_db_mean": -0.66,
+    "noise_delta_db_mean": -1.9,
+    "snr_delta_db_mean": 1.24,
+    "rtf_mean": 0.0003
+   },
+   "afftdn": {
+    "speech_delta_db_mean": -0.23,
+    "noise_delta_db_mean": -1.26,
+    "snr_delta_db_mean": 1.03,
+    "rtf_mean": 0.0024
+   },
+   "arnndn": {
+    "speech_delta_db_mean": -2.24,
+    "noise_delta_db_mean": -12.35,
+    "snr_delta_db_mean": 10.11,
+    "rtf_mean": 0.0085
+   }
+  },
+  "wall_s": 20.1
+ },
+ "req4": {
+  "file": "24_形而上学(xes)",
+  "diar_json": "C:\\projects\\local\\audio_processer\\work\\diar\\final_diar.json",
+  "main_speaker": 0,
+  "per_speaker_sec": {
+   "0": 3339.6,
+   "99": 1141.6,
+   "1": 12.4,
+   "2": 10.9,
+   "3": 10.2,
+   "4": 7.5,
+   "5": 6.2,
+   "6": 5.7,
+   "7": 4.8,
+   "8": 4.5
+  },
+  "non_main_speech_sec": 152.2,
+  "nonspeech_cluster_sec": 1141.6,
+  "n_checked": 11,
+  "n_candidates": 2,
+  "candidate_remove_sec": 13.19,
+  "policy": "默认全部保留；仅头尾(裁剪环节)自动删除；候选仅作人工复核清单",
+  "rows": [
+   {
+    "start_s": 504.96,
+    "end_s": 510.03,
+    "dur_s": 5.06,
+    "speaker": 2,
+    "speaker_label": "非主讲S2",
+    "asr_text": "啊，什么知道。",
+    "n_chars": 5,
+    "char_rate": 0.99,
+    "reason_hint": "non_main_ge5s",
+    "decision": "keep(默认保留)",
+    "reason": "非主讲但 ASR 有实质内容或时长/字符率不满足删除阈值"
+   },
+   {
+    "start_s": 521.03,
+    "end_s": 526.9,
+    "dur_s": 5.87,
+    "speaker": 2,
+    "speaker_label": "非主讲S2",
+    "asr_text": "啊原。",
+    "n_chars": 2,
+    "char_rate": 0.34,
+    "reason_hint": "non_main_ge5s",
+    "decision": "candidate_remove",
+    "reason": "非主讲 + >=5s + ASR字符率 0.34<0.5 字/s"
+   },
+   {
+    "start_s": 2092.03,
+    "end_s": 2099.35,
+    "dur_s": 7.32,
+    "speaker": 3,
+    "speaker_label": "非主讲S3",
+    "asr_text": "。",
+    "n_chars": 0,
+    "char_rate": 0.0,
+    "reason_hint": "non_main_ge5s",
+    "decision": "candidate_remove",
+    "reason": "VAD 判语音但 ASR 无输出（疑似远场/音乐/误检）"
+   },
+   {
+    "start_s": 3.74,
+    "end_s": 6.94,
+    "dur_s": 3.2,
+    "speaker": 99,
+    "speaker_label": "非语音簇(音乐/噪声)",
+    "asr_text": "。",
+    "n_chars": 0,
+    "char_rate": 0.0,
+    "reason_hint": "vad_seg_non_main",
+    "decision": "keep(默认保留)",
+    "reason": "官方 diar 判非语音簇，属片头尾音乐/噪声；已在裁剪头尾处理"
+   },
+   {
+    "start_s": 7.55,
+    "end_s": 10.88,
+    "dur_s": 3.33,
+    "speaker": 99,
+    "speaker_label": "非语音簇(音乐/噪声)",
+    "asr_text": "我去做空。",
+    "n_chars": 4,
+    "char_rate": 1.2,
+    "reason_hint": "vad_seg_non_main",
+    "decision": "keep(默认保留)",
+    "reason": "官方 diar 判非语音簇，属片头尾音乐/噪声；已在裁剪头尾处理"
+   },
+   {
+    "start_s": 11.62,
+    "end_s": 19.74,
+    "dur_s": 8.12,
+    "speaker": 99,
+    "speaker_label": "非语音簇(音乐/噪声)",
+    "asr_text": "。",
+    "n_chars": 0,
+    "char_rate": 0.0,
+    "reason_hint": "vad_seg_non_main",
+    "decision": "keep(默认保留)",
+    "reason": "官方 diar 判非语音簇，属片头尾音乐/噪声；已在裁剪头尾处理"
+   },
+   {
+    "start_s": 20.67,
+    "end_s": 32.54,
+    "dur_s": 11.87,
+    "speaker": 99,
+    "speaker_label": "非语音簇(音乐/噪声)",
+    "asr_text": "。",
+    "n_chars": 0,
+    "char_rate": 0.0,
+    "reason_hint": "vad_seg_non_main",
+    "decision": "keep(默认保留)",
+    "reason": "官方 diar 判非语音簇，属片头尾音乐/噪声；已在裁剪头尾处理"
+   },
+   {
+    "start_s": 32.96,
+    "end_s": 34.62,
+    "dur_s": 1.66,
+    "speaker": 99,
+    "speaker_label": "非语音簇(音乐/噪声)",
+    "asr_text": "道。",
+    "n_chars": 1,
+    "char_rate": 0.6,
+    "reason_hint": "vad_seg_non_main",
+    "decision": "keep(默认保留)",
+    "reason": "官方 diar 判非语音簇，属片头尾音乐/噪声；已在裁剪头尾处理"
+   },
+   {
+    "start_s": 35.26,
+    "end_s": 37.47,
+    "dur_s": 2.21,
+    "speaker": 99,
+    "speaker_label": "非语音簇(音乐/噪声)",
+    "asr_text": "非常学点是。",
+    "n_chars": 5,
+    "char_rate": 2.26,
+    "reason_hint": "vad_seg_non_main",
+    "decision": "keep(默认保留)",
+    "reason": "官方 diar 判非语音簇，属片头尾音乐/噪声；已在裁剪头尾处理"
+   },
+   {
+    "start_s": 38.05,
+    "end_s": 39.1,
+    "dur_s": 1.05,
+    "speaker": 99,
+    "speaker_label": "非语音簇(音乐/噪声)",
+    "asr_text": "到下。",
+    "n_chars": 2,
+    "char_rate": 1.9,
+    "reason_hint": "vad_seg_non_main",
+    "decision": "keep(默认保留)",
+    "reason": "官方 diar 判非语音簇，属片头尾音乐/噪声；已在裁剪头尾处理"
+   },
+   {
+    "start_s": 41.54,
+    "end_s": 43.14,
+    "dur_s": 1.6,
+    "speaker": 99,
+    "speaker_label": "非语音簇(音乐/噪声)",
+    "asr_text": "错。",
+    "n_chars": 1,
+    "char_rate": 0.62,
+    "reason_hint": "vad_seg_non_main",
+    "decision": "keep(默认保留)",
+    "reason": "官方 diar 判非语音簇，属片头尾音乐/噪声；已在裁剪头尾处理"
+   }
+  ],
+  "wall_s": 2.7
+ },
+ "known_issues": [
+  "xfzx(f00) 源极安静：EBU R128 -42.7 LUFS，归一化需要约 +20dB 增益；增益上限与 limiter 触发情况见 files[].variants",
+  "lxg4(f04) 源 true peak +5.6 dBTP：源已经存在削顶/超采样过冲，无法恢复，只能靠输出 limiter 保证后续 ≤-1dBTP",
+  "xes/xfzx 源 true peak > 0 dBTP（0.5/0.7）：解码用 float32 保存过冲，输出统一限幅",
+  "V3 在这些单说话人录音上退化为 V1；embedding 聚类在短段上不稳定（负结果）"
+ ]
+}

@@ -1,0 +1,62 @@
+{
+ "f00_xifang20140227": {
+  "I_lufs": -42.7,
+  "LRA_lu": 10.3,
+  "true_peak_dbfs": 0.5,
+  "I_threshold_lufs": -53.0,
+  "lra_low_lufs": -49.5,
+  "lra_high_lufs": -39.2,
+  "rc": 0,
+  "src": "C:\\projects\\local\\audio_processer\\work\\scan\\f00_fixed.m4a"
+ },
+ "f20_lixiangguo20141219": {
+  "I_lufs": -23.3,
+  "LRA_lu": 13.1,
+  "true_peak_dbfs": -2.7,
+  "I_threshold_lufs": -34.7,
+  "lra_low_lufs": -32.6,
+  "lra_high_lufs": -19.6,
+  "rc": 0,
+  "src": "C:\\projects\\local\\audio_processer\\data\\20_丁耘理想国.古希腊哲学(20141219-丁耘  古希腊哲学)_normal..m4a"
+ },
+ "f24_xingershangxue": {
+  "I_lufs": -10.1,
+  "LRA_lu": 10.5,
+  "true_peak_dbfs": 0.7,
+  "I_threshold_lufs": -21.0,
+  "lra_low_lufs": -17.3,
+  "lra_high_lufs": -6.7,
+  "rc": 0,
+  "src": "C:\\projects\\local\\audio_processer\\data\\24_【复旦哲学系丁耘】 亚里士多德《形而上学》(01)_normal..m4a"
+ },
+ "f04_lixiangguo4": {
+  "I_lufs": -12.2,
+  "LRA_lu": 11.0,
+  "true_peak_dbfs": 5.6,
+  "I_threshold_lufs": -23.4,
+  "lra_low_lufs": -20.2,
+  "lra_high_lufs": -9.2,
+  "rc": 0,
+  "src": "C:\\projects\\local\\audio_processer\\data\\4_丁耘理想国.古希腊哲学(第四卷)_normal..m4a"
+ },
+ "f05_wulixue": {
+  "I_lufs": -12.1,
+  "LRA_lu": 14.4,
+  "true_peak_dbfs": -1.1,
+  "I_threshold_lufs": -23.5,
+  "lra_low_lufs": -23.6,
+  "lra_high_lufs": -9.1,
+  "rc": 0,
+  "src": "C:\\projects\\local\\audio_processer\\data\\【复旦哲学系丁耘】 亚里士多德《物理学》(05-20100401)_5_normal..m4a"
+ },
+ "f06_lunyu": {
+  "I_lufs": -23.7,
+  "LRA_lu": 11.8,
+  "true_peak_dbfs": -4.2,
+  "I_threshold_lufs": -35.0,
+  "lra_low_lufs": -32.5,
+  "lra_high_lufs": -20.7,
+  "rc": 0,
+  "src": "C:\\projects\\local\\audio_processer\\data\\【复旦哲学系丁耘】孔子《论语》(06)_19_normal..m4a"
+ }
+}

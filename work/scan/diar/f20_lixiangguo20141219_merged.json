@@ -1,0 +1,39 @@
+{
+ "short": "f20_lixiangguo20141219",
+ "start_s": 307.6,
+ "dur_s": 600.0,
+ "merge_th_cosine": 0.7,
+ "raw_num_speakers": 5,
+ "raw_n_segments": 90,
+ "merged_num_speakers": 2,
+ "merged_speakers_ge1s": 1,
+ "num_effective_speakers": 1,
+ "effective_share_min": 0.05,
+ "speech_total_s": 509.1,
+ "main_dur_s": 508.6,
+ "main_share_of_speech": 0.9990728372750846,
+ "nonmain_speech_s": 0.5,
+ "merged_speakers": [
+  {
+   "raw_clusters": [
+    0
+   ],
+   "dur_s": 508.6,
+   "share": 0.9990728372750846
+  },
+  {
+   "raw_clusters": [
+    25
+   ],
+   "dur_s": 0.5,
+   "share": 0.000927162724915534
+  }
+ ],
+ "raw_per_speaker_s": {
+  "0": 508.6,
+  "25": 0.5,
+  "18": 0.4,
+  "11": 0.3,
+  "10": 0.3
+ }
+}

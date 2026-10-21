@@ -1,0 +1,172 @@
+{
+ "chunks": [
+  {
+   "file": "xes",
+   "start": 600.0,
+   "end": 900.0,
+   "dur": 300.0,
+   "orig": {
+    "speech_rms_db": -10.84,
+    "noise_rms_db": -13.08,
+    "noise_floor_p10_db": -27.79,
+    "snr_proxy_db": 2.24,
+    "speech_ratio": 0.4513
+   },
+   "highpass": {
+    "speech_rms_db": -10.93,
+    "noise_rms_db": -13.17,
+    "noise_floor_p10_db": -27.84,
+    "snr_proxy_db": 2.24,
+    "speech_ratio": 0.4441,
+    "rtf": 0.0003,
+    "wall_s": 0.08,
+    "speech_delta_db": -0.09,
+    "noise_delta_db": -0.09,
+    "snr_delta_db": 0.0
+   },
+   "afftdn": {
+    "speech_rms_db": -10.88,
+    "noise_rms_db": -13.83,
+    "noise_floor_p10_db": -31.16,
+    "snr_proxy_db": 2.95,
+    "speech_ratio": 0.4208,
+    "rtf": 0.0021,
+    "wall_s": 0.64,
+    "speech_delta_db": -0.04,
+    "noise_delta_db": -0.75,
+    "snr_delta_db": 0.71
+   },
+   "arnndn": {
+    "speech_rms_db": -12.65,
+    "noise_rms_db": -16.79,
+    "noise_floor_p10_db": -52.86,
+    "snr_proxy_db": 4.14,
+    "speech_ratio": 0.4132,
+    "rtf": 0.0074,
+    "wall_s": 2.21,
+    "speech_delta_db": -1.81,
+    "noise_delta_db": -3.71,
+    "snr_delta_db": 1.9
+   }
+  },
+  {
+   "file": "wlx",
+   "start": 1200.0,
+   "end": 1500.0,
+   "dur": 300.0,
+   "orig": {
+    "speech_rms_db": -17.83,
+    "noise_rms_db": -26.83,
+    "noise_floor_p10_db": -36.87,
+    "snr_proxy_db": 9.0,
+    "speech_ratio": 0.7902
+   },
+   "highpass": {
+    "speech_rms_db": -17.89,
+    "noise_rms_db": -26.93,
+    "noise_floor_p10_db": -37.24,
+    "snr_proxy_db": 9.04,
+    "speech_ratio": 0.7987,
+    "rtf": 0.0003,
+    "wall_s": 0.09,
+    "speech_delta_db": -0.06,
+    "noise_delta_db": -0.1,
+    "snr_delta_db": 0.04
+   },
+   "afftdn": {
+    "speech_rms_db": -16.78,
+    "noise_rms_db": -24.27,
+    "noise_floor_p10_db": -47.49,
+    "snr_proxy_db": 7.49,
+    "speech_ratio": 0.5654,
+    "rtf": 0.0026,
+    "wall_s": 0.77,
+    "speech_delta_db": 1.05,
+    "noise_delta_db": 2.56,
+    "snr_delta_db": -1.51
+   },
+   "arnndn": {
+    "speech_rms_db": -20.1,
+    "noise_rms_db": -37.96,
+    "noise_floor_p10_db": -58.91,
+    "snr_proxy_db": 17.86,
+    "speech_ratio": 0.5144,
+    "rtf": 0.0085,
+    "wall_s": 2.54,
+    "speech_delta_db": -2.27,
+    "noise_delta_db": -11.13,
+    "snr_delta_db": 8.86
+   }
+  },
+  {
+   "file": "ly",
+   "start": 2400.0,
+   "end": 2700.0,
+   "dur": 300.0,
+   "orig": {
+    "speech_rms_db": -22.65,
+    "noise_rms_db": -25.91,
+    "noise_floor_p10_db": -29.84,
+    "snr_proxy_db": 3.26,
+    "speech_ratio": 0.3251
+   },
+   "highpass": {
+    "speech_rms_db": -24.47,
+    "noise_rms_db": -31.43,
+    "noise_floor_p10_db": -48.5,
+    "snr_proxy_db": 6.95,
+    "speech_ratio": 0.3741,
+    "rtf": 0.0004,
+    "wall_s": 0.12,
+    "speech_delta_db": -1.82,
+    "noise_delta_db": -5.52,
+    "snr_delta_db": 3.69
+   },
+   "afftdn": {
+    "speech_rms_db": -24.36,
+    "noise_rms_db": -31.51,
+    "noise_floor_p10_db": -50.15,
+    "snr_proxy_db": 7.15,
+    "speech_ratio": 0.3936,
+    "rtf": 0.0026,
+    "wall_s": 0.77,
+    "speech_delta_db": -1.71,
+    "noise_delta_db": -5.6,
+    "snr_delta_db": 3.89
+   },
+   "arnndn": {
+    "speech_rms_db": -25.3,
+    "noise_rms_db": -48.13,
+    "noise_floor_p10_db": -69.0,
+    "snr_proxy_db": 22.84,
+    "speech_ratio": 0.3203,
+    "rtf": 0.0096,
+    "wall_s": 2.88,
+    "speech_delta_db": -2.65,
+    "noise_delta_db": -22.22,
+    "snr_delta_db": 19.58
+   }
+  }
+ ],
+ "summary": {
+  "highpass": {
+   "speech_delta_db_mean": -0.66,
+   "noise_delta_db_mean": -1.9,
+   "snr_delta_db_mean": 1.24,
+   "rtf_mean": 0.0003
+  },
+  "afftdn": {
+   "speech_delta_db_mean": -0.23,
+   "noise_delta_db_mean": -1.26,
+   "snr_delta_db_mean": 1.03,
+   "rtf_mean": 0.0024
+  },
+  "arnndn": {
+   "speech_delta_db_mean": -2.24,
+   "noise_delta_db_mean": -12.35,
+   "snr_delta_db_mean": 10.11,
+   "rtf_mean": 0.0085
+  }
+ },
+ "wall_s": 20.1
+}

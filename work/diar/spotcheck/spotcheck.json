@@ -1,0 +1,122 @@
+[
+ {
+  "name": "main_500s",
+  "start": 500.0,
+  "end": 510.0,
+  "label": "主讲人",
+  "rms_dbfs": -15.8,
+  "f0_hz": 164.9,
+  "spec_centroid_hz": 1302.4,
+  "asr_text": "你你那个教研室这肯定是做不下来啊。",
+  "asr_chars": 17,
+  "chars_per_s": 1.7
+ },
+ {
+  "name": "main_1250s",
+  "start": 1250.0,
+  "end": 1260.0,
+  "label": "主讲人",
+  "rms_dbfs": -18.8,
+  "f0_hz": 128.0,
+  "spec_centroid_hz": 1348.1,
+  "asr_text": "这底本啊，他他说是希腊公艺的那确实他希腊功肯定比王晓超好啊，这个我们可应该相信啊，这是做逻辑学的老老实人。",
+  "asr_chars": 53,
+  "chars_per_s": 5.3
+ },
+ {
+  "name": "main_2400s",
+  "start": 2400.0,
+  "end": 2410.0,
+  "label": "主讲人",
+  "rms_dbfs": -17.4,
+  "f0_hz": 152.4,
+  "spec_centroid_hz": 1394.3,
+  "asr_text": "这个是一个推理的一种啊问题片里说这是这就是辩证推理。辩证推理就是把不同的意见放在一起，然后再加以权衡。今天当然。",
+  "asr_chars": 56,
+  "chars_per_s": 5.6
+ },
+ {
+  "name": "main_4000s",
+  "start": 4000.0,
+  "end": 4010.0,
+  "label": "主讲人",
+  "rms_dbfs": -14.9,
+  "f0_hz": 150.9,
+  "spec_centroid_hz": 1363.0,
+  "asr_text": "这个只知其然不知原因的经验感觉在一起啊，就把所有这些分成两类这样分。",
+  "asr_chars": 34,
+  "chars_per_s": 3.4
+ },
+ {
+  "name": "other_S1",
+  "start": 609.1,
+  "end": 619.1,
+  "label": "其他(S1)",
+  "rms_dbfs": -13.6,
+  "f0_hz": 190.5,
+  "spec_centroid_hz": 1475.8,
+  "asr_text": "真没什么好看的。",
+  "asr_chars": 8,
+  "chars_per_s": 0.8
+ },
+ {
+  "name": "other_S2",
+  "start": 519.0,
+  "end": 529.0,
+  "label": "其他(S2)",
+  "rms_dbfs": -14.8,
+  "f0_hz": 188.2,
+  "spec_centroid_hz": 1377.9,
+  "asr_text": "教室是这样就是。",
+  "asr_chars": 8,
+  "chars_per_s": 0.8
+ },
+ {
+  "name": "other_S3",
+  "start": 2090.7,
+  "end": 2100.7,
+  "label": "其他(S3)",
+  "rms_dbfs": -27.5,
+  "f0_hz": 116.4,
+  "spec_centroid_hz": 1382.9,
+  "asr_text": "我距离我不。",
+  "asr_chars": 6,
+  "chars_per_s": 0.6
+ },
+ {
+  "name": "other_S4",
+  "start": 4528.9,
+  "end": 4538.9,
+  "label": "其他(S4)",
+  "rms_dbfs": -8.7,
+  "f0_hz": 192.8,
+  "spec_centroid_hz": 1304.1,
+  "asr_text": "对他有什么意义这个？在可能其他地方有一些调整大的车的方面，其实也不会有。",
+  "asr_chars": 36,
+  "chars_per_s": 3.6
+ },
+ {
+  "name": "nonspeech_head",
+  "start": 5.0,
+  "end": 15.0,
+  "label": "非语音",
+  "rms_dbfs": -14.5,
+  "f0_hz": 188.2,
+  "spec_centroid_hz": 1438.0,
+  "asr_text": "去做。",
+  "asr_chars": 3,
+  "chars_per_s": 0.3
+ },
+ {
+  "name": "nonspeech_tail",
+  "start": 4638.3,
+  "end": 4648.3,
+  "label": "非语音",
+  "rms_dbfs": -13.5,
+  "f0_hz": 149.5,
+  "spec_centroid_hz": 1302.8,
+  "asr_text": "有5点图是吧，就是。",
+  "asr_chars": 10,
+  "chars_per_s": 1.0
+ }
+]

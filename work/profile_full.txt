@@ -1,0 +1,35 @@
+﻿duration=4673.3s (77.9 min), frames=4673
+
+[1s-RMS percentiles]
+  P 1 = -30.46 dBFS
+  P 2 = -29.68 dBFS
+  P 5 = -27.63 dBFS
+  P10 = -24.48 dBFS
+  P20 = -21.07 dBFS
+  P30 = -19.13 dBFS
+  P50 = -16.35 dBFS
+  P70 = -13.65 dBFS
+  P90 = -10.35 dBFS
+  P95 =  -8.98 dBFS
+  P99 =  -6.60 dBFS
+
+[histogram]
+   -40.. -35 dB :     0 s (  0.0%)
+   -35.. -30 dB :    75 s (  1.6%)
+   -30.. -25 dB :   342 s (  7.3%)
+   -25.. -20 dB :   766 s ( 16.4%)
+   -20.. -15 dB :  1614 s ( 34.5%)
+   -15.. -10 dB :  1484 s ( 31.8%)
+   -10..  -5 dB :   388 s (  8.3%)
+    -5..   0 dB :     4 s (  0.1%)
+     0..   5 dB :     0 s (  0.0%)
+
+noise_floor(P10)=-24.48 dBFS, speech(P90)=-10.35 dBFS, SNR~14.1 dB
+
+energy VAD threshold=-16.5 dBFS -> 有声帧占比 51.1% (2386s)
+静音段(>=1s): 815 段, 总时长 38.1 分钟, 最长 38s
+
+[44.1k source] 4673s, 44100 Hz
+  5:00: peak@517Hz, 有效带宽(-70dB)≈14217 Hz, 8k=-58dB 12k=-66dB 16k=-102dB
+  30:00: peak@447Hz, 有效带宽(-70dB)≈14250 Hz, 8k=-58dB 12k=-64dB 16k=-103dB
+  60:00: peak@598Hz, 有效带宽(-70dB)≈14223 Hz, 8k=-51dB 12k=-66dB 16k=-106dB

@@ -1,0 +1,25 @@
+﻿orig_chars: 15818
+clean_chars: 15609
+char_ratio_clean_over_orig: 0.9868
+seq_ratio: 0.9715
+matched_chars: 15265
+windows: 156
+windows_clean_shorter: 58
+windows_clean_empty: 6
+orig_asr: dict keys=['wall_s', 'rtf', 'chars']
+    {"wall_s": 138.12, "rtf": 0.0296, "chars": 17040}
+clean_asr: dict keys=['wall_s', 'rtf', 'chars']
+    {"wall_s": 135.76, "rtf": 0.029, "chars": 16828}
+stats: dict keys=['n_speakers', 'main_speaker', 'main_speech_s', 'other_speech_s', 'kept_regions', 'kept_dur_s', 'removed_dur_s']
+    {"n_speakers": 72, "main_speaker": 0, "main_speech_s": 3284.44, "other_speech_s": 79.5, "kept_regions": 425, "kept_dur_s": 3412.1515625, "removed_dur_s": 1261.1429374999998}
+worst_windows: list[11]
+   first: {"start": 4560.0, "end": 4590.0, "chars_orig": 37, "chars_clean": 0, "ratio": 0.0, "lost": 37, "text_orig": "他他参考了他他果号，但是他考了一个然后罗文你也可以看文有希，就这个是较平二手的。", "text_clean": "。"}
+gain_windows: list[2]
+   first: {"start": 630.0, "end": 660.0, "chars_orig": 97, "chars_clean": 103, "ratio": 0.94, "lost": -6, "text_orig": "上课的这个惯例啊，按照上课的惯例，我把这个每每卷的这个承担者就是主讲的法主讲的同学先给给大家分一下。那么然后我我自己再稍微的讲一下呃，行式上学这啊今天这个课的名字叫叫什么严助选读是吧？题是专题研究不管他了。", "text_clean": "上课的这个惯例啊，按照上课的惯例，我把这个每每卷的这个承担者就是主讲的第三个和法律主讲的同学先给给大家分一下。那么然后我我自己再稍微的讲一
+rows: list[156]
+   first: {"start": 0.0, "end": 30.0, "chars_orig": 2, "chars_clean": 0, "ratio": 0.0, "lost": 2, "text_orig": "去做。", "text_clean": "。"}
+removed_asr: dict keys=['chars', 'rtf', 'char_ratio_vs_orig', 'text']
+    {"chars": 220, "rtf": 0.0293, "char_ratio_vs_orig": 0.0139, "text": "去做。。。。.。。。...。。。。。。教室是这样，就是。。武汉大道。哈看。3号。。。。。。。。。。。。。。。。。。。。。。。。。然后。。。。。。。。。。。。。。。。。。。。。。。要。。。拜拜。啊啊。。啊先新特别是新新生啊，好的好好好，谢谢谢谢。嗯，这样就大家都记住了啊。讲一点这个。第一个呢开头啊这个。。。。。。这个第一句话第一句话。是的青年士。。。。。。。。。。。啊。。。。。啊呃。。。。。自由。。。吴先生班长怎在下线下。。。。。。。。有有有有有。。。。。。下面。对。。。。。981A15到981B1。不属为G。。。。。。。。啊。。。。。。。。。。。本待的这个项目哎。。。其他同学到小路这登录。都其些。啊，他他参考了他他号，但是他考了一个然后罗文你也可以看文有希腊，就这个是较聪明二手的。你现在有的是面八啊这个应该我这个就是就是有粉的修理啊一。些有几个但会可。9点多。"}
+removed_rows: list[156]
+   first: {"start": 0.0, "end": 30.0, "chars_removed": 2, "chars_orig": 2, "text_removed": "去做。", "text_orig": "去做。"}
+removed_windows_with_text: 141

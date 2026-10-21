@@ -1,0 +1,6 @@
+﻿[   0-  15s] rms= -14.7dBFS  asr=做。
+[  15-  30s] rms= -16.1dBFS  asr=。
+[  30-  60s] rms= -17.0dBFS  asr=。
+[  60-  90s] rms= -16.5dBFS  asr=。
+[4560-4600s] rms= -10.8dBFS  asr=啊他他参考了他他果号称但是他考了一个后罗文你也以看文有希这聪二手的有的。
+[4620-4673s] rms= -13.6dBFS  asr=。

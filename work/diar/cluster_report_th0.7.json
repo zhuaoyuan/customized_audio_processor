@@ -1,0 +1,849 @@
+{
+ "wav": "C:\\projects\\local\\audio_processer\\work\\full_16k.wav",
+ "diar_in": "C:\\projects\\local\\audio_processer\\work\\diar\\diar_full_th0.4.json",
+ "dur": 4673.2945,
+ "fine_clusters": 218,
+ "n_segments": 1032,
+ "emb_s": 32.3,
+ "merge_threshold": 0.7,
+ "n_speakers": 78,
+ "sweep": [
+  {
+   "merge_threshold": 0.3,
+   "n_speakers": 6,
+   "speech_s": 4633.5,
+   "main_s": 4630.4,
+   "main_ratio": 0.9993,
+   "n_ge_10s": 1,
+   "top3_s": [
+    4630.4,
+    1.5,
+    0.5
+   ]
+  },
+  {
+   "merge_threshold": 0.4,
+   "n_speakers": 14,
+   "speech_s": 4633.5,
+   "main_s": 4624.3,
+   "main_ratio": 0.998,
+   "n_ge_10s": 1,
+   "top3_s": [
+    4624.3,
+    1.8,
+    1.7
+   ]
+  },
+  {
+   "merge_threshold": 0.5,
+   "n_speakers": 27,
+   "speech_s": 4633.5,
+   "main_s": 3360.0,
+   "main_ratio": 0.7252,
+   "n_ge_10s": 2,
+   "top3_s": [
+    3360.0,
+    1244.2,
+    5.5
+   ]
+  },
+  {
+   "merge_threshold": 0.6,
+   "n_speakers": 49,
+   "speech_s": 4633.5,
+   "main_s": 3349.7,
+   "main_ratio": 0.7229,
+   "n_ge_10s": 4,
+   "top3_s": [
+    3349.7,
+    1180.5,
+    14.4
+   ]
+  },
+  {
+   "merge_threshold": 0.65,
+   "n_speakers": 65,
+   "speech_s": 4633.5,
+   "main_s": 3335.1,
+   "main_ratio": 0.7198,
+   "n_ge_10s": 4,
+   "top3_s": [
+    3335.1,
+    1169.5,
+    12.8
+   ]
+  },
+  {
+   "merge_threshold": 0.7,
+   "n_speakers": 78,
+   "speech_s": 4633.5,
+   "main_s": 3295.8,
+   "main_ratio": 0.7113,
+   "n_ge_10s": 6,
+   "top3_s": [
+    3295.8,
+    1141.6,
+    26.4
+   ]
+  },
+  {
+   "merge_threshold": 0.75,
+   "n_speakers": 99,
+   "speech_s": 4633.5,
+   "main_s": 3270.0,
+   "main_ratio": 0.7057,
+   "n_ge_10s": 6,
+   "top3_s": [
+    3270.0,
+    907.5,
+    198.9
+   ]
+  },
+  {
+   "merge_threshold": 0.8,
+   "n_speakers": 121,
+   "speech_s": 4633.5,
+   "main_s": 3187.1,
+   "main_ratio": 0.6878,
+   "n_ge_10s": 10,
+   "top3_s": [
+    3187.1,
+    855.7,
+    154.4
+   ]
+  },
+  {
+   "merge_threshold": 0.85,
+   "n_speakers": 139,
+   "speech_s": 4633.5,
+   "main_s": 3137.0,
+   "main_ratio": 0.677,
+   "n_ge_10s": 20,
+   "top3_s": [
+    3137.0,
+    722.6,
+    88.3
+   ]
+  },
+  {
+   "merge_threshold": 0.9,
+   "n_speakers": 160,
+   "speech_s": 4633.5,
+   "main_s": 2846.6,
+   "main_ratio": 0.6143,
+   "n_ge_10s": 30,
+   "top3_s": [
+    2846.6,
+    584.3,
+    174.3
+   ]
+  }
+ ],
+ "main_speaker": 0,
+ "main_speech_s": 3295.8,
+ "main_ratio_speech": 0.7113,
+ "clusters": [
+  {
+   "speaker": 0,
+   "fine_clusters": 41,
+   "dur_s": 3295.8,
+   "ratio_speech": 0.7113,
+   "cos_to_main": 0.919,
+   "n_segments": 666,
+   "longest_seg": 39.56
+  },
+  {
+   "speaker": 1,
+   "fine_clusters": 83,
+   "dur_s": 1141.6,
+   "ratio_speech": 0.2464,
+   "cos_to_main": 0.61,
+   "n_segments": 222,
+   "longest_seg": 19.14
+  },
+  {
+   "speaker": 24,
+   "fine_clusters": 4,
+   "dur_s": 26.4,
+   "ratio_speech": 0.0057,
+   "cos_to_main": 0.884,
+   "n_segments": 9,
+   "longest_seg": 5.38
+  },
+  {
+   "speaker": 5,
+   "fine_clusters": 6,
+   "dur_s": 12.4,
+   "ratio_speech": 0.0027,
+   "cos_to_main": 0.451,
+   "n_segments": 16,
+   "longest_seg": 1.33
+  },
+  {
+   "speaker": 21,
+   "fine_clusters": 2,
+   "dur_s": 10.9,
+   "ratio_speech": 0.0024,
+   "cos_to_main": 0.511,
+   "n_segments": 2,
+   "longest_seg": 5.87
+  },
+  {
+   "speaker": 32,
+   "fine_clusters": 2,
+   "dur_s": 10.2,
+   "ratio_speech": 0.0022,
+   "cos_to_main": 0.452,
+   "n_segments": 4,
+   "longest_seg": 7.32
+  },
+  {
+   "speaker": 41,
+   "fine_clusters": 2,
+   "dur_s": 7.6,
+   "ratio_speech": 0.0016,
+   "cos_to_main": 0.708,
+   "n_segments": 3,
+   "longest_seg": 3.24
+  },
+  {
+   "speaker": 69,
+   "fine_clusters": 2,
+   "dur_s": 7.5,
+   "ratio_speech": 0.0016,
+   "cos_to_main": 0.662,
+   "n_segments": 3,
+   "longest_seg": 3.91
+  },
+  {
+   "speaker": 73,
+   "fine_clusters": 2,
+   "dur_s": 6.2,
+   "ratio_speech": 0.0013,
+   "cos_to_main": 0.66,
+   "n_segments": 3,
+   "longest_seg": 3.0
+  },
+  {
+   "speaker": 4,
+   "fine_clusters": 3,
+   "dur_s": 5.7,
+   "ratio_speech": 0.0012,
+   "cos_to_main": 0.439,
+   "n_segments": 6,
+   "longest_seg": 1.82
+  },
+  {
+   "speaker": 39,
+   "fine_clusters": 2,
+   "dur_s": 4.8,
+   "ratio_speech": 0.001,
+   "cos_to_main": 0.688,
+   "n_segments": 5,
+   "longest_seg": 1.74
+  },
+  {
+   "speaker": 54,
+   "fine_clusters": 1,
+   "dur_s": 4.5,
+   "ratio_speech": 0.001,
+   "cos_to_main": 0.59,
+   "n_segments": 2,
+   "longest_seg": 4.08
+  },
+  {
+   "speaker": 14,
+   "fine_clusters": 2,
+   "dur_s": 4.1,
+   "ratio_speech": 0.0009,
+   "cos_to_main": 0.359,
+   "n_segments": 4,
+   "longest_seg": 1.5
+  },
+  {
+   "speaker": 59,
+   "fine_clusters": 1,
+   "dur_s": 3.8,
+   "ratio_speech": 0.0008,
+   "cos_to_main": 0.643,
+   "n_segments": 2,
+   "longest_seg": 2.26
+  },
+  {
+   "speaker": 7,
+   "fine_clusters": 2,
+   "dur_s": 3.7,
+   "ratio_speech": 0.0008,
+   "cos_to_main": 0.521,
+   "n_segments": 4,
+   "longest_seg": 1.25
+  },
+  {
+   "speaker": 35,
+   "fine_clusters": 1,
+   "dur_s": 3.2,
+   "ratio_speech": 0.0007,
+   "cos_to_main": 0.502,
+   "n_segments": 1,
+   "longest_seg": 3.19
+  },
+  {
+   "speaker": 12,
+   "fine_clusters": 1,
+   "dur_s": 3.1,
+   "ratio_speech": 0.0007,
+   "cos_to_main": 0.467,
+   "n_segments": 2,
+   "longest_seg": 2.62
+  },
+  {
+   "speaker": 56,
+   "fine_clusters": 1,
+   "dur_s": 3.0,
+   "ratio_speech": 0.0006,
+   "cos_to_main": 0.706,
+   "n_segments": 3,
+   "longest_seg": 1.81
+  },
+  {
+   "speaker": 37,
+   "fine_clusters": 1,
+   "dur_s": 2.9,
+   "ratio_speech": 0.0006,
+   "cos_to_main": 0.685,
+   "n_segments": 2,
+   "longest_seg": 1.65
+  },
+  {
+   "speaker": 44,
+   "fine_clusters": 1,
+   "dur_s": 2.9,
+   "ratio_speech": 0.0006,
+   "cos_to_main": 0.638,
+   "n_segments": 1,
+   "longest_seg": 2.94
+  },
+  {
+   "speaker": 22,
+   "fine_clusters": 1,
+   "dur_s": 2.8,
+   "ratio_speech": 0.0006,
+   "cos_to_main": 0.625,
+   "n_segments": 1,
+   "longest_seg": 2.78
+  },
+  {
+   "speaker": 61,
+   "fine_clusters": 1,
+   "dur_s": 2.8,
+   "ratio_speech": 0.0006,
+   "cos_to_main": 0.551,
+   "n_segments": 1,
+   "longest_seg": 2.8
+  },
+  {
+   "speaker": 50,
+   "fine_clusters": 1,
+   "dur_s": 2.6,
+   "ratio_speech": 0.0006,
+   "cos_to_main": 0.753,
+   "n_segments": 1,
+   "longest_seg": 2.65
+  },
+  {
+   "speaker": 64,
+   "fine_clusters": 1,
+   "dur_s": 2.4,
+   "ratio_speech": 0.0005,
+   "cos_to_main": 0.434,
+   "n_segments": 2,
+   "longest_seg": 1.92
+  },
+  {
+   "speaker": 19,
+   "fine_clusters": 1,
+   "dur_s": 2.3,
+   "ratio_speech": 0.0005,
+   "cos_to_main": 0.444,
+   "n_segments": 2,
+   "longest_seg": 1.33
+  },
+  {
+   "speaker": 30,
+   "fine_clusters": 1,
+   "dur_s": 2.3,
+   "ratio_speech": 0.0005,
+   "cos_to_main": 0.752,
+   "n_segments": 2,
+   "longest_seg": 1.33
+  },
+  {
+   "speaker": 38,
+   "fine_clusters": 1,
+   "dur_s": 2.3,
+   "ratio_speech": 0.0005,
+   "cos_to_main": 0.68,
+   "n_segments": 2,
+   "longest_seg": 1.6
+  },
+  {
+   "speaker": 23,
+   "fine_clusters": 1,
+   "dur_s": 2.2,
+   "ratio_speech": 0.0005,
+   "cos_to_main": 0.601,
+   "n_segments": 1,
+   "longest_seg": 2.16
+  },
+  {
+   "speaker": 11,
+   "fine_clusters": 1,
+   "dur_s": 2.1,
+   "ratio_speech": 0.0004,
+   "cos_to_main": 0.332,
+   "n_segments": 1,
+   "longest_seg": 2.08
+  },
+  {
+   "speaker": 17,
+   "fine_clusters": 1,
+   "dur_s": 2.1,
+   "ratio_speech": 0.0004,
+   "cos_to_main": 0.536,
+   "n_segments": 2,
+   "longest_seg": 1.06
+  },
+  {
+   "speaker": 48,
+   "fine_clusters": 1,
+   "dur_s": 2.1,
+   "ratio_speech": 0.0005,
+   "cos_to_main": 0.531,
+   "n_segments": 2,
+   "longest_seg": 1.52
+  },
+  {
+   "speaker": 8,
+   "fine_clusters": 1,
+   "dur_s": 2.0,
+   "ratio_speech": 0.0004,
+   "cos_to_main": 0.348,
+   "n_segments": 1,
+   "longest_seg": 2.01
+  },
+  {
+   "speaker": 15,
+   "fine_clusters": 1,
+   "dur_s": 2.0,
+   "ratio_speech": 0.0004,
+   "cos_to_main": 0.467,
+   "n_segments": 1,
+   "longest_seg": 1.99
+  },
+  {
+   "speaker": 34,
+   "fine_clusters": 1,
+   "dur_s": 1.9,
+   "ratio_speech": 0.0004,
+   "cos_to_main": 0.306,
+   "n_segments": 1,
+   "longest_seg": 1.89
+  },
+  {
+   "speaker": 3,
+   "fine_clusters": 1,
+   "dur_s": 1.8,
+   "ratio_speech": 0.0004,
+   "cos_to_main": 0.325,
+   "n_segments": 2,
+   "longest_seg": 1.38
+  },
+  {
+   "speaker": 46,
+   "fine_clusters": 1,
+   "dur_s": 1.8,
+   "ratio_speech": 0.0004,
+   "cos_to_main": 0.468,
+   "n_segments": 3,
+   "longest_seg": 0.86
+  },
+  {
+   "speaker": 55,
+   "fine_clusters": 1,
+   "dur_s": 1.8,
+   "ratio_speech": 0.0004,
+   "cos_to_main": 0.733,
+   "n_segments": 1,
+   "longest_seg": 1.84
+  },
+  {
+   "speaker": 57,
+   "fine_clusters": 1,
+   "dur_s": 1.8,
+   "ratio_speech": 0.0004,
+   "cos_to_main": 0.273,
+   "n_segments": 1,
+   "longest_seg": 1.82
+  },
+  {
+   "speaker": 16,
+   "fine_clusters": 1,
+   "dur_s": 1.7,
+   "ratio_speech": 0.0004,
+   "cos_to_main": 0.396,
+   "n_segments": 2,
+   "longest_seg": 0.98
+  },
+  {
+   "speaker": 20,
+   "fine_clusters": 1,
+   "dur_s": 1.7,
+   "ratio_speech": 0.0004,
+   "cos_to_main": 0.63,
+   "n_segments": 3,
+   "longest_seg": 0.86
+  },
+  {
+   "speaker": 68,
+   "fine_clusters": 1,
+   "dur_s": 1.5,
+   "ratio_speech": 0.0003,
+   "cos_to_main": 0.615,
+   "n_segments": 1,
+   "longest_seg": 1.48
+  },
+  {
+   "speaker": 31,
+   "fine_clusters": 1,
+   "dur_s": 1.3,
+   "ratio_speech": 0.0003,
+   "cos_to_main": 0.522,
+   "n_segments": 1,
+   "longest_seg": 1.35
+  },
+  {
+   "speaker": 43,
+   "fine_clusters": 1,
+   "dur_s": 1.3,
+   "ratio_speech": 0.0003,
+   "cos_to_main": 0.616,
+   "n_segments": 1,
+   "longest_seg": 1.3
+  },
+  {
+   "speaker": 2,
+   "fine_clusters": 1,
+   "dur_s": 1.2,
+   "ratio_speech": 0.0003,
+   "cos_to_main": 0.398,
+   "n_segments": 2,
+   "longest_seg": 0.67
+  },
+  {
+   "speaker": 6,
+   "fine_clusters": 1,
+   "dur_s": 1.2,
+   "ratio_speech": 0.0003,
+   "cos_to_main": 0.25,
+   "n_segments": 1,
+   "longest_seg": 1.22
+  },
+  {
+   "speaker": 42,
+   "fine_clusters": 1,
+   "dur_s": 1.2,
+   "ratio_speech": 0.0003,
+   "cos_to_main": 0.635,
+   "n_segments": 1,
+   "longest_seg": 1.25
+  },
+  {
+   "speaker": 53,
+   "fine_clusters": 1,
+   "dur_s": 1.2,
+   "ratio_speech": 0.0003,
+   "cos_to_main": 0.596,
+   "n_segments": 1,
+   "longest_seg": 1.25
+  },
+  {
+   "speaker": 36,
+   "fine_clusters": 1,
+   "dur_s": 1.1,
+   "ratio_speech": 0.0002,
+   "cos_to_main": 0.444,
+   "n_segments": 1,
+   "longest_seg": 1.13
+  },
+  {
+   "speaker": 66,
+   "fine_clusters": 1,
+   "dur_s": 1.1,
+   "ratio_speech": 0.0002,
+   "cos_to_main": 0.497,
+   "n_segments": 1,
+   "longest_seg": 1.11
+  },
+  {
+   "speaker": 74,
+   "fine_clusters": 1,
+   "dur_s": 1.1,
+   "ratio_speech": 0.0002,
+   "cos_to_main": 0.391,
+   "n_segments": 1,
+   "longest_seg": 1.06
+  },
+  {
+   "speaker": 9,
+   "fine_clusters": 1,
+   "dur_s": 1.0,
+   "ratio_speech": 0.0002,
+   "cos_to_main": 0.302,
+   "n_segments": 1,
+   "longest_seg": 1.01
+  },
+  {
+   "speaker": 10,
+   "fine_clusters": 1,
+   "dur_s": 1.0,
+   "ratio_speech": 0.0002,
+   "cos_to_main": 0.257,
+   "n_segments": 1,
+   "longest_seg": 1.0
+  },
+  {
+   "speaker": 18,
+   "fine_clusters": 1,
+   "dur_s": 1.0,
+   "ratio_speech": 0.0002,
+   "cos_to_main": 0.302,
+   "n_segments": 1,
+   "longest_seg": 1.0
+  },
+  {
+   "speaker": 26,
+   "fine_clusters": 1,
+   "dur_s": 1.0,
+   "ratio_speech": 0.0002,
+   "cos_to_main": 0.384,
+   "n_segments": 2,
+   "longest_seg": 0.62
+  },
+  {
+   "speaker": 33,
+   "fine_clusters": 1,
+   "dur_s": 1.0,
+   "ratio_speech": 0.0002,
+   "cos_to_main": 0.577,
+   "n_segments": 1,
+   "longest_seg": 0.99
+  },
+  {
+   "speaker": 58,
+   "fine_clusters": 1,
+   "dur_s": 1.0,
+   "ratio_speech": 0.0002,
+   "cos_to_main": 0.465,
+   "n_segments": 1,
+   "longest_seg": 0.98
+  },
+  {
+   "speaker": 75,
+   "fine_clusters": 1,
+   "dur_s": 1.0,
+   "ratio_speech": 0.0002,
+   "cos_to_main": 0.387,
+   "n_segments": 1,
+   "longest_seg": 1.01
+  },
+  {
+   "speaker": 13,
+   "fine_clusters": 1,
+   "dur_s": 0.9,
+   "ratio_speech": 0.0002,
+   "cos_to_main": 0.348,
+   "n_segments": 1,
+   "longest_seg": 0.88
+  },
+  {
+   "speaker": 76,
+   "fine_clusters": 1,
+   "dur_s": 0.8,
+   "ratio_speech": 0.0002,
+   "cos_to_main": 0.338,
+   "n_segments": 1,
+   "longest_seg": 0.81
+  },
+  {
+   "speaker": 25,
+   "fine_clusters": 1,
+   "dur_s": 0.7,
+   "ratio_speech": 0.0001,
+   "cos_to_main": 0.519,
+   "n_segments": 1,
+   "longest_seg": 0.69
+  },
+  {
+   "speaker": 40,
+   "fine_clusters": 1,
+   "dur_s": 0.7,
+   "ratio_speech": 0.0002,
+   "cos_to_main": 0.617,
+   "n_segments": 1,
+   "longest_seg": 0.72
+  },
+  {
+   "speaker": 62,
+   "fine_clusters": 1,
+   "dur_s": 0.7,
+   "ratio_speech": 0.0001,
+   "cos_to_main": 0.354,
+   "n_segments": 1,
+   "longest_seg": 0.68
+  },
+  {
+   "speaker": 72,
+   "fine_clusters": 1,
+   "dur_s": 0.7,
+   "ratio_speech": 0.0001,
+   "cos_to_main": 0.389,
+   "n_segments": 1,
+   "longest_seg": 0.69
+  },
+  {
+   "speaker": 45,
+   "fine_clusters": 1,
+   "dur_s": 0.6,
+   "ratio_speech": 0.0001,
+   "cos_to_main": 0.294,
+   "n_segments": 1,
+   "longest_seg": 0.57
+  },
+  {
+   "speaker": 52,
+   "fine_clusters": 1,
+   "dur_s": 0.6,
+   "ratio_speech": 0.0001,
+   "cos_to_main": 0.504,
+   "n_segments": 1,
+   "longest_seg": 0.62
+  },
+  {
+   "speaker": 63,
+   "fine_clusters": 1,
+   "dur_s": 0.6,
+   "ratio_speech": 0.0001,
+   "cos_to_main": 0.472,
+   "n_segments": 1,
+   "longest_seg": 0.57
+  },
+  {
+   "speaker": 29,
+   "fine_clusters": 1,
+   "dur_s": 0.5,
+   "ratio_speech": 0.0001,
+   "cos_to_main": 0.446,
+   "n_segments": 1,
+   "longest_seg": 0.47
+  },
+  {
+   "speaker": 65,
+   "fine_clusters": 1,
+   "dur_s": 0.5,
+   "ratio_speech": 0.0001,
+   "cos_to_main": 0.255,
+   "n_segments": 1,
+   "longest_seg": 0.49
+  },
+  {
+   "speaker": 70,
+   "fine_clusters": 1,
+   "dur_s": 0.5,
+   "ratio_speech": 0.0001,
+   "cos_to_main": 0.226,
+   "n_segments": 1,
+   "longest_seg": 0.49
+  },
+  {
+   "speaker": 77,
+   "fine_clusters": 1,
+   "dur_s": 0.5,
+   "ratio_speech": 0.0001,
+   "cos_to_main": 0.302,
+   "n_segments": 1,
+   "longest_seg": 0.52
+  },
+  {
+   "speaker": 28,
+   "fine_clusters": 1,
+   "dur_s": 0.4,
+   "ratio_speech": 0.0001,
+   "cos_to_main": 0.251,
+   "n_segments": 1,
+   "longest_seg": 0.35
+  },
+  {
+   "speaker": 47,
+   "fine_clusters": 1,
+   "dur_s": 0.4,
+   "ratio_speech": 0.0001,
+   "cos_to_main": 0.289,
+   "n_segments": 1,
+   "longest_seg": 0.36
+  },
+  {
+   "speaker": 49,
+   "fine_clusters": 1,
+   "dur_s": 0.4,
+   "ratio_speech": 0.0001,
+   "cos_to_main": 0.313,
+   "n_segments": 1,
+   "longest_seg": 0.41
+  },
+  {
+   "speaker": 60,
+   "fine_clusters": 1,
+   "dur_s": 0.4,
+   "ratio_speech": 0.0001,
+   "cos_to_main": 0.539,
+   "n_segments": 1,
+   "longest_seg": 0.42
+  },
+  {
+   "speaker": 67,
+   "fine_clusters": 1,
+   "dur_s": 0.4,
+   "ratio_speech": 0.0001,
+   "cos_to_main": 0.524,
+   "n_segments": 1,
+   "longest_seg": 0.39
+  },
+  {
+   "speaker": 71,
+   "fine_clusters": 1,
+   "dur_s": 0.4,
+   "ratio_speech": 0.0001,
+   "cos_to_main": 0.256,
+   "n_segments": 1,
+   "longest_seg": 0.44
+  },
+  {
+   "speaker": 27,
+   "fine_clusters": 1,
+   "dur_s": 0.3,
+   "ratio_speech": 0.0001,
+   "cos_to_main": 0.117,
+   "n_segments": 1,
+   "longest_seg": 0.32
+  },
+  {
+   "speaker": 51,
+   "fine_clusters": 1,
+   "dur_s": 0.3,
+   "ratio_speech": 0.0001,
+   "cos_to_main": 0.359,
+   "n_segments": 1,
+   "longest_seg": 0.32
+  }
+ ]
+}

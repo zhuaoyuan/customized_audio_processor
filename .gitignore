@@ -1,0 +1,50 @@
+# ---- 原始数据（体积大，本地保留，不入库）----
+data/
+out/*.m4a
+out/*.wav
+
+# ---- 虚拟环境 / 依赖 ----
+work/venv/
+work/venv*/
+**/node_modules/
+
+# ---- 音频与模型（二进制大文件）----
+work/**/*.wav
+work/**/*.flac
+work/**/*.m4a
+work/**/*.mp3
+work/**/*.aac
+work/**/*.bin
+work/**/*.onnx
+work/**/*.rnnn
+work/**/*.zstd
+work/**/models/
+work/timeline/_cache/
+work/timeline/_trial/
+work/bench/parallel/
+work/audio-edit/pilot/
+work/audio-edit/samples/
+work/audio-edit/variants/
+work/audio-edit/denoised/
+work/audio-edit/wav/
+work/scan/wav/
+work/diar/*.wav
+
+# ---- 日志与大文本中间产物 ----
+work/**/err_*.txt
+work/**/ebur_test.txt
+work/**/*.log
+work/bench/hf_home/
+work/bench/models/
+
+# ---- Python 缓存 ----
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+
+# ---- 编辑器 / 系统 ----
+.vscode/
+.idea/
+desktop.ini
+Thumbs.db

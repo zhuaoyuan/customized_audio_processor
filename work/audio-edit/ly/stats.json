@@ -1,0 +1,198 @@
+{
+ "short": "ly",
+ "src": "C:\\projects\\local\\audio_processer\\work\\audio-edit\\wav\\ly.wav",
+ "denoise_mode": "afftdn",
+ "target_asl_dbfs": -20.0,
+ "limiter_limit_db": -2.0,
+ "pilot": null,
+ "timing": {
+  "load_s": 0.21,
+  "denoise_s": 14.54,
+  "vad_s": 11.68,
+  "crop_s": 0.09,
+  "measure_pre_s": 18.98,
+  "speaker_s": 0.0,
+  "render_v1_s": 19.58,
+  "render_v2_s": 23.94
+ },
+ "vad": {
+  "n_segments": 1629,
+  "speech_total_s": 4172.98,
+  "speech_ratio": 0.6874,
+  "continuous": {
+   "n": 494,
+   "total_s": 2637.36,
+   "mean_s": 5.34,
+   "longest_s": 20.83
+  },
+  "fragments": {
+   "n": 1135,
+   "total_s": 1535.62,
+   "mean_s": 1.35
+  },
+  "long_pauses": {
+   "n": 90,
+   "total_s": 726.68,
+   "longest_s": 93.25,
+   "internal_n": 85,
+   "internal_total_s": 596.02
+  }
+ },
+ "crop": {
+  "orig_dur_s": 6070.62,
+  "clean_dur_s": 5343.69,
+  "head_trim_s": 146.23,
+  "tail_trim_s": 27.18,
+  "internal_cut_s": 553.52,
+  "total_cut_s": 726.93,
+  "cut_ratio": 0.1197,
+  "n_internal_cuts": 85,
+  "speech_preserved_ratio": 0.99398,
+  "continuous_preserved_ratio": 1.0,
+  "fragments_preserved_ratio": 0.98363
+ },
+ "pre": {
+  "speech_asl_dbfs": -22.508,
+  "n_active_frames": 210075,
+  "n_speech_frames": 263735,
+  "speech_sec": 2637.35,
+  "percentile": {
+   "p10": -42.17,
+   "p25": -35.72,
+   "p50": -28.71,
+   "p75": -23.45,
+   "p90": -19.15
+  },
+  "window5min": {
+   "n_windows": 18,
+   "p5": -24.02,
+   "p95": -20.79,
+   "spread": 3.23,
+   "half": 1.62,
+   "mean": -22.7,
+   "std": 1.15
+  },
+  "source_speech_asl_dbfs": -21.931,
+  "source_r128": {
+   "lufs": -23.6,
+   "lra": 11.8,
+   "tp_dbtp": -1.2
+  },
+  "lufs_minus_asl": -1.67
+ },
+ "base_gain_db": 2.51,
+ "variants": {
+  "v1": {
+   "speech_asl_dbfs": -20.004,
+   "n_active_frames": 210114,
+   "n_speech_frames": 263735,
+   "speech_sec": 2637.35,
+   "percentile": {
+    "p10": -39.66,
+    "p25": -33.2,
+    "p50": -26.2,
+    "p75": -20.93,
+    "p90": -16.63
+   },
+   "window5min": {
+    "n_windows": 18,
+    "p5": -21.53,
+    "p95": -18.3,
+    "spread": 3.23,
+    "half": 1.61,
+    "mean": -20.2,
+    "std": 1.15
+   },
+   "r128": {
+    "lufs": -21.1,
+    "lra": 10.1,
+    "tp_dbtp": -1.1
+   },
+   "asl_dev_db": -0.0,
+   "limit_iterations": 1,
+   "clipped_final": 0,
+   "gain_db_min": 2.51,
+   "gain_db_max": 2.51,
+   "gain_db_mean": 2.51,
+   "gain_rate_db_s_max": 0.0,
+   "limiter": {
+    "limit_db": -2.0,
+    "trigger_frames": 195,
+    "trigger_ratio": 0.00036,
+    "max_over_db": 3.31
+   },
+   "clip_samples_pre_limiter": 13,
+   "gain": {
+    "type": "static",
+    "gain_db": 2.51,
+    "gain_rate_db_s_max": 0.0
+   }
+  },
+  "v2": {
+   "speech_asl_dbfs": -20.004,
+   "n_active_frames": 215473,
+   "n_speech_frames": 263735,
+   "speech_sec": 2637.35,
+   "percentile": {
+    "p10": -38.85,
+    "p25": -32.43,
+    "p50": -25.36,
+    "p75": -20.39,
+    "p90": -16.44
+   },
+   "window5min": {
+    "n_windows": 18,
+    "p5": -20.25,
+    "p95": -19.73,
+    "spread": 0.53,
+    "half": 0.26,
+    "mean": -20.01,
+    "std": 0.2
+   },
+   "r128": {
+    "lufs": -20.9,
+    "lra": 8.1,
+    "tp_dbtp": -1.2
+   },
+   "asl_dev_db": -0.0,
+   "limit_iterations": 2,
+   "clipped_final": 0,
+   "gain_db_min": -0.49,
+   "gain_db_max": 5.51,
+   "gain_db_mean": 3.01,
+   "gain_rate_db_s_max": 0.61,
+   "limiter": {
+    "limit_db": -2.0,
+    "trigger_frames": 482,
+    "trigger_ratio": 0.0009,
+    "max_over_db": 5.21
+   },
+   "clip_samples_pre_limiter": 153,
+   "gain": {
+    "win_s": 20.0,
+    "hop_s": 5.0,
+    "clamp_db": 3.0,
+    "max_rate_db_s": 1.5,
+    "n_windows_used": 1009,
+    "degraded": false,
+    "gain_min": -0.49,
+    "gain_max": 5.51,
+    "gain_mean": 3.01,
+    "max_actual_rate_db_s": 0.61,
+    "control_centers_s": [
+     10.0,
+     15.0,
+     55.0,
+     60.0,
+     65.0
+    ],
+    "type": "static+slow_adaptive"
+   }
+  }
+ },
+ "clean_variant": "v2",
+ "speaker_v3": {
+  "method": "skipped"
+ },
+ "timing_total_s": 89.4
+}

@@ -1,0 +1,53 @@
+{
+ "short": "f00_xifang20140227",
+ "start_s": 152.4,
+ "dur_s": 600.0,
+ "merge_th_cosine": 0.7,
+ "raw_num_speakers": 9,
+ "raw_n_segments": 51,
+ "merged_num_speakers": 3,
+ "merged_speakers_ge1s": 3,
+ "num_effective_speakers": 1,
+ "effective_share_min": 0.05,
+ "speech_total_s": 597.4,
+ "main_dur_s": 591.9,
+ "main_share_of_speech": 0.9907065343843162,
+ "nonmain_speech_s": 5.5,
+ "merged_speakers": [
+  {
+   "raw_clusters": [
+    0,
+    2,
+    23,
+    4
+   ],
+   "dur_s": 591.9,
+   "share": 0.9907065343843162
+  },
+  {
+   "raw_clusters": [
+    14
+   ],
+   "dur_s": 4.5,
+   "share": 0.007597809875646334
+  },
+  {
+   "raw_clusters": [
+    31
+   ],
+   "dur_s": 1.0,
+   "share": 0.001695655740037395
+  }
+ ],
+ "raw_per_speaker_s": {
+  "0": 430.7,
+  "2": 156.9,
+  "14": 4.5,
+  "4": 2.4,
+  "23": 2.4,
+  "31": 1.0,
+  "1": 0.7,
+  "8": 0.4,
+  "27": 0.4
+ }
+}

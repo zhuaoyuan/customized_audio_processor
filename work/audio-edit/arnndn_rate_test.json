@@ -1,0 +1,27 @@
+{
+ "orig_16k": {
+  "n": 4800000,
+  "dur_s": 300.0,
+  "rms_dbfs": -10.93,
+  "peak": 1.4869,
+  "nan": 0,
+  "zero_ratio": 0.0
+ },
+ "arnndn_16k_direct": {
+  "n": 14400000,
+  "dur_s": 900.0,
+  "rms_dbfs": -13.37,
+  "peak": 1.8195,
+  "nan": 0,
+  "zero_ratio": 0.0
+ },
+ "arnndn_48k_then_16k": {
+  "n": 4800000,
+  "dur_s": 300.0,
+  "rms_dbfs": -13.37,
+  "peak": 1.8197,
+  "nan": 0,
+  "zero_ratio": 0.0
+ },
+ "note": "rnnoise 模型仅支持 48kHz；16k 直接送入会得到 NaN/静音"
+}

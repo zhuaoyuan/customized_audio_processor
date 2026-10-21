@@ -1,0 +1,18 @@
+﻿<class 'dict'> ['wav', 'vad', 'model_dir', 'threads', 'itn', 'dur', 'load_s', 'wall_s', 'decode_s', 'rtf', 'rtf_decode', 'n_segments', 'n_empty', 'chars_cn', 'clip_s', 'segments']
+wav work\timeline\_cache\24_形而上学_16k.wav
+vad work\timeline\24_形而上学\vad.json
+model_dir work\bench\models\sensevoice
+threads 8
+itn 1
+dur 4673.294
+load_s 3.18
+wall_s 204.44
+decode_s 196.87
+rtf 0.0437
+rtf_decode 0.0421
+n_segments 928
+n_empty 0
+chars_cn 15910
+clip_s 3682.7
+segments list 928
+[{"start": 0.0, "end": 7.2, "vad_start": 0.0, "vad_end": 7.08, "text": "。", "clip_s": 7.2}, {"start": 7.68, "end": 10.93, "vad_start": 7.8, "vad_end": 10.81, "text": "我去做饭。", "clip_s": 3.25}, {"start": 11.28, "end": 19.87, "vad_start": 11.4, "vad_end": 19.75, "text": "。", "clip_s": 8.59}]

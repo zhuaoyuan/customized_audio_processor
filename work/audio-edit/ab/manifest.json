@@ -1,0 +1,38 @@
+{
+ "note": "before=原始解码16k；after=处理后 clean.wav；同一内容对齐",
+ "clips": [
+  {
+   "name": "xes_50pct",
+   "file": "xes",
+   "clean_start_s": 1927.88,
+   "orig_start_s": 2587.05,
+   "dur_s": 20.0,
+   "before_wav": "C:\\projects\\local\\audio_processer\\work\\audio-edit\\ab\\xes_50pct_before.wav",
+   "after_wav": "C:\\projects\\local\\audio_processer\\work\\audio-edit\\ab\\xes_50pct_after.wav",
+   "before_asl_dbfs": -8.7,
+   "after_asl_dbfs": -18.93
+  },
+  {
+   "name": "wlx_30pct",
+   "file": "wlx",
+   "clean_start_s": 1844.78,
+   "orig_start_s": 1861.18,
+   "dur_s": 20.0,
+   "before_wav": "C:\\projects\\local\\audio_processer\\work\\audio-edit\\ab\\wlx_30pct_before.wav",
+   "after_wav": "C:\\projects\\local\\audio_processer\\work\\audio-edit\\ab\\wlx_30pct_after.wav",
+   "before_asl_dbfs": -10.64,
+   "after_asl_dbfs": -19.3
+  },
+  {
+   "name": "ly_70pct",
+   "file": "ly",
+   "clean_start_s": 3730.58,
+   "orig_start_s": 4281.24,
+   "dur_s": 20.0,
+   "before_wav": "C:\\projects\\local\\audio_processer\\work\\audio-edit\\ab\\ly_70pct_before.wav",
+   "after_wav": "C:\\projects\\local\\audio_processer\\work\\audio-edit\\ab\\ly_70pct_after.wav",
+   "before_asl_dbfs": -23.48,
+   "after_asl_dbfs": -19.61
+  }
+ ]
+}

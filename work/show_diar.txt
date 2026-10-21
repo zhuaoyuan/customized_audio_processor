@@ -1,0 +1,17 @@
+﻿{'wav': 'C:\\projects\\local\\audio_processer\\work\\full_16k.wav', 'diar_in': 'C:\\projects\\local\\audio_processer\\work\\diar\\cluster_report_th0.7_diar.json', 'dur': 4673.2945, 'cos_main_th': 0.7, 'chars_per_s_th': 0.5, 'nonspeech_min_dur': 60.0, 'n_main_clusters': 7, 'n_speech_clusters': 70, 'n_nonspeech_clusters': 1}
+speech clusters: 77
+spk  0 dur= 3244.30s nseg= 666 cos=0.919 label=  main chars_per_s=5.50 | 对不起，迟到了，嗯我们可以可以这个在第一第二章就会发现亚里士多德心目中那个手表是什么啊，你们可以去找一下，最好有罗伯德有一个好处。因为这个第
+spk 24 dur=   26.40s nseg=   9 cos=0.884 label=  main chars_per_s=4.09 | 不过我真没想到上学商上学怎么来这么多人，怎么来来比比那个听政治哲。这样这个今天呢我们整个的这个安排呃，我认为大体团为什么呢？因为啊然后这个在
+spk  5 dur=   12.40s nseg=  16 cos=0.451 label=speech chars_per_s=0.43 | 刚开始。
+spk 21 dur=   10.90s nseg=   2 cos=0.511 label=speech chars_per_s=0.46 | 啊，什么。
+spk 32 dur=   10.20s nseg=   4 cos=0.452 label=speech chars_per_s=0.10 | 。
+spk 41 dur=    7.60s nseg=   3 cos=0.708 label=  main chars_per_s=5.00 | 很清楚啊很清楚，比比行动这个态度高啊高。当然可能行动者不是这么不是这么看啊。
+spk 69 dur=    7.50s nseg=   3 cos=0.662 label=speech chars_per_s=0.80 | 这个他可能。
+spk 73 dur=    6.20s nseg=   3 cos=0.660 label=speech chars_per_s=1.79 | 呃，你现在有的是个人。
+spk  4 dur=    5.70s nseg=   6 cos=0.439 label=speech chars_per_s=0.17 | 。
+spk 54 dur=    4.50s nseg=   2 cos=0.590 label=speech chars_per_s=3.59 | 呃吴先生班长怎么改印象线线下的。
+spk 39 dur=    4.40s nseg=   5 cos=0.688 label=speech chars_per_s=4.59 | 讲一下这个第一卷的开头啊，统代的这个项声啊。
+spk 14 dur=    4.10s nseg=   4 cos=0.359 label=speech chars_per_s=0.97 | 回法的。
+spk 59 dur=    3.80s nseg=   2 cos=0.643 label=speech chars_per_s=3.70 | 981A15到981B1这。
+spk  7 dur=    3.70s nseg=   4 cos=0.521 label=speech chars_per_s=0.27 | 。
+spk 35 dur=    3.20s nseg=   1 cos=0.502 label=speech chars_per_s=3.14 | 很高利对很高利好啊。

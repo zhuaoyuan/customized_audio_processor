@@ -1,0 +1,201 @@
+{
+ "short": "wlx",
+ "src": "C:\\projects\\local\\audio_processer\\work\\audio-edit\\wav\\wlx.wav",
+ "denoise_mode": "afftdn",
+ "target_asl_dbfs": -20.0,
+ "limiter_limit_db": -2.0,
+ "pilot": null,
+ "timing": {
+  "load_s": 0.11,
+  "denoise_s": 0.0,
+  "vad_s": 10.12,
+  "crop_s": 0.09,
+  "measure_pre_s": 19.57,
+  "speaker_s": 0.0,
+  "render_v1_s": 26.35,
+  "render_v2_s": 38.13
+ },
+ "vad": {
+  "n_segments": 1309,
+  "speech_total_s": 5161.16,
+  "speech_ratio": 0.8159,
+  "continuous": {
+   "n": 588,
+   "total_s": 4164.04,
+   "mean_s": 7.08,
+   "longest_s": 42.5
+  },
+  "fragments": {
+   "n": 721,
+   "total_s": 997.12,
+   "mean_s": 1.38
+  },
+  "long_pauses": {
+   "n": 32,
+   "total_s": 152.18,
+   "longest_s": 8.93,
+   "internal_n": 32,
+   "internal_total_s": 152.18
+  }
+ },
+ "crop": {
+  "orig_dur_s": 6325.74,
+  "clean_dur_s": 6182.59,
+  "head_trim_s": 3.16,
+  "tail_trim_s": 3.81,
+  "internal_cut_s": 136.18,
+  "total_cut_s": 143.15,
+  "cut_ratio": 0.0226,
+  "n_internal_cuts": 32,
+  "speech_preserved_ratio": 0.99889,
+  "continuous_preserved_ratio": 1.0,
+  "fragments_preserved_ratio": 0.99424
+ },
+ "pre": {
+  "speech_asl_dbfs": -11.203,
+  "n_active_frames": 292184,
+  "n_speech_frames": 416403,
+  "speech_sec": 4164.03,
+  "percentile": {
+   "p10": -32.72,
+   "p25": -27.64,
+   "p50": -20.5,
+   "p75": -13.25,
+   "p90": -7.74
+  },
+  "window5min": {
+   "n_windows": 21,
+   "p5": -18.19,
+   "p95": -9.93,
+   "spread": 8.26,
+   "half": 4.13,
+   "mean": -11.83,
+   "std": 2.46
+  },
+  "source_speech_asl_dbfs": -11.193,
+  "source_r128": {
+   "lufs": -12.0,
+   "lra": 14.4,
+   "tp_dbtp": 1.7
+  },
+  "lufs_minus_asl": -0.81
+ },
+ "base_gain_db": -8.8,
+ "variants": {
+  "v1": {
+   "speech_asl_dbfs": -20.0,
+   "n_active_frames": 292139,
+   "n_speech_frames": 416403,
+   "speech_sec": 4164.03,
+   "percentile": {
+    "p10": -41.51,
+    "p25": -36.43,
+    "p50": -29.3,
+    "p75": -22.05,
+    "p90": -16.54
+   },
+   "window5min": {
+    "n_windows": 21,
+    "p5": -26.98,
+    "p95": -18.74,
+    "spread": 8.25,
+    "half": 4.12,
+    "mean": -20.63,
+    "std": 2.45
+   },
+   "r128": {
+    "lufs": -20.8,
+    "lra": 14.1,
+    "tp_dbtp": -4.9
+   },
+   "asl_dev_db": 0.0,
+   "limit_iterations": 1,
+   "clipped_final": 0,
+   "gain_db_min": -8.8,
+   "gain_db_max": -8.8,
+   "gain_db_mean": -8.8,
+   "gain_rate_db_s_max": 0.0,
+   "clip_samples_pre_limiter": 0,
+   "limiter": {
+    "limit_db": -2.0,
+    "trigger_frames": 0,
+    "trigger_ratio": 0.0,
+    "max_over_db": 0.0,
+    "tp_retries": 0
+   },
+   "gain": {
+    "type": "static",
+    "gain_db": -8.8,
+    "gain_rate_db_s_max": 0.0
+   }
+  },
+  "v2": {
+   "speech_asl_dbfs": -20.002,
+   "n_active_frames": 327604,
+   "n_speech_frames": 416403,
+   "speech_sec": 4164.03,
+   "percentile": {
+    "p10": -39.25,
+    "p25": -33.84,
+    "p50": -27.21,
+    "p75": -20.96,
+    "p90": -16.2
+   },
+   "window5min": {
+    "n_windows": 21,
+    "p5": -22.3,
+    "p95": -19.41,
+    "spread": 2.89,
+    "half": 1.44,
+    "mean": -20.05,
+    "std": 0.93
+   },
+   "r128": {
+    "lufs": -20.6,
+    "lra": 9.3,
+    "tp_dbtp": -1.2
+   },
+   "asl_dev_db": -0.0,
+   "limit_iterations": 2,
+   "clipped_final": 0,
+   "gain_db_min": -12.79,
+   "gain_db_max": -2.8,
+   "gain_db_mean": -7.79,
+   "gain_rate_db_s_max": 0.99,
+   "clip_samples_pre_limiter": 0,
+   "limiter": {
+    "limit_db": -2.0,
+    "trigger_frames": 131,
+    "trigger_ratio": 0.00021,
+    "max_over_db": 1.99,
+    "tp_retries": 0
+   },
+   "gain": {
+    "win_s": 20.0,
+    "hop_s": 5.0,
+    "clamp_db": 6.0,
+    "max_rate_db_s": 1.5,
+    "n_windows_used": 1220,
+    "degraded": false,
+    "gain_min": -12.79,
+    "gain_max": -2.8,
+    "gain_mean": -7.79,
+    "max_actual_rate_db_s": 0.99,
+    "control_centers_s": [
+     10.0,
+     15.0,
+     20.0,
+     25.0,
+     30.0
+    ],
+    "type": "static+slow_adaptive"
+   }
+  }
+ },
+ "v2_clamp_db": 6.0,
+ "clean_variant": "v2",
+ "speaker_v3": {
+  "method": "skipped"
+ },
+ "timing_total_s": 94.7
+}
