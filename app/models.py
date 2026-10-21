@@ -312,6 +312,62 @@ class DecodeResult:
         return {"repaired": self.repaired, "ok": self.ok}
 
 
+# ---------------------------------------------------------------- 分析结果（P2）
+@dataclass
+class AnalyzeResult:
+    """``app.pipeline.analyze.analyze()`` 的返回值。
+
+    ``vad`` / ``levels`` / ``trim`` 三段与 ``report.json`` 契约（§4.1）同名同结构，
+    P5 导出时直接拼接即可；``boundary`` 记录头尾判定明细（窗口表）以便人工复核。
+    """
+
+    ok: bool = True
+    job_id: str = ""
+    duration_s: float = 0.0
+    sample_rate: int = 16000
+    vad: Dict[str, Any] = field(default_factory=dict)
+    levels: Dict[str, Any] = field(default_factory=dict)
+    trim: Dict[str, Any] = field(default_factory=dict)
+    internal_silence: Dict[str, Any] = field(default_factory=dict)
+    boundary: Dict[str, Any] = field(default_factory=dict)
+    segments: List[List[float]] = field(default_factory=list)
+    timings: Dict[str, float] = field(default_factory=dict)
+    from_cache: bool = False
+    error: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "job_id": self.job_id,
+            "ok": self.ok,
+            "duration_s": round(float(self.duration_s), 3),
+            "sample_rate": self.sample_rate,
+            "vad": self.vad,
+            "levels": self.levels,
+            "trim": self.trim,
+            "internal_silence": self.internal_silence,
+            "boundary": self.boundary,
+            "segments": self.segments,
+            "timings": {k: round(float(v), 3) for k, v in self.timings.items()},
+            "from_cache": self.from_cache,
+            "error": self.error,
+        }
+
+    # -- report.json 片段（P5 直接用）
+    def report_vad(self) -> Dict[str, Any]:
+        return {
+            "engine": self.vad.get("engine", "silero-v6"),
+            "speech_ratio": self.vad.get("speech_ratio"),
+            "n_segments": self.vad.get("n_segments"),
+        }
+
+    def report_levels(self) -> Dict[str, Any]:
+        keep = (
+            "asl_in_dbfs", "lufs_in", "noise_floor_dbfs", "snr_db",
+            "window5m_spread_in_db",
+        )
+        return {k: self.levels.get(k) for k in keep}
+
+
 # ---------------------------------------------------------------- 编辑映射（契约 §4.2）
 @dataclass
 class KeptSpan:

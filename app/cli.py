@@ -34,6 +34,7 @@ from .models import (
 )
 from .pipeline.decode import decode as run_decode
 from .pipeline.decode import DecodeError, cleanup_cache, wav_info
+from .pipeline.analyze import analyze as run_analyze
 from .storage import Storage, StorageError
 
 EXIT_OK = 0
@@ -122,6 +123,20 @@ def build_parser() -> argparse.ArgumentParser:
     p_decode.add_argument("--limit", type=int, default=None, help="--all 时最多处理 N 个")
     p_decode.add_argument("--json", action="store_true", help="以 JSON 输出（便于脚本校验）")
     p_decode.set_defaults(func=cmd_decode)
+
+    # analyze
+    p_analyze = subparsers.add_parser(
+        "analyze", help="分析阶段：VAD / 语音电平 / 5min 波动 / 内部长静音 / 头尾边界",
+        parents=[global_parent],
+    )
+    p_analyze.add_argument("target", nargs="?", default=None, help="job id 或输入文件路径")
+    p_analyze.add_argument("--all", action="store_true", help="分析数据库里全部 job")
+    p_analyze.add_argument("--no-boundary", action="store_true",
+                           help="跳过 ASR 边界判定（快，但头尾不裁并标 uncertain）")
+    p_analyze.add_argument("--no-cache", action="store_true", help="不复用缓存，强制重算")
+    p_analyze.add_argument("--limit", type=int, default=None, help="--all 时最多处理 N 个")
+    p_analyze.add_argument("--json", action="store_true", help="以 JSON 输出")
+    p_analyze.set_defaults(func=cmd_analyze)
 
     return parser
 
@@ -533,6 +548,154 @@ def cmd_decode(args: argparse.Namespace, cfg: Config) -> int:
         print(f"\n解码完成：成功 {ok_n} / {len(results)}"
               + (f"，失败 {failures}" if failures else ""))
     return EXIT_OK if failures == 0 else EXIT_RUNTIME
+
+
+# ---------------------------------------------------------------- analyze
+def _resolve_analyze_targets(
+    args: argparse.Namespace, store: Storage
+) -> List[Tuple[str, Path]]:
+    if args.all:
+        jobs = store.list_jobs()
+        if args.limit:
+            jobs = jobs[: args.limit]
+        return [(job.id, Path(job.source)) for job in jobs]
+    if not args.target:
+        raise ConfigError("请给出 job id / 文件路径，或用 --all 分析全部任务")
+    job = store.get_job(args.target)
+    if job is not None:
+        return [(job.id, Path(job.source))]
+    path = Path(args.target)
+    if path.is_file():
+        existing = store.get_job_by_source(path)
+        return [(existing.id if existing else make_job_id(path), path)]
+    raise ConfigError(f"找不到 job 或文件：{args.target}")
+
+
+def cmd_analyze(args: argparse.Namespace, cfg: Config) -> int:
+    store = make_storage(cfg)
+    store.init_db()
+    try:
+        targets = _resolve_analyze_targets(args, store)
+    except ConfigError as exc:
+        print(f"[错误] {exc}", file=sys.stderr)
+        store.close()
+        return EXIT_USAGE
+    if not targets:
+        print("[警告] 没有待分析的任务", file=sys.stderr)
+        store.close()
+        return EXIT_OK
+
+    results: List[Dict[str, Any]] = []
+    failures = 0
+    for job_id, source in targets:
+        import time
+
+        t0 = time.perf_counter()
+        # 1) 确保 16k wav（缓存命中时 <0.1s）
+        decoded = run_decode(
+            source, cache_dir=cfg.path("cache_dir"), job_id=job_id, cfg=cfg,
+        )
+        if not decoded.ok or not decoded.wav16k:
+            failures += 1
+            message = f"解码失败，无法分析：{decoded.error}"
+            if store.get_job(job_id) is not None:
+                store.fail_stage(job_id, "analyze", message)
+                store.fail_job(job_id, message)
+            if not args.json:
+                print(f"[FAIL] {_pad(job_id, 40)} {message[:110]}")
+            results.append({"job_id": job_id, "ok": False, "error": message})
+            continue
+
+        # 2) 分析
+        try:
+            result = run_analyze(
+                decoded.wav16k, cfg, job_id=job_id,
+                run_boundary=not args.no_boundary,
+                use_cache=not args.no_cache,
+                force=args.no_cache,
+            )
+        except Exception as exc:  # 分析失败不阻塞其它文件
+            elapsed = time.perf_counter() - t0
+            message = f"{type(exc).__name__}: {exc}"
+            if store.get_job(job_id) is not None:
+                store.fail_stage(job_id, "analyze", message, {"elapsed_s": round(elapsed, 2)})
+                store.fail_job(job_id, message)
+            failures += 1
+            if not args.json:
+                print(f"[FAIL] {_pad(job_id, 40)} {message[:110]}")
+            results.append({"job_id": job_id, "ok": False, "error": message})
+            continue
+        elapsed = time.perf_counter() - t0
+
+        # 3) 落库（阶段级 error 走 metrics；状态机只在有 job 时更新）
+        if store.get_job(job_id) is not None:
+            store.start_stage(job_id, "analyze", reset=True)
+            store.finish_stage(job_id, "analyze", STATUS_DONE, _analyze_metrics(result, elapsed))
+            store.update_job(job_id, status=STATUS_PENDING, stage="analyze")
+
+        item = {
+            "job_id": job_id,
+            "ok": True,
+            "elapsed_s": round(elapsed, 2),
+            **result.to_dict(),
+        }
+        item.pop("segments", None)  # 段表太长，json 输出只给摘要
+        results.append(item)
+        if not args.json:
+            print(_analyze_row(job_id, result, elapsed))
+
+    store.close()
+    if args.json:
+        _json_dump({"ok": failures == 0, "n": len(results), "failures": failures,
+                    "results": results})
+    else:
+        ok_n = len(results) - failures
+        print(f"\n分析完成：成功 {ok_n} / {len(results)}"
+              + (f"，失败 {failures}" if failures else ""))
+    return EXIT_OK if failures == 0 else EXIT_RUNTIME
+
+
+def _analyze_metrics(result: Any, elapsed: float) -> Dict[str, Any]:
+    """落库用的精简指标（完整结果在 work/cache/<id>.analyze.json）。"""
+    vad = result.vad or {}
+    levels = result.levels or {}
+    trim = result.trim or {}
+    boundary = result.boundary or {}
+    return {
+        "ok": True,
+        "duration_s": round(float(result.duration_s), 3),
+        "speech_ratio": vad.get("speech_ratio"),
+        "n_segments": vad.get("n_segments"),
+        "asl_in_dbfs": levels.get("asl_in_dbfs"),
+        "asl_all_vad_dbfs": levels.get("asl_all_vad_dbfs"),
+        "noise_floor_dbfs": levels.get("noise_floor_dbfs"),
+        "snr_db": levels.get("snr_db"),
+        "lufs_in": levels.get("lufs_in"),
+        "window5m_half_spread_db": levels.get("window5m_half_spread_db"),
+        "head_s": trim.get("head_s"),
+        "tail_s": trim.get("tail_s"),
+        "internal_cut_s": trim.get("internal_cut_s"),
+        "internal_gap_total_s": trim.get("internal_gap_total_s"),
+        "flags": trim.get("flags"),
+        "boundary_method": boundary.get("method"),
+        "from_cache": bool(result.from_cache),
+        "elapsed_s": round(elapsed, 2),
+    }
+
+
+def _analyze_row(job_id: str, result: Any, elapsed: float) -> str:
+    levels = result.levels
+    trim = result.trim
+    flags = ",".join(trim.get("flags") or []) or "-"
+    return (
+        f"[OK  ] {_pad(job_id, 40)} dur={result.duration_s:7.1f}s "
+        f"speech={result.vad['speech_ratio'] * 100:5.1f}% "
+        f"ASL={levels['asl_in_dbfs']:7.2f} noise={levels['noise_floor_dbfs']:6.1f} "
+        f"SNR={levels['snr_db']:5.1f} lufs={levels.get('lufs_in')} "
+        f"head={trim['head_s']:6.1f}s tail={trim['tail_s']:6.1f}s "
+        f"int_gap={trim['internal_cut_s']:6.1f}s flags={flags:28s} "
+        f"{'cache' if result.from_cache else 'calc '} {elapsed:6.1f}s"
+    )
 
 
 # ---------------------------------------------------------------- 入口

@@ -287,6 +287,20 @@ def validate_config(data: Mapping[str, Any]) -> None:
     levels = section("levels")
     num(levels, "levels", "target_asl_dbfs", lo=-60.0, hi=0.0)
     num(levels, "levels", "window_s", lo=1.0)
+    num(levels, "levels", "window_min_speech_s", lo=0.0)
+    pct = num(levels, "levels", "noise_floor_percentile", lo=0.1, hi=99.9)
+    if pct is not None and pct != int(pct):
+        # 允许浮点，但分位必须能落在一个 0..100 的区间里
+        pass
+    quantiles = levels.get("percentiles")
+    if quantiles is not None:
+        if not isinstance(quantiles, (list, tuple)) or not quantiles:
+            errors.append("levels.percentiles 必须是非空列表")
+        else:
+            if any(not isinstance(q, (int, float)) or not (0 <= q <= 100) for q in quantiles):
+                errors.append(f"levels.percentiles 取值必须在 0..100：{quantiles}")
+            elif list(quantiles) != sorted(quantiles):
+                errors.append("levels.percentiles 必须升序")
 
     trim = section("trim")
     num(trim, "trim", "boundary_window_s", lo=1.0)
@@ -332,6 +346,15 @@ def validate_config(data: Mapping[str, Any]) -> None:
     if seg_min is not None and seg_max is not None and seg_min >= seg_max:
         errors.append("asr.segment_min_s 必须小于 segment_max_s")
     num(asr, "asr", "num_threads", lo=1)
+
+    analyze = data.get("analyze") or {}
+    if not isinstance(analyze, dict):
+        errors.append("analyze 段必须是 mapping")
+    else:
+        for key in ("cache_enabled", "boundary_use_asr", "ebur128"):
+            value = analyze.get(key, True)
+            if not isinstance(value, bool):
+                errors.append(f"analyze.{key} 必须是 bool，当前={value!r}")
 
     diar = section("diar")
     if diar.get("mode") not in _DIAR_MODES:

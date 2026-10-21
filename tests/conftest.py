@@ -82,6 +82,24 @@ def cfg(tmp_path: Path):
     )
 
 
+@pytest.fixture(scope="session")
+def session_cfg(tmp_path_factory):
+    """会话级临时配置（给 session 级的数据用例用，避免 ScopeMismatch）。"""
+    from app.config import load_config
+
+    base = tmp_path_factory.mktemp("session_cfg")
+    return load_config(
+        overrides={
+            "paths.out_dir": str(base / "out"),
+            "paths.work_dir": str(base / "work"),
+            "paths.cache_dir": str(base / "cache"),
+            "paths.logs_dir": str(base / "logs"),
+            "paths.quarantine_dir": str(base / "quarantine"),
+            "paths.db_path": str(base / "jobs.db"),
+        }
+    )
+
+
 @pytest.fixture()
 def project_root() -> Path:
     return ROOT

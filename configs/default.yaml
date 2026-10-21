@@ -59,6 +59,12 @@ decode:
     enabled: true                  # work/cache/<id>.16k.wav 可复用
     cleanup_on_stage_end: true
 
+# ---------------------------------------------------------------- 分析（P2）
+analyze:
+  cache_enabled: true              # work/cache/<id>.analyze.json 复用（P3 直接读边界/段表）
+  boundary_use_asr: true           # 头尾边界必须用 ASR 字符率；关掉则「不裁」并标 uncertain
+  ebur128: true                    # 用 ffmpeg ebur128 测 LUFS 作对照（量级级慢于 VAD，可关）
+
 # ---------------------------------------------------------------- VAD
 vad:
   engine: silero-v6
@@ -73,6 +79,9 @@ levels:
   rel_db: 15.0                     # P.56 式 ASL 的相对门限
   min_continuous_speech_s: 3.0     # 只统计 ≥3 s 连续语音段
   window_s: 300.0                  # 5 min 窗口
+  window_min_speech_s: 30.0        # 窗口内语音不足 30 s 不统计（避免片头音乐段）
+  noise_floor_percentile: 10.0     # 噪声底 = 全帧 dB 的低 10% 分位的平均功率
+  percentiles: [10, 50, 90]        # 语音帧 dB 分位
   cross_file_tolerance_db: 0.5
   window_half_spread_tolerance_db: 1.5
 
@@ -83,6 +92,7 @@ trim:
   boundary_window_s: 120.0         # 120 s 窗口聚合 ASR 字符率
   boundary_min_chars_per_sec: 2.0  # 讲课窗口判据
   boundary_consecutive_windows: 2  # 连续 2 窗口判讲课起点
+  boundary_soft_chars_per_sec: 1.0 # 允许夹/续 1 个「软窗口」(1.0≤cps<2.0)，避免切掉轻声讲课
   boundary_pad_s: 0.5              # 边界两侧留余量
   internal_silence_min_s: 3.0      # 内部非语音 ≥3 s 切除
   internal_guard_s: 0.25           # 切除两侧保护带
@@ -126,9 +136,11 @@ loudness:
 asr:
   engine: sensevoice
   model: int8                      # int8 | fp32
+  model_file: model.int8.onnx      # 相对 sensevoice_dir
+  tokens_file: tokens.txt
   num_threads: 8
   use_itn: true
-  language: auto
+  language: zh                     # SenseVoice: zh|en|yue|ja|ko|auto
   segment_min_s: 0.5
   segment_max_s: 30.0
   empty_ratio_max: 0.05

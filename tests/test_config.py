@@ -48,10 +48,18 @@ def test_locked_defaults():
     assert cfg.get("loudness.limiter.target_tp_dbtp") == -1.0
     assert cfg.get("loudness.limiter.oversample") == 4
     assert cfg.get("loudness.limiter.ceiling_dbfs") <= -2.5
-    # 头尾边界：120 s 窗口、字符率 ≥2.0、连续 2 窗口
+    # 头尾边界：120 s 窗口、字符率 ≥2.0、连续 2 窗口、软窗口 1.0（P2 实测细化）
     assert cfg.get("trim.boundary_window_s") == 120.0
     assert cfg.get("trim.boundary_min_chars_per_sec") == 2.0
     assert cfg.get("trim.boundary_consecutive_windows") == 2
+    assert cfg.get("trim.boundary_soft_chars_per_sec") == 1.0
+    assert cfg.get("trim.boundary_pad_s") == 0.5
+    # 分析段（P2）
+    assert cfg.get("analyze.cache_enabled") is True
+    assert cfg.get("analyze.boundary_use_asr") is True
+    assert cfg.get("levels.noise_floor_percentile") == 10.0
+    assert cfg.get("levels.window_min_speech_s") == 30.0
+    assert cfg.get("levels.percentiles") == [10, 50, 90]
     # 内部长静音 ≥3 s，保护带 0.25 s，碎片保留
     assert cfg.get("trim.internal_silence_min_s") == 3.0
     assert cfg.get("trim.internal_guard_s") == 0.25
