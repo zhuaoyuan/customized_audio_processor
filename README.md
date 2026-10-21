@@ -1,68 +1,176 @@
 # audio_processer
 
-把公开平台的课程录音批量处理成「**干净音频 + 可校对的带时间戳转写稿**」的本地工具。
-当前处于「需求已对齐、方案已实测验证、等待施工」阶段。
-
-## 现在看什么
-
-| 文件 | 说明 |
-|---|---|
-| **[docs/开发启动Prompt.md](docs/开发启动Prompt.md)** | **在新 agent 会话里启动开发用的自包含 prompt**（复制代码块即可） |
-| **[docs/调研报告_需求对齐版.md](docs/调研报告_需求对齐版.md)** | **主报告（v2）**：5 条需求的实测验证、音量稳定化、批量架构、**开发 token/时间成本**、验收标准 |
-| **[docs/实施计划.md](docs/实施计划.md)** | **可直接交给 agent 执行的实施计划**：P0–P8 任务卡、写作用域、验收命令、回归基线 |
-| [docs/方案与成本评估.md](docs/方案与成本评估.md) | v1 报告：素材诊断、三条路线（全本地/云/SaaS）、成本模型 |
-| [docs/research/multifile-scan.md](docs/research/multifile-scan.md) | 6 文件体检：响度/语音电平/非语音结构/说话人/ASR 抽样 |
-| [docs/research/audio-edit-poc.md](docs/research/audio-edit-poc.md) | 降噪 + 裁剪 + 语音电平归一化（V1/V2/V3）PoC |
-| [docs/research/timeline-poc.md](docs/research/timeline-poc.md) | VAD 分段 → 句级时间戳 → 发言人的转写 PoC |
-| [docs/research/benchmark.md](docs/research/benchmark.md) | ASR/降噪 RTF、内存、前后指标、踩坑记录 |
-| [docs/research/local-options.md](docs/research/local-options.md) | 本地模型矩阵（降噪 / TSE / 分离 / 中文 ASR）与许可证 |
-| [docs/research/cloud-options.md](docs/research/cloud-options.md) | 云平台核实价格、能力边界、合规 |
-| [docs/research/diarization-poc.md](docs/research/diarization-poc.md) | 整片说话人分离（非主讲人仅 1.7%） |
-| [out/](out/) | 已产出的实际转写稿与降噪音轨示例 |
-
-## 目录
-
-```
-data/          原始 m4a（只读，6 个样例 / 576 min）
-out/           可直接消费的产物（转写、干净音轨）
-docs/          报告、调研、图
-app/           应用代码（待开发，见 docs/实施计划.md）
-work/          中间产物、可复现脚本、模型（可随时删）
-```
-
-## 一句话结论
-
-- **降噪 + 裁剪 + 音量归一化 + 转写 + LLM 纠错** 全部本机 CPU 可跑（不需要 GPU/torch）；
-- **跨文件音量差实测 29.7 dB**，用「语音活跃电平 ASL + 逐文件静态增益 + 受控慢变」归一后 6 文件极差 **0.05 dB**；
-- **非讲课内容**（片头音乐/寒暄）每文件 0–480 s，必须用「120 s 窗口 ASR 字符率」裁剪，VAD 不可靠；
-- **开发成本**：DSH + deepseek-flash 全期约 **270–400M tokens ≈ ¥16–55**，构建日历 7–12 天（详见报告 §10）。
-
-## 复现关键命令
-
-```powershell
-# 环境
-work\venv\Scripts\python -m pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
-$env:PYTHONIOENCODING='utf-8'
-$env:DEEPSEEK_API_KEY='sk-...'   # 不设则跳过 LLM 纠错
-
-# 建库后（见实施计划）：
-python -m app.cli scan data/ --out out/
-python -m app.cli batch data/ --out out/ --resume
-python -m app.cli serve --port 7860
-```
+把公开平台的课程录音批量处理成「**干净音频 + 可校对的带时间戳转写稿**」的本地工具：
+解码 → 分析（VAD / 语音电平 / 裁剪边界）→ 降噪 → 裁剪 → 响度归一化 → ASR 转写 →
+说话人标注 → LLM 纠错 → 导出 `clean.m4a` + `transcript.md/srt/txt`。
+全部在本机 CPU 上跑（不需要 GPU / torch），另带一个只在 `127.0.0.1` 监听的本地 Web UI，
+可以完成「扫描/上传 → 跑 → 播放 → 改字 → 导出」全流程。
 
 ## 状态
 
-- ✅ v1 方案探索与成本评估
-- ✅ v2 需求对齐：6 文件实测（响度/裁剪/时间戳/纠错）
-- ✅ 实施计划（P0–P8 任务卡）已就绪
-- ⬜ 施工：P0 基础设施 → P1 解码 → … → P8 回归（见 `docs/实施计划.md`）
+- ✅ P0 基础设施、P1 解码、P2 分析、P3 渲染（降噪/裁剪/响度）、P4 ASR + 说话人、P5 纠错 + 文本导出
+- ✅ P6 编排器与 CLI：断点续跑、失败隔离、磁盘水位、quarantine、`run / batch / retry / status / serve`
+- ✅ P7 本地 Web UI：原生 HTML/CSS/JS，无构建、无外部依赖，离线可用
+- ⬜ P8 回归 / 500 h 推算 / 交付文档（本轮不做）
 
-## 开始开发
+`data/` 下 6 个真实样例（576 min）已跑完，产物在 `out/<job_id>/`，任务库是 `out/jobs.db`。
 
-新开一个 agent 会话，把 [`docs/开发启动Prompt.md`](docs/开发启动Prompt.md) 里的代码块整段作为第一条消息发送即可（自带目标、必读文档、环境事实、锁定参数、P0+P1 任务与验收）。
+## 安装
+
+要求 **Windows 10**、**Python 3.10**、**ffmpeg 7.x 在 PATH**。
+
+```powershell
+# 1) 建虚拟环境
+py -3.10 -m venv work\venv
+
+# 2) 装依赖（本机实测：必须把 pip 缓存指到新目录，否则会无输出空转）
+$env:PIP_CACHE_DIR = "$PWD\work\pip_cache"
+work\venv\Scripts\python -m pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+# 3) 校验环境与配置
+work\venv\Scripts\python -m app.cli config check
+work\venv\Scripts\python -m app.cli --version
+```
+
+模型不在仓库里（体积大、已在 `.gitignore` 排除），需要放到配置约定的位置：
+
+| 用途 | 路径（默认） |
+|---|---|
+| ASR（SenseVoice int8 + tokens） | `work/bench/models/sensevoice/`（`model.int8.onnx`、`tokens.txt`） |
+| 降噪（RNNoise） | `work/bench/models/rnnoise/sh.rnnn` |
+| 说话人（可选，默认 `diar.mode=none` 不加载） | `work/diar/models/` |
+
+模型目录可用环境变量 `MODEL_DIR` 覆盖；其余路径见 `configs/default.yaml` 的 `paths` 段。
+
+**LLM 纠错是可选的**：设置 `$env:DEEPSEEK_API_KEY='sk-...'` 才会真正调用；
+不设置时 `correct` 阶段自动 `enabled=false` 并写空 `corrections.json`，**不阻塞**整条流水线。
+
+## 快速开始（CLI）
+
+所有命令都在项目根目录 `C:\projects\local\audio_processer` 下执行（PowerShell 建议先
+`$env:PYTHONIOENCODING='utf-8'`，或直接用 `start_web.bat` 自带的 UTF-8 控制台）。
+
+```powershell
+# 查看合并后的配置 / 校验
+work\venv\Scripts\python -m app.cli config show
+work\venv\Scripts\python -m app.cli config check
+
+# 扫描目录，把文件登记为 pending 任务
+work\venv\Scripts\python -m app.cli scan data/ --out out/
+
+# 单文件全链路：decode → analyze → denoise → trim → loudness → asr → diarize → correct → export
+work\venv\Scripts\python -m app.cli run <job_id 或源文件路径>
+
+# 批量跑目录（--resume 跳过已完成；--limit 限制个数；--force 重跑已完成）
+work\venv\Scripts\python -m app.cli batch data/ --out out/ --resume
+
+# 重试失败任务（重置失败阶段及其下游后重跑）
+work\venv\Scripts\python -m app.cli retry <job_id>
+
+# 状态汇总（--watch 每 2 s 刷新，Ctrl-C 退出）
+work\venv\Scripts\python -m app.cli status
+work\venv\Scripts\python -m app.cli status --watch
+
+# 启动本地 Web UI（只 bind 127.0.0.1）
+work\venv\Scripts\python -m app.cli serve --port 7860
+```
+
+每个 job 完成后 `out/<job_id>/` 会有 8 件产物：
+
+```
+clean.m4a         降噪 + 裁剪 + 响度归一化后的成品音轨
+transcript.json   段表（start/end/orig_start/orig_end/speaker/text_raw/text/flags）
+transcript.md     带时间戳的转写稿
+transcript.srt    字幕（clean 轴）
+transcript.txt    纯文本
+corrections.json  纠错明细（无 key 时为空结构）
+report.json       全流程指标（decode/vad/levels/trim/denoise/loudness/asr/speakers/correct…）
+edit.json         裁剪/增益编辑记录
+```
+
+## 使用 Web UI
+
+1. 双击根目录的 **`start_web.bat`**（会设置 UTF-8、`cd` 到脚本目录、启动服务并 `pause`；不自动开浏览器）。
+2. 浏览器打开 **http://127.0.0.1:7860**。
+3. **登记任务**：
+   - 顶部输入本地目录（默认 `data/`）→ 点「扫描登记」；
+   - 或点「上传音频…」选一个/多个文件 → 服务端保存到 **`out/uploads/`** 并登记（不写 `data/`）。
+4. 左侧任务列表点选任务（短 id、状态色、阶段、耗时、错误摘要；顶部汇总 pending/running/done/failed）。
+5. 详情页可：
+   - 用 `<audio>` 播放 `clean.m4a`（服务端支持 Range，可拖动进度）；
+   - 点「开始处理」跑全链路，或「重试」重置失败阶段后重跑；
+   - 看流水线阶段、产物列表、关键指标；
+   - 在转写表格里翻页（每页 100 行），点时间（如 `[12:34]`）跳转播放；
+   - 修改「修正」列的 `text`（「原文」列 `text_raw` 只读），点「保存修改」→ 写回
+     `transcript.json` 并重新导出 md/srt/txt；
+   - 下载 md / srt / txt 导出文件。
+6. 进度通过 SSE（`GET /api/events`）实时刷新；断线时浏览器自动重连，页面另有兜底轮询。
+
+上传上限由服务端控制（单文件 2 GB）；同一任务正在跑时，改字会被拒绝（HTTP 409）。
+
+## 已知限制
+
+- **只监听 127.0.0.1，无鉴权**：这是本机工具，不要改 `--host 0.0.0.0` 或转发到公网。
+- **单进程 / 单机**：`--jobs` 参数保留但只支持 1；同一 job 不会重复跑（重复提交返回 409），
+  但不要并发跑多个大任务（ASR 单例 8 线程，会争 CPU）；Web 与 CLI 也不要同时跑同一个 job。
+- **中文文件名 / 路径**：含中文、空格、括号的样例实测可用；请保持控制台 UTF-8
+  （`start_web.bat` 已 `chcp 65001`）。超长路径（>260 字符）未验证。
+- **首跑模型加载慢**：SenseVoice 首次加载 + 模型目录不在仓库；模型缺失会让 ASR 阶段失败。
+- **真实 DeepSeek 未在本机验证**：无 `DEEPSEEK_API_KEY` 时纠错自动降级；有 key 的路径只做过
+  mock 金标与真实 transcript 的 mock E2E 验证，首次接真实 API 建议先看 `corrections.json`
+  的 `rejected_chunks` 比例。
+- **纠错写回保守**：单块 / 单段 diff 超过 12% 会整块回退，极短段里的 1 字修正可能被拒
+  （宁少改不串行）；不支持人工在此 UI 里直接编辑 `corrections.json`。
+- **改字范围**：只改 `text`，保留 `text_raw` / 时间轴 / 说话人；保存后 md/srt/txt 会被覆盖重写。
+- **播放**：2 小时级 `clean.m4a` 首次定位可能需要等浏览器缓冲；Safari 未验证，建议 Chrome/Edge。
+- **前端**：未做移动端深度适配；无构建链、无 CDN，离线可用。
+
+## 测试
+
+```powershell
+# 全量单测（415 项，必须全绿；原 P0–P5 360 项 + P6/P7 新增 55 项）
+work\venv\Scripts\python -m pytest tests/ -q
+
+# 慢测（真实 100 min 音频回归，约 7–8 分钟）
+work\venv\Scripts\python -m pytest tests/ -m slow -q
+```
+
+## 目录结构
+
+```
+app/
+  cli.py                命令行入口（config/scan/status/decode/…/run/batch/retry/serve）
+  server.py             FastAPI 应用（/api/*，本地 Web UI 后端）
+  config.py             配置加载 / 预设 / 校验
+  storage.py            SQLite jobs/stages 状态机（断点续跑的数据基础）
+  models.py             数据模型与常量（阶段顺序、状态、id 生成）
+  pipeline/             decode / analyze / denoise / trim / loudness / asr / diarize /
+                        correct / export / orchestrator
+  web/                  原生前端（index.html / app.js / style.css，无 build）
+  tools/                测速、回归、MP4 修复等辅助脚本
+configs/                default.yaml、presets/、hotwords/、prompts/
+data/                   原始 m4a（只读，不入库）
+out/                    产物根目录：<job_id>/ 八件文件、jobs.db、uploads/、logs/
+work/                   虚拟环境、缓存（16k/analyze）、模型、证据脚本（可随时删）
+docs/                   调研报告、实施计划、工程日志、研究记录
+tests/                  pytest（含 -m slow 真实音频回归）
+start_web.bat           双击启动 Web UI（UTF-8，127.0.0.1:7860）
+```
+
+## 文档
+
+| 文件 | 说明 |
+|---|---|
+| [docs/实施计划.md](docs/实施计划.md) | P0–P8 任务卡、写作用域、验收命令、回归基线 |
+| [docs/工程日志.md](docs/工程日志.md) | 各阶段的真实施工记录、实测数字、偏差与遗留 |
+| [docs/调研报告_需求对齐版.md](docs/调研报告_需求对齐版.md) | 主报告：需求实测、批量架构、开发成本、验收标准 |
+| [docs/开发启动Prompt_P6P7.md](docs/开发启动Prompt_P6P7.md) | P6/P7 的启动 prompt（含 API 契约与已知坑） |
+| [docs/research/](docs/research/) | 多文件体检、PoC、ASR/降噪基准、说话人、云/本地选型 |
 
 ## 仓库说明
 
-- git 仓库只提交**代码/文档/小型中间 JSON**；`data/`、`work/` 下的 wav/模型、`out/*.m4a` 已在 `.gitignore` 中排除（样例数据与模型只在本地保留）。
-- 样例音频（6 个 m4a，576 min）与已下载模型不在仓库里；新机器上需重新放回 `data/`、`work/bench/models/`、`work/diar/models/`（或在代码里改为自动下载）。
+- git 只提交代码 / 文档 / 小型中间 JSON；`data/`、`work/` 下的 wav/模型、`out/` 下的音频与
+  db/logs/uploads 已在 `.gitignore` 排除。
+- 样例音频（6 个 m4a，576 min）与模型不在仓库里；新机器需重新放回 `data/`、
+  `work/bench/models/`、`work/diar/models/`（或设 `MODEL_DIR`）。
+- 本机无 `DEEPSEEK_API_KEY` 时各命令照常跑完，只是纠错阶段为 `enabled=false`。

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>audio_processer · 本地工作台</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">AP</span>
+      <div class="brand-text">
+        <h1>audio_processer <span class="brand-sub">本地工作台</span></h1>
+        <p class="brand-desc">课程录音 → 降噪裁剪 → 转写 → 校对 → 导出</p>
+      </div>
+    </div>
+    <div class="topbar-status">
+      <span id="healthBadge" class="badge badge-muted" title="后端服务状态">连接中…</span>
+      <span id="sseBadge" class="badge badge-muted" title="Server-Sent Events 实时推送">实时：未连接</span>
+    </div>
+  </header>
+
+  <section class="toolbar" aria-label="任务操作">
+    <div class="toolbar-group grow">
+      <label class="field-label" for="dirInput">扫描本地目录</label>
+      <input id="dirInput" class="text-input" type="text" value="data/" spellcheck="false"
+             autocomplete="off" placeholder="例如 data/ 或 D:\录音" />
+      <button id="scanBtn" class="btn btn-primary" type="button">扫描登记</button>
+    </div>
+    <div class="toolbar-group">
+      <input id="fileInput" class="visually-hidden" type="file" multiple
+             accept=".m4a,.mp3,.wav,.mp4,.flac,.aac,.wma,.ogg,.opus,.webm,audio/*" />
+      <button id="uploadBtn" class="btn" type="button">上传音频…</button>
+      <button id="refreshBtn" class="btn" type="button">刷新</button>
+    </div>
+  </section>
+
+  <main class="layout">
+    <aside class="sidebar" aria-label="任务列表">
+      <div class="sidebar-head">
+        <div class="sidebar-title">任务 <span id="jobTotal" class="muted">0</span></div>
+        <div id="summaryChips" class="summary-chips"></div>
+      </div>
+      <div id="jobList" class="job-list" role="listbox" aria-label="任务"></div>
+    </aside>
+
+    <section class="detail" id="detailPanel" aria-label="任务详情">
+      <div id="detailEmpty" class="state-box">
+        <div class="state-icon" aria-hidden="true">☰</div>
+        <p class="state-title">从左侧选择一个任务</p>
+        <p class="state-desc">点击任务可以播放音频、查看转写、修改错字并导出 md / srt / txt。</p>
+      </div>
+
+      <div id="detailLoading" class="state-box" hidden>
+        <div class="spinner" aria-hidden="true"></div>
+        <p class="state-title">正在加载任务详情…</p>
+      </div>
+
+      <div id="detailError" class="state-box state-error" hidden>
+        <p class="state-title">详情加载失败</p>
+        <p id="detailErrorMsg" class="state-desc"></p>
+        <button id="detailRetryBtn" class="btn" type="button">重试</button>
+      </div>
+
+      <div id="detailBody" hidden>
+        <header class="detail-head">
+          <div class="detail-head-main">
+            <h2 id="jobTitle" class="job-title"></h2>
+            <p id="jobSource" class="job-source mono"></p>
+            <div id="jobBadges" class="job-badges"></div>
+          </div>
+          <div class="detail-actions">
+            <button id="runBtn" class="btn btn-primary" type="button"
+                    title="从第一个未完成阶段开始跑全链路">开始处理</button>
+            <button id="retryBtn" class="btn" type="button"
+                    title="重置失败阶段及其下游后重跑">重试</button>
+          </div>
+        </header>
+
+        <div class="panels">
+          <section class="card player-card">
+            <div class="card-head">
+              <h3>音频</h3>
+              <span id="audioHint" class="muted small">clean.m4a（降噪裁剪版）</span>
+            </div>
+            <audio id="player" controls preload="metadata"></audio>
+            <div id="reportLine" class="report-line"></div>
+          </section>
+
+          <section class="card stages-card">
+            <div class="card-head">
+              <h3>流水线阶段</h3>
+            </div>
+            <div id="stageChips" class="stage-chips"></div>
+            <div class="card-head card-head-sub">
+              <h3>产物</h3>
+            </div>
+            <ul id="artifactList" class="artifact-list"></ul>
+            <div class="export-row">
+              <span class="muted small">导出：</span>
+              <a id="exportMd" class="btn btn-small" download="transcript.md">md</a>
+              <a id="exportSrt" class="btn btn-small" download="transcript.srt">srt</a>
+              <a id="exportTxt" class="btn btn-small" download="transcript.txt">txt</a>
+            </div>
+          </section>
+        </div>
+
+        <section class="card transcript-card">
+          <div class="card-head">
+            <h3>转写与改字 <span id="transcriptCount" class="muted small"></span></h3>
+            <div class="transcript-tools">
+              <span id="saveHint" class="save-hint" hidden>有未保存的修改</span>
+              <button id="saveBtn" class="btn btn-primary btn-small" type="button" disabled>保存修改</button>
+              <span id="saveStatus" class="muted small"></span>
+            </div>
+          </div>
+
+          <div class="pager" data-page-role="bar">
+            <button class="btn btn-small" type="button" data-page-role="prev">上一页</button>
+            <span class="pager-info" data-page-role="info">–</span>
+            <button class="btn btn-small" type="button" data-page-role="next">下一页</button>
+            <span class="pager-pages" data-page-role="pages"></span>
+            <span class="muted small" data-page-role="total"></span>
+          </div>
+
+          <div class="table-wrap">
+            <table class="transcript-table">
+              <thead>
+                <tr>
+                  <th class="col-time" scope="col">时间</th>
+                  <th class="col-speaker" scope="col">发言人</th>
+                  <th class="col-raw" scope="col">原文 <span class="muted small">text_raw · 只读</span></th>
+                  <th class="col-text" scope="col">修正 <span class="muted small">text · 可编辑</span></th>
+                </tr>
+              </thead>
+              <tbody id="transcriptBody"></tbody>
+            </table>
+          </div>
+
+          <div id="transcriptEmpty" class="state-box state-inline" hidden>
+            <p class="state-title">暂无转写</p>
+            <p class="state-desc">任务还没跑完 ASR 阶段；跑完后再回来看。</p>
+          </div>
+
+          <div class="pager pager-bottom" data-page-role="bar">
+            <button class="btn btn-small" type="button" data-page-role="prev">上一页</button>
+            <span class="pager-info" data-page-role="info">–</span>
+            <button class="btn btn-small" type="button" data-page-role="next">下一页</button>
+            <span class="pager-pages" data-page-role="pages"></span>
+            <span class="muted small" data-page-role="total"></span>
+          </div>
+
+          <p id="transNote" class="transcript-note muted small">
+            点击时间可跳转播放；修改“修正”列后点「保存修改」，会重导出 md / srt / txt。
+          </p>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden role="status" aria-live="polite"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
