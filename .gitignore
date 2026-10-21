@@ -11,10 +11,12 @@ out/*.db-wal
 out/*.db-shm
 out/logs/
 out/quarantine/
+out/review/
 work/cache/
 work/pip_cache/
 work/pytest_tmp/
 work/pip_*.log
+work/_*.py
 
 # ---- 虚拟环境 / 依赖 ----
 work/venv/

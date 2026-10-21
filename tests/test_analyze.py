@@ -248,6 +248,52 @@ def test_boundary_head_keeps_soft_intro(cfg):
     assert result["head"]["window_start_s"] == 0.0
 
 
+def test_boundary_head_refined_to_30s(cfg):
+    """f20 形态：0–90 s 静音，**90–120 s 已是讲课**（cps 3.4）。
+
+    120 s 窗口只能给到 119.5 s → 会白切 30 s 讲课；30 s 块级精修应把边界挪到 89.5 s。
+    """
+    duration = 600.0
+    x = np.zeros(int(duration * SR), dtype=np.float32)
+    x[int(90 * SR):] = 0.3   # 90 s 起持续讲课
+    segs = [(90.0, 600.0)]
+    result = detect_boundaries(x, segs, duration, cfg, FakeTranscriber(), SR)
+    assert "head_refined_30s" in result["head"]["flags"]
+    assert result["head"]["boundary_s"] == pytest.approx(89.5, abs=0.01)
+    assert result["head"]["refined_from_s"] == pytest.approx(90.0, abs=0.01)
+    # 窗口表本身仍是 120 s 网格（0–120 未达标），说明是「窗级定位 + 块级精修」两段式
+    assert result["head"]["windows"][0]["teaching"] is False
+
+
+def test_refine_helpers():
+    from app.pipeline.analyze import _refine_head_start, _refine_tail_end
+
+    class StubChars:
+        def __init__(self, fn):
+            self.fn = fn
+
+        def cps(self, t0, t1):
+            return self.fn(t0, t1)
+
+    # 头：0–120 窗口里从 90 s 起达标 → 精修到 90
+    head = _refine_head_start(
+        StubChars(lambda a, b: 3.0 if a >= 90 else 0.0), 120.0, 120.0, 2.0, 30.0
+    )
+    assert head == pytest.approx(90.0)
+    # 全静音 → 不精修
+    assert _refine_head_start(StubChars(lambda a, b: 0.0), 120.0, 120.0, 2.0, 30.0) is None
+    # 尾：360 s 后静音 → 块按起点判定，延伸到 420（块 390–420 的起点 <400 仍算有声）
+    tail = _refine_tail_end(
+        StubChars(lambda a, b: 3.0 if a < 400 else 0.0), 360.0, 600.0, 1.0, 120.0, 30.0
+    )
+    assert tail == pytest.approx(420.0)
+    # 延长上限 max_extra_s 生效
+    capped = _refine_tail_end(
+        StubChars(lambda a, b: 5.0), 360.0, 600.0, 1.0, 60.0, 30.0
+    )
+    assert capped == pytest.approx(420.0)
+
+
 def test_boundary_tail_detected(cfg):
     # 1200 s 文件：0–900 s 讲课，之后是片尾静音。
     # 840–960 s 窗口只有 60 s 讲课 → cps=1.5（软窗口），严格阈值不算达标，
@@ -474,8 +520,12 @@ def test_data_boundaries_six_files(decoded_samples, session_cfg):
 
     assert heads["f24"] == pytest.approx(480.0, abs=30.0), heads
     assert tails["f24"] == pytest.approx(4560.0, abs=30.0), tails
-    for key in ("f06", "f20"):
-        assert 105.0 <= heads[key] <= 140.0, f"{key} head={heads[key]}"
+    # f06：起点 120 s（90–120 s 只有 19 字课前闲聊）；f20：90 s 就开讲 → 块级精修到 89.5
+    assert 105.0 <= heads["f06"] <= 140.0, f"f06 head={heads['f06']}"
+    assert 85.0 <= heads["f20"] <= 100.0, f"f20 head={heads['f20']}"
     assert heads["f05"] <= 10.0, heads["f05"]
     assert heads["f00"] <= 10.0, heads["f00"]
     assert heads["f04"] <= 10.0, heads["f04"]
+    # 片尾：f00/f20 其实一直讲到结尾（30 s 块级精修补回），f24 尾部是噪声
+    assert tails["f00"] >= 3040.0, tails["f00"]
+    assert tails["f20"] >= 6146.0, tails["f20"]

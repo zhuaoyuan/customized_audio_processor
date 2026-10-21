@@ -60,7 +60,7 @@ CHUNK_FRAMES = 200_000
 
 CACHE_SUFFIX = ".analyze.json"
 #: 分析结果缓存版本：算法/口径变化时 +1，自动让旧缓存失效
-ANALYZE_VERSION = 4
+ANALYZE_VERSION = 6
 
 
 class AnalyzeError(RuntimeError):
@@ -416,6 +416,49 @@ def make_windows(start: float, end: float, win_s: float) -> List[Tuple[float, fl
     return windows
 
 
+class _ChunkTranscriber:
+    """按 ``asr.segment_max_s``（默认 30 s）分块转写并缓存块级字符数。
+
+    窗口聚合（120 s）与边界精修（30 s）共用同一份块缓存，避免重复 ASR。
+    窗口边界都是 120 s 的整数倍、30 s 块从窗口起点切，二者天然对齐。
+    """
+
+    def __init__(self, x: np.ndarray, cfg: Any,
+                 transcriber: "asr_mod.Transcriber", sr: int = SR) -> None:
+        self.x = x
+        self.cfg = cfg
+        self.transcriber = transcriber
+        self.sr = sr
+        self.max_seg = float(cfg.get("asr.segment_max_s", 30.0))
+        self.min_clip = max(0.3, float(cfg.get("asr.segment_min_s", 0.5)))
+        self._cache: Dict[Tuple[float, float], int] = {}
+
+    def _transcribe(self, t0: float, t1: float) -> int:
+        if t1 - t0 < self.min_clip:
+            return 0
+        clip = asr_mod.slice_audio(self.x, t0, t1, self.sr)
+        if clip.size == 0:
+            return 0
+        return asr_mod.count_speech_chars(self.transcriber.transcribe(clip, self.sr))
+
+    def chars(self, t0: float, t1: float) -> int:
+        """区间内字符数（按 30 s 块累加，块级缓存）。"""
+        total = 0
+        t = t0
+        while t < t1 - 1e-9:
+            end = min(t1, t + self.max_seg)
+            key = (round(t, 3), round(end, 3))
+            if key not in self._cache:
+                self._cache[key] = self._transcribe(t, end)
+            total += self._cache[key]
+            t = end
+        return total
+
+    def cps(self, t0: float, t1: float) -> float:
+        duration = t1 - t0
+        return self.chars(t0, t1) / duration if duration > 0 else 0.0
+
+
 def window_char_rates(
     x: np.ndarray,
     segments: Sequence[Sequence[float]],
@@ -423,6 +466,7 @@ def window_char_rates(
     cfg: Any,
     transcriber: Optional["asr_mod.Transcriber"],
     sr: int = SR,
+    chars: Optional["_ChunkTranscriber"] = None,
 ) -> List[WindowRate]:
     """逐窗口聚合：VAD 语音占比 + ASR 有效字符数/秒（**判定讲课的唯一依据**）。
 
@@ -434,9 +478,10 @@ def window_char_rates(
     """
     win_s = float(cfg.get("trim.boundary_window_s", 120.0))
     min_cps = float(cfg.get("trim.boundary_min_chars_per_sec", 2.0))
-    max_seg = float(cfg.get("asr.segment_max_s", 30.0))
     min_rate_window = win_s / 2.0
-    min_clip_s = max(0.3, float(cfg.get("asr.segment_min_s", 0.5)))
+
+    if chars is None and transcriber is not None:
+        chars = _ChunkTranscriber(x, cfg, transcriber, sr)
 
     rates: List[WindowRate] = []
     for t0, t1 in windows:
@@ -445,26 +490,19 @@ def window_char_rates(
             max(0.0, min(t1, float(s[1])) - max(t0, float(s[0])))
             for s in segments
         )
-        chars = 0
-        if transcriber is not None and duration >= min_rate_window:
-            t = t0
-            while t < t1 - 1e-9:
-                end = min(t1, t + max_seg)
-                if end - t >= min_clip_s:
-                    clip = asr_mod.slice_audio(x, t, end, sr)
-                    if clip.size:
-                        chars += asr_mod.count_speech_chars(transcriber.transcribe(clip, sr))
-                t = end
+        char_count = 0
+        if chars is not None and duration >= min_rate_window:
+            char_count = chars.chars(t0, t1)
         rate = WindowRate(
-            t0=t0, t1=t1, duration_s=duration, chars=chars,
+            t0=t0, t1=t1, duration_s=duration, chars=char_count,
             speech_s=speech, speech_ratio=speech / duration if duration else 0.0,
         )
-        if transcriber is None:
+        if transcriber is None and chars is None:
             rate.note = "no_asr"
         elif duration < min_rate_window:
             rate.note = "partial_window"
         else:
-            rate.cps = chars / duration if duration else 0.0
+            rate.cps = char_count / duration if duration else 0.0
             rate.teaching = rate.cps >= min_cps
             if not rate.teaching and rate.speech_ratio > 0.5 and rate.cps < 0.5:
                 rate.note = "vad_speech_but_low_chars"  # 音乐/掌声被 VAD 误判的典型形态
@@ -550,6 +588,52 @@ def _last_teaching_run(
     return None
 
 
+def _refine_head_start(
+    chars: "_ChunkTranscriber", window_start: float, win_s: float,
+    min_cps: float, chunk_s: float,
+) -> Optional[float]:
+    """把「首个讲课窗口起点」向前精修到 30 s 块粒度。
+
+    120 s 窗口只能定位到 120 s 网格；实测 f20 的讲课从 **90 s** 就开始（90–120 s
+    有 102 字、cps 3.40），而窗口级判定只能给到 119.5 s，会白切 30 s 讲课。
+    这里在 [窗口起点−120 s, 窗口起点) 内按 30 s 块找**第一个 cps≥min_cps 的块**，
+    找到了就把边界挪到该块起点（f24 的 360–480 s 全是 0 字块，不受影响）。
+    """
+    start = max(0.0, window_start - win_s)
+    t = start
+    while t < window_start - 1e-9:
+        end = min(t + chunk_s, window_start)
+        if end - t >= 10.0 and chars.cps(t, end) >= min_cps:
+            return t
+        t = end
+    return None
+
+
+def _refine_tail_end(
+    chars: "_ChunkTranscriber", window_end: float, duration: float,
+    min_cps: float, max_extra_s: float, chunk_s: float,
+) -> float:
+    """把「最后一个讲课窗口终点」向后精修到 30 s 块粒度（最长延长 ``max_extra_s``）。
+
+    片尾常被 120 s 网格切在窗口中间：实测 f00 的 3000–3047 s 仍有 2.2–2.7 cps 的讲课
+    尾声（窗口只有 47 s 被判 partial 而没转写）、f20 的 6120–6151 s 有 4.8 cps、
+    f04 的 8280–8295 s 有 5.1 cps——窗口法会整段裁掉。这里按 30 s 块向后延伸，
+    要求块 cps ≥ ``min_cps``（与讲课阈值 2.0 一致，只延长**明确是讲课**的尾巴；
+    噪声/掌声块 cps 通常 <1，不会被误延长，f24 的 4560–4620 就属此类）。
+    """
+    end = window_end
+    limit = min(duration, window_end + max_extra_s)
+    t = end
+    while t < limit - 1e-9:
+        nxt = min(t + chunk_s, duration)
+        if nxt - t >= 10.0 and chars.cps(t, nxt) >= min_cps:
+            end = nxt
+            t = nxt
+            continue
+        break
+    return end
+
+
 def detect_boundaries(
     x: np.ndarray,
     segments: Sequence[Sequence[float]],
@@ -594,6 +678,8 @@ def detect_boundaries(
         return result
 
     # ---------------- 头：从 0 往后扫，找到即停
+    chunk_s = float(cfg.get("asr.segment_max_s", 30.0))
+    chars = _ChunkTranscriber(x, cfg, transcriber, sr)
     head_limit = min(extended_s, duration)
     head_scan_limit = min(scan_s, duration)
     head_rates: List[WindowRate] = []
@@ -602,7 +688,7 @@ def detect_boundaries(
         if t0 >= head_limit - 1e-9:
             break
         head_rates.append(
-            window_char_rates(x, segments, [(t0, t1)], cfg, transcriber, sr)[0]
+            window_char_rates(x, segments, [(t0, t1)], cfg, transcriber, sr, chars)[0]
         )
         idx = _first_teaching_run(head_rates, head_scan_limit, need, min_cps, soft_cps)
         if idx is not None:
@@ -628,8 +714,16 @@ def detect_boundaries(
         ):
             start_idx -= 1
             extra += 1
-        head["boundary_s"] = round(max(0.0, head_rates[start_idx].t0 - pad), 3)
-        head["window_start_s"] = round(head_rates[start_idx].t0, 3)
+        window_start = head_rates[start_idx].t0
+        # 30 s 块级精修（fix：120 s 网格会切掉窗口内已开始的讲课）
+        refined = _refine_head_start(chars, window_start, win_s, min_cps, chunk_s)
+        if refined is not None and refined < window_start - 1e-9:
+            head["flags"].append("head_refined_30s")
+            head["window_start_s"] = round(window_start, 3)
+            head["refined_from_s"] = round(refined, 3)
+            window_start = refined
+        head["boundary_s"] = round(max(0.0, window_start - pad), 3)
+        head["window_start_s"] = round(window_start, 3)
         head["cps"] = round(head_rates[idx].cps, 2)
         if start_idx != idx:
             head["extended_back_s"] = round(head_rates[start_idx].t0, 3)
@@ -642,7 +736,7 @@ def detect_boundaries(
     last: Optional[int] = None
     for t0, t1 in reversed(make_windows(max(0.0, duration - tail_span), duration, win_s)):
         tail_rates.insert(
-            0, window_char_rates(x, segments, [(t0, t1)], cfg, transcriber, sr)[0]
+            0, window_char_rates(x, segments, [(t0, t1)], cfg, transcriber, sr, chars)[0]
         )
         last = _last_teaching_run(tail_rates, tail_scan_start, need, min_cps, soft_cps)
         if last is not None:
@@ -657,8 +751,14 @@ def detect_boundaries(
         tail["flags"].append("tail_uncertain")
         tail["boundary_s"] = round(duration, 3)
     else:
-        tail["boundary_s"] = round(min(duration, tail_rates[last].t1 + pad), 3)
-        tail["window_end_s"] = round(tail_rates[last].t1, 3)
+        window_end = tail_rates[last].t1
+        refined_end = _refine_tail_end(chars, window_end, duration, min_cps, win_s, chunk_s)
+        if refined_end > window_end + 1e-9:
+            tail["flags"].append("tail_refined_30s")
+            tail["refined_from_s"] = round(window_end, 3)
+            window_end = refined_end
+        tail["boundary_s"] = round(min(duration, window_end + pad), 3)
+        tail["window_end_s"] = round(window_end, 3)
         tail["cps"] = round(tail_rates[last].cps, 2)
     tail["windows"] = [w.as_dict() for w in tail_rates]
 
