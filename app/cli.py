@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """命令行入口。
 
-本轮（P0/P1）实现：``config show|check``、``scan``、``status``、``decode``。
-P6 会在此基础上补齐 ``run`` / ``batch`` / ``retry`` / ``serve`` / ``export``。
+P0–P5：``config show|check``、``scan``、``status``、``decode``、``analyze``、``render``、
+``transcribe``、``correct``、``export``。
+P6/P7 新增：``run`` / ``batch`` / ``retry``（全链路编排，见 ``app/pipeline/orchestrator.py``）、
+``status --watch``、``serve``（本地 Web UI，见 ``app/server.py``）。
 
 约定
 ----
@@ -60,8 +62,11 @@ def build_parser() -> argparse.ArgumentParser:
             "常用：\n"
             "  python -m app.cli config show\n"
             "  python -m app.cli scan data/ --out out/\n"
-            "  python -m app.cli status\n"
-            "  python -m app.cli decode --all\n"
+            "  python -m app.cli run data\\24_...m4a --out out\n"
+            "  python -m app.cli batch data/ --out out --resume\n"
+            "  python -m app.cli retry <job id>\n"
+            "  python -m app.cli status --watch\n"
+            "  python -m app.cli serve --port 7860\n"
             "  python -m app.cli transcribe --all\n"
             "  python -m app.cli correct --all\n"
             "  python -m app.cli export --all\n"
@@ -111,6 +116,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="只看某个状态",
     )
     p_status.add_argument("--limit", type=int, default=200, help="最多显示 N 行（默认 200）")
+    p_status.add_argument("--watch", action="store_true", help="每 2 s 刷新（Ctrl-C 退出）")
     p_status.add_argument("--json", action="store_true")
     p_status.set_defaults(func=cmd_status)
 
@@ -201,6 +207,58 @@ def build_parser() -> argparse.ArgumentParser:
     p_export.add_argument("--force", action="store_true", help="已有文本也覆盖")
     p_export.add_argument("--json", action="store_true", help="以 JSON 输出")
     p_export.set_defaults(func=cmd_export)
+
+    # run（P6-T2：单 job 全链路 decode→...→export）
+    p_run = subparsers.add_parser(
+        "run",
+        help="单文件全链路：decode→analyze→denoise→trim→loudness→asr→diarize→correct→export",
+        parents=[global_parent],
+    )
+    p_run.add_argument("target", help="job id 或输入文件路径（未登记的路径会先入库）")
+    p_run.add_argument("--force", action="store_true",
+                       help="已有产物也重跑（仍复用 decode/analyze 缓存）")
+    p_run.add_argument("--resume", action="store_true",
+                       help="断点续跑（默认行为，显式声明用）")
+    p_run.add_argument("--keep-intermediates", action="store_true", help="保留中间 wav")
+    p_run.add_argument("--json", action="store_true", help="以 JSON 输出")
+    p_run.set_defaults(func=cmd_run)
+
+    # batch（P6-T2：扫描/登记后批量跑全链路）
+    p_batch = subparsers.add_parser(
+        "batch",
+        help="批量：扫描/登记目录下全部媒体文件，逐个跑全链路（可断点续跑）",
+        parents=[global_parent],
+    )
+    p_batch.add_argument("path", help="输入目录或单个文件")
+    p_batch.add_argument("--resume", action="store_true",
+                         help="跳过已完成任务（默认开；--force 才重跑）")
+    p_batch.add_argument("--limit", type=int, default=None, help="最多跑 N 个")
+    p_batch.add_argument("--force", action="store_true", help="已完成任务也重跑")
+    p_batch.add_argument("--jobs", type=int, default=1,
+                         help="并发数（本版只支持单进程 1，参数保留）")
+    p_batch.add_argument("--keep-intermediates", action="store_true", help="保留中间 wav")
+    p_batch.add_argument("--json", action="store_true", help="以 JSON 输出")
+    p_batch.set_defaults(func=cmd_batch)
+
+    # retry（P6-T2：重置失败阶段及下游后重跑）
+    p_retry = subparsers.add_parser(
+        "retry", help="重试失败任务：重置失败阶段及其下游后重跑",
+        parents=[global_parent],
+    )
+    p_retry.add_argument("target", help="job id 或输入文件路径")
+    p_retry.add_argument("--force", action="store_true", help="重置全部阶段后整体重跑")
+    p_retry.add_argument("--json", action="store_true", help="以 JSON 输出")
+    p_retry.set_defaults(func=cmd_retry)
+
+    # serve（P7：本地 Web UI）
+    p_serve = subparsers.add_parser(
+        "serve", help="启动本地 Web UI（FastAPI + uvicorn，只 bind 127.0.0.1）",
+        parents=[global_parent],
+    )
+    p_serve.add_argument("--port", type=int, default=7860, help="端口（默认 7860）")
+    p_serve.add_argument("--host", default="127.0.0.1",
+                         help="监听地址（默认 127.0.0.1；本工具无鉴权，勿改 0.0.0.0）")
+    p_serve.set_defaults(func=cmd_serve)
 
     return parser
 
@@ -459,7 +517,8 @@ def cmd_scan(args: argparse.Namespace, cfg: Config) -> int:
 
 
 # ---------------------------------------------------------------- status
-def cmd_status(args: argparse.Namespace, cfg: Config) -> int:
+def _status_once(args: argparse.Namespace, cfg: Config, title: str = "") -> int:
+    """打印一次状态（``--watch`` 循环体复用）。"""
     db_path = cfg.path("db_path")
     if not Path(db_path).exists():
         print(f"[错误] 数据库不存在：{db_path}\n先执行：python -m app.cli scan <输入目录> --out <输出目录>",
@@ -475,6 +534,8 @@ def cmd_status(args: argparse.Namespace, cfg: Config) -> int:
             return EXIT_OK
         counts = store.count_by_status()
         jobs = store.list_jobs(status=args.status, limit=args.limit)
+        if title:
+            print(title)
         print(f"数据库：{db_path}")
         print("状态汇总：" + "，".join(f"{k}={v}" for k, v in counts.items()))
         if not jobs:
@@ -496,6 +557,37 @@ def cmd_status(args: argparse.Namespace, cfg: Config) -> int:
         )
         print(f"共 {len(jobs)} 条（显示上限 {args.limit}）")
     return EXIT_OK
+
+
+def cmd_status(args: argparse.Namespace, cfg: Config) -> int:
+    if not getattr(args, "watch", False) or getattr(args, "json", False):
+        return _status_once(args, cfg)
+
+    import datetime
+    import time
+
+    interval = 2.0
+    tty = sys.stdout.isatty()
+    if tty:
+        sys.stdout.write("\x1b[?25l")  # 隐藏光标，避免闪
+    try:
+        while True:
+            if tty:
+                sys.stdout.write("\x1b[2J\x1b[H")  # 清屏 + 回左上角
+            _status_once(
+                args, cfg,
+                title=f"[watch] {datetime.datetime.now().strftime('%H:%M:%S')}"
+                      f"  每 {interval:g}s 刷新，Ctrl-C 退出",
+            )
+            sys.stdout.flush()
+            time.sleep(interval)
+    except KeyboardInterrupt:
+        print("\n[watch] 已退出")
+        return EXIT_OK
+    finally:
+        if tty:
+            sys.stdout.write("\x1b[?25h")
+            sys.stdout.flush()
 
 
 # ---------------------------------------------------------------- decode
@@ -1210,6 +1302,294 @@ def cmd_export(args: argparse.Namespace, cfg: Config) -> int:
     return EXIT_OK if failures == 0 else EXIT_RUNTIME
 
 
+# ---------------------------------------------------------------- run/batch/retry（P6-T2）
+def _short_id(job_id: str, width: int = 28) -> str:
+    """终端展示用短 id（超长截断，保留可读短名前缀）。"""
+    text = str(job_id)
+    return text if len(text) <= width else text[: width - 1] + "…"
+
+
+def _resolve_job_target(
+    args: argparse.Namespace, store: Storage, cfg: Config, action: str
+) -> Tuple[str, Path]:
+    """``<job id|path>`` → ``(job_id, source)``；未登记的**文件**路径先入库。
+
+    只认 DB 里已有的 job id；目录请用 ``batch``。
+    """
+    target = str(getattr(args, "target", "") or "").strip()
+    if not target:
+        raise ConfigError(f"请给出 job id 或输入文件路径（{action}）")
+    job = store.get_job(target)
+    if job is not None:
+        return job.id, Path(job.source)
+    path = Path(target).expanduser()
+    if not path.is_absolute():
+        path = Path.cwd() / path
+    if path.is_dir():
+        raise ConfigError(f"{action} 只接受单个文件；目录请用 batch：{path}")
+    if not path.is_file():
+        raise ConfigError(f"找不到 job id 或输入文件：{target}")
+    job, created = store.upsert_job(path, config_hash=cfg.config_hash)
+    if created:
+        log.info("新登记 job：%s ← %s", job.id, path)
+    return job.id, Path(job.source)
+
+
+def _event_detail(stage: str, status: str, metrics: Dict[str, Any]) -> str:
+    """进度行的附加信息（无则空串）。"""
+    data = metrics or {}
+    if status == "failed":
+        return str(data.get("error") or "")[:120]
+    if stage == "asr":
+        return f"segs={data.get('n_segments')} chars={data.get('chars')}"
+    if stage == "diarize":
+        return f"mode={data.get('mode')} speakers={data.get('n')}"
+    if stage == "correct":
+        return f"enabled={data.get('enabled')} edits={data.get('edits')} cost=¥{data.get('cost_cny')}"
+    if stage == "export":
+        tp = data.get("tp_dbtp")
+        asl = data.get("asl_out_dbfs")
+        if tp is not None or asl is not None:
+            return f"asl_out={asl} tp={tp}"
+        return f"fmt={','.join(str(x) for x in (data.get('formats') or []))}"
+    return ""
+
+
+def _run_progress(prefix: str = "  "):
+    """run_job 的 on_event(stage, status, metrics) → 终端进度行。"""
+
+    def on_event(stage: str, status: str, metrics: Dict[str, Any]) -> None:
+        mark = "ok  " if status == "done" else "FAIL"
+        print(f"{prefix}{stage:9s} {mark} {_event_detail(stage, status, metrics)}".rstrip(),
+              flush=True)
+
+    return on_event
+
+
+def _batch_progress():
+    """batch_run 的 on_event(job_id, stage, status, metrics) → 终端进度行。"""
+
+    def on_event(job_id: str, stage: str, status: str, metrics: Dict[str, Any]) -> None:
+        mark = "ok  " if status == "done" else "FAIL"
+        print(f"  [{_short_id(job_id, 24):24s}] {stage:9s} {mark} "
+              f"{_event_detail(stage, status, metrics)}".rstrip(), flush=True)
+
+    return on_event
+
+
+def _run_summary(result: Dict[str, Any]) -> Dict[str, Any]:
+    """run_job 结果的精简摘要（完整报告在 out/<id>/report.json）。"""
+    report = result.get("report") or {}
+    asr = report.get("asr") or {}
+    trim = report.get("trim") or {}
+    timing = result.get("timings") or report.get("timing") or {}
+    artifacts = result.get("artifacts") or []
+    return {
+        "job_id": result.get("job_id"),
+        "ok": bool(result.get("ok")),
+        "skipped": bool(result.get("skipped")),
+        "locked": bool(result.get("locked")),
+        "stage": result.get("stage"),
+        "error": result.get("error", ""),
+        "clean_dur_s": trim.get("clean_dur_s"),
+        "n_segments": asr.get("n_segments"),
+        "chars": asr.get("chars"),
+        "n_artifacts": len(artifacts),
+        "total_s": timing.get("total_s"),
+        "timings": timing,
+    }
+
+
+def _run_row(job_id: str, summary: Dict[str, Any]) -> str:
+    if summary.get("locked"):
+        return f"[LOCK] {_pad(job_id, 40)} 另一个进程正在跑该 job（work/locks）"
+    if not summary.get("ok"):
+        return (f"[FAIL] {_pad(job_id, 40)} {str(summary.get('stage')):9s} "
+                f"{(summary.get('error') or '')[:110]}")
+    tag = "SKIP" if summary.get("skipped") else "OK  "
+    total = summary.get("total_s")
+    total_s = f"{float(total):8.1f}s" if isinstance(total, (int, float)) else "       -"
+    return (
+        f"[{tag}] {_pad(job_id, 40)} "
+        f"clean={float(summary.get('clean_dur_s') or 0.0) / 60.0:6.1f}min "
+        f"segs={summary.get('n_segments') if summary.get('n_segments') is not None else '-':>5} "
+        f"chars={summary.get('chars') if summary.get('chars') is not None else '-':>7} "
+        f"artifacts={summary.get('n_artifacts')}/8 {total_s}"
+    )
+
+
+def cmd_run(args: argparse.Namespace, cfg: Config) -> int:
+    """单 job 全链路（编排器 run_job）。"""
+    from .pipeline.orchestrator import run_job
+
+    store = make_storage(cfg)
+    store.init_db()
+    try:
+        job_id, source = _resolve_job_target(args, store, cfg, "run")
+    except (ConfigError, StorageError) as exc:
+        print(f"[错误] {exc}", file=sys.stderr)
+        store.close()
+        return EXIT_USAGE
+    store.close()  # 关掉自己的连接：run_job 内部会新建 Storage（SQLite 不跨线程复用）
+
+    out_dir = cfg.path("out_dir")
+    cache_dir = cfg.path("cache_dir")
+    if not args.json:
+        print(f"run {job_id}")
+        print(f"  source={source}")
+        print(f"  out={out_dir}  cache={cache_dir}")
+    result = run_job(
+        job_id, source, cfg,
+        force=args.force,
+        out_dir=out_dir,
+        cache_dir=cache_dir,
+        keep_intermediates=args.keep_intermediates,
+        on_event=None if args.json else _run_progress(),
+    )
+    summary = _run_summary(result)
+    if args.json:
+        _json_dump({"ok": bool(result.get("ok")), "summary": summary, "result": result})
+    else:
+        print(_run_row(job_id, summary))
+    return EXIT_OK if result.get("ok") else EXIT_RUNTIME
+
+
+def cmd_batch(args: argparse.Namespace, cfg: Config) -> int:
+    """目录批量（编排器 batch_run）：先 discover/upsert，再逐个跑全链路。"""
+    from .pipeline.orchestrator import batch_run
+
+    if int(getattr(args, "jobs", 1) or 1) > 1:
+        print("[提示] 本版单进程执行（--jobs 参数保留，不做进程池）", file=sys.stderr)
+    scan_cfg = cfg.section("scan")
+    try:
+        files = discover_files(
+            args.path,
+            extensions=scan_cfg.get("extensions"),
+            recursive=bool(scan_cfg.get("recursive", True)),
+            min_bytes=int(scan_cfg.get("min_bytes", 0) or 0),
+            max_bytes=int(scan_cfg.get("max_bytes", 0) or 0),
+        )
+    except FileNotFoundError as exc:
+        print(f"[错误] {exc}", file=sys.stderr)
+        return EXIT_USAGE
+    if not files:
+        print(f"[警告] {args.path} 下没有发现可处理的媒体文件（扩展名：{scan_cfg.get('extensions')}）",
+              file=sys.stderr)
+        return EXIT_OK
+
+    store = make_storage(cfg)
+    store.init_db()
+    targets: List[Tuple[str, str]] = []
+    created = existing = 0
+    for path in files:
+        job, is_new = store.upsert_job(path, config_hash=cfg.config_hash)
+        created += int(is_new)
+        existing += int(not is_new)
+        targets.append((job.id, job.source))
+    store.close()
+    if args.limit:
+        targets = targets[: int(args.limit)]
+
+    resume = bool(args.resume or cfg.get("batch.resume", True)) and not args.force
+    if not args.json:
+        print(f"batch {args.path}：发现 {len(files)} 个文件（新登记 {created}，已存在 {existing}），"
+              f"本轮处理 {len(targets)} 个（resume={resume} force={args.force}）")
+        sys.stdout.flush()
+
+    result = batch_run(
+        targets, cfg,
+        resume=resume,
+        limit=args.limit,
+        force=args.force,
+        keep_intermediates=args.keep_intermediates,
+        on_event=None if args.json else _batch_progress(),
+    )
+    failures = result.get("failures") or []
+    skipped = result.get("skipped") or []
+    stopped = result.get("stopped_reason") or ""
+    results = result.get("results") or []
+
+    if args.json:
+        _json_dump(result)
+    else:
+        for job_id in skipped:
+            reason = (result.get("skipped_reasons") or {}).get(job_id, "skipped")
+            print(f"[SKIP] {_pad(job_id, 40)} {reason}")
+        for item in results:
+            if not item.get("ok"):
+                print(_run_row(str(item.get("job_id") or ""), _run_summary(item)))
+        done_n = sum(1 for r in results if r.get("ok") and not r.get("skipped"))
+        print(f"\nbatch 完成：成功 {done_n}，跳过 {len(skipped)}，失败 {len(failures)}")
+        if stopped:
+            print(f"[停止] stopped_reason={stopped}")
+    return EXIT_OK if not failures and not stopped else EXIT_RUNTIME
+
+
+def cmd_retry(args: argparse.Namespace, cfg: Config) -> int:
+    """失败任务重试：重置失败阶段及其下游后重跑（--force 则整体重跑）。"""
+    from .pipeline.orchestrator import run_job
+
+    store = make_storage(cfg)
+    store.init_db()
+    try:
+        job_id, source = _resolve_job_target(args, store, cfg, "retry")
+        job = store.require_job(job_id)
+        if args.force:
+            reset_from = STAGES[0]
+        else:
+            pending = [st for st in STAGES
+                       if store.stage_map(job_id).get(st) not in (STATUS_DONE, STATUS_SKIPPED)]
+            reset_from = pending[0] if pending else STAGES[-1]
+        reset_n = store.reset_stage(job_id, reset_from, downstream=True)
+    except (ConfigError, StorageError) as exc:
+        print(f"[错误] {exc}", file=sys.stderr)
+        store.close()
+        return EXIT_USAGE
+    store.close()
+    if not args.json:
+        print(f"retry {job_id}：从 {reset_from} 阶段重跑（重置 {reset_n} 个阶段；"
+              f"原状态 {job.status}/{job.stage or '-'}）")
+        sys.stdout.flush()
+
+    result = run_job(
+        job_id, source, cfg,
+        force=bool(args.force),
+        out_dir=cfg.path("out_dir"),
+        cache_dir=cfg.path("cache_dir"),
+        on_event=None if args.json else _run_progress(),
+    )
+    summary = _run_summary(result)
+    if args.json:
+        _json_dump({"ok": bool(result.get("ok")), "summary": summary, "result": result})
+    else:
+        print(_run_row(job_id, summary))
+    return EXIT_OK if result.get("ok") else EXIT_RUNTIME
+
+
+def cmd_serve(args: argparse.Namespace, cfg: Config) -> int:
+    """启动本地 Web UI（FastAPI + uvicorn，默认 127.0.0.1:7860）。"""
+    try:
+        import uvicorn  # noqa: F401
+    except ImportError:
+        print("[错误] 缺少 uvicorn：work\\venv\\Scripts\\python -m pip install uvicorn",
+              file=sys.stderr)
+        return EXIT_USAGE
+    from .server import create_app
+
+    host = str(getattr(args, "host", None) or "127.0.0.1")
+    port = int(getattr(args, "port", 7860) or 7860)
+    if host not in ("127.0.0.1", "localhost", "::1"):
+        log.warning("Web UI 无鉴权，%s 不是回环地址，请确认网络环境安全", host)
+    app = create_app(cfg)
+    url = f"http://{host}:{port}"
+    print(f"Web UI: {url}", flush=True)
+    print(f"数据库：{cfg.path('db_path')}", flush=True)
+    print(f"上传目录：{cfg.path('out_dir') / 'uploads'}", flush=True)
+    print("Ctrl-C 退出", flush=True)
+    uvicorn.run(app, host=host, port=port, log_level="info")
+    return EXIT_OK
+
+
 # ---------------------------------------------------------------- 入口
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = build_parser()
@@ -1225,7 +1605,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return EXIT_USAGE
 
     level = "DEBUG" if getattr(args, "verbose", False) else getattr(args, "log_level", None)
-    setup_logging(cfg, level=level)
+    # --json 模式：日志只进文件，stdout 保持纯 JSON（脚本可直接解析）
+    json_mode = bool(getattr(args, "json", False))
+    setup_logging(cfg, level=level, console=False if json_mode else None, force=json_mode)
 
     func = getattr(args, "func", None)
     if func is None:

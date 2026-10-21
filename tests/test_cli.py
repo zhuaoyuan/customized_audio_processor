@@ -141,10 +141,147 @@ def test_scan_limit(capsys, tmp_path: Path):
 
 def test_help_available():
     for argv in (["decode", "--help"], ["scan", "--help"], ["status", "--help"],
-                 ["config", "--help"]):
+                 ["config", "--help"], ["run", "--help"], ["batch", "--help"],
+                 ["retry", "--help"], ["serve", "--help"]):
         with pytest.raises(SystemExit) as info:
             main(argv)
         assert info.value.code == 0
+
+
+# ---------------------------------------------------------------- P6-T2：run/batch/retry
+def test_batch_json_and_skipped_rows(capsys, tmp_path: Path, monkeypatch):
+    """batch：目标解析成 (job_id, source) → batch_run；--resume 透传；SKIP 行与 JSON 输出。"""
+    import app.pipeline.orchestrator as orch
+
+    data = tmp_path / "data"
+    _fake_media(data, ["a.m4a", "b.m4a"])
+    out = tmp_path / "out"
+    seen: dict = {}
+
+    def fake_batch(inputs, cfg, *, resume=True, limit=None, force=False, on_event=None,
+                   keep_intermediates=False):
+        targets = list(inputs)
+        seen.update({"n": len(targets), "resume": resume, "force": force,
+                     "ids": [jid for jid, _ in targets]})
+        return {"ok": True, "n": len(targets), "results": [],
+                "failures": [], "skipped": [jid for jid, _ in targets],
+                "skipped_reasons": {jid: "complete" for jid, _ in targets},
+                "stopped_reason": "", "timings": {"total_s": 0.01}}
+
+    monkeypatch.setattr(orch, "batch_run", fake_batch)
+    assert main(["batch", str(data), "--out", str(out), "--resume"]) == EXIT_OK
+    text = capsys.readouterr().out
+    assert "跳过 2" in text and text.count("[SKIP]") == 2
+    assert seen["n"] == 2 and seen["resume"] is True and seen["force"] is False
+
+    assert main(["batch", str(data), "--out", str(out), "--resume", "--json"]) == EXIT_OK
+    payload = json.loads(capsys.readouterr().out)
+    assert len(payload["skipped"]) == 2 and payload["ok"] is True
+
+
+def test_batch_failure_exit_code(capsys, tmp_path: Path, monkeypatch):
+    """batch 有失败 → 退出码 1 且打印失败行。"""
+    import app.pipeline.orchestrator as orch
+
+    data = tmp_path / "data"
+    _fake_media(data, ["a.m4a"])
+    out = tmp_path / "out"
+
+    def fake_batch(inputs, cfg, **kwargs):
+        job_id, source = list(inputs)[0]
+        return {
+            "ok": False, "n": 1,
+            "results": [{"ok": False, "job_id": job_id, "source": source,
+                         "stage": "asr", "error": "boom", "locked": False,
+                         "timings": {}, "report": {}, "artifacts": []}],
+            "failures": [{"job_id": job_id, "source": source, "stage": "asr", "error": "boom"}],
+            "skipped": [], "stopped_reason": "", "timings": {},
+        }
+
+    monkeypatch.setattr(orch, "batch_run", fake_batch)
+    assert main(["batch", str(data), "--out", str(out)]) == 1
+    assert "失败 1" in capsys.readouterr().out
+
+
+def test_run_command_registers_unknown_path(capsys, tmp_path: Path, monkeypatch):
+    """run <路径>：未登记路径先 upsert 入库，再调 run_job。"""
+    import app.pipeline.orchestrator as orch
+    from app.storage import Storage
+
+    data = tmp_path / "data"
+    _fake_media(data, ["x.m4a"])
+    out = tmp_path / "out"
+    captured: dict = {}
+
+    def fake_run(job_id, source, cfg, *, force=False, out_dir=None, cache_dir=None,
+                 on_event=None, keep_intermediates=False):
+        captured.update({"job_id": job_id, "source": str(source), "force": force})
+        return {"ok": True, "job_id": job_id, "source": str(source), "stage": "export",
+                "error": "", "skipped": False, "locked": False,
+                "timings": {"total_s": 1.0}, "report": {}, "artifacts": [], "stages": {}}
+
+    monkeypatch.setattr(orch, "run_job", fake_run)
+    assert main(["run", str(data / "x.m4a"), "--out", str(out), "--json"]) == EXIT_OK
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["ok"] is True and payload["result"]["skipped"] is False
+    with Storage(out / "jobs.db") as store:
+        job = store.get_job(captured["job_id"])
+    assert job is not None and Path(job.source) == data / "x.m4a"
+
+
+def test_run_command_locked_exit_code(capsys, tmp_path: Path, monkeypatch):
+    """run 被锁占用（locked=True）→ 退出码 1，打印 LOCK 行。"""
+    import app.pipeline.orchestrator as orch
+
+    data = tmp_path / "data"
+    _fake_media(data, ["z.m4a"])
+    out = tmp_path / "out"
+
+    def fake_run(job_id, source, cfg, **kwargs):
+        return {"ok": False, "job_id": job_id, "source": str(source), "stage": "lock",
+                "error": "job 正在运行", "skipped": False, "locked": True,
+                "timings": {}, "report": None, "artifacts": [], "stages": {}}
+
+    monkeypatch.setattr(orch, "run_job", fake_run)
+    assert main(["run", str(data / "z.m4a"), "--out", str(out)]) == 1
+    assert "[LOCK]" in capsys.readouterr().out
+
+
+def test_retry_resets_failed_stage(capsys, tmp_path: Path, monkeypatch):
+    """retry：从第一个未完成阶段（asr）重置下游；run_job 收到 force=False。"""
+    import app.pipeline.orchestrator as orch
+
+    data = tmp_path / "data"
+    _fake_media(data, ["y.m4a"])
+    out = tmp_path / "out"
+    from app.models import Job
+    from app.storage import Storage
+
+    with Storage(out / "jobs.db") as store:
+        store.init_db()
+        store.add_job(Job.new("job_retry", str(data / "y.m4a")))
+        for name in ("decode", "analyze", "denoise", "trim", "loudness"):
+            store.finish_stage("job_retry", name, "done", {"duration_s": 0.1})
+        store.fail_stage("job_retry", "asr", "boom")
+        store.fail_job("job_retry", "boom")
+
+    seen: dict = {}
+
+    def fake_run(job_id, source, cfg, *, force=False, out_dir=None, cache_dir=None,
+                 on_event=None, keep_intermediates=False):
+        with Storage(out / "jobs.db") as store:
+            seen["stages"] = store.stage_map(job_id)
+        seen["force"] = force
+        return {"ok": True, "job_id": job_id, "source": str(source), "stage": "export",
+                "error": "", "skipped": False, "locked": False, "timings": {},
+                "report": {}, "artifacts": [], "stages": {}}
+
+    monkeypatch.setattr(orch, "run_job", fake_run)
+    assert main(["retry", "job_retry", "--out", str(out)]) == EXIT_OK
+    assert "从 asr 阶段重跑" in capsys.readouterr().out
+    assert seen["stages"]["decode"] == "done"      # 上游已完成阶段不动
+    assert seen["stages"]["asr"] == "pending"      # 失败阶段及下游被重置
+    assert seen["force"] is False
 
 
 def test_decode_command_stage_and_cleanup(capsys, tmp_path: Path, monkeypatch):
