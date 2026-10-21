@@ -145,3 +145,55 @@ def test_help_available():
         with pytest.raises(SystemExit) as info:
             main(argv)
         assert info.value.code == 0
+
+
+def test_decode_command_stage_and_cleanup(capsys, tmp_path: Path, monkeypatch):
+    """decode 子命令：阶段结果落库 + --cleanup 只删中间文件、保留 16k 与缓存元数据。
+
+    用 monkeypatch 顶掉真实解码，避免用例依赖 ffmpeg（真实解码由 test_decode.py 覆盖）。
+    """
+    from app.models import DecodeResult
+    from app.storage import Storage
+
+    data = tmp_path / "data"
+    _fake_media(data, ["第一讲.m4a"])
+    out = tmp_path / "out"
+    assert main(["scan", str(data), "--out", str(out)]) == EXIT_OK
+    capsys.readouterr()
+
+    with Storage(out / "jobs.db") as store:
+        job_id = store.list_jobs()[0].id
+
+    cache = out / "cache"
+    cache.mkdir(parents=True, exist_ok=True)
+    wav16k = cache / f"{job_id}.16k.wav"
+    wav44k = cache / f"{job_id}.44k.wav"
+    meta = cache / f"{job_id}.decode.json"
+    for path in (wav16k, wav44k, meta):
+        path.write_bytes(b"\x00" * 16)
+
+    fake = DecodeResult(
+        ok=True, job_id=job_id, wav16k=str(wav16k), duration_s=12.5,
+        sample_rate=16000, orig_sample_rate=44100, channels=1, bit_rate=96000,
+        repaired=False, decode_source=str(data / "第一讲.m4a"),
+    )
+    monkeypatch.setattr("app.cli.run_decode", lambda *a, **k: fake)
+
+    assert main([
+        "decode", job_id, "--out", str(out), "--cache-dir", str(cache), "--cleanup",
+    ]) == EXIT_OK
+    output = capsys.readouterr().out
+    assert "成功 1 / 1" in output
+
+    # 44k 被清掉；16k 与元数据保留（否则缓存校验失效）
+    assert wav16k.is_file()
+    assert meta.is_file()
+    assert not wav44k.is_file()
+
+    with Storage(out / "jobs.db") as store:
+        job = store.get_job(job_id)
+        stage = store.get_stage(job_id, "decode")
+    assert stage is not None and stage.status == "done"
+    assert stage.metrics["duration_s"] == pytest.approx(12.5)
+    assert job.stage == "decode"
+    assert job.status == "pending"  # 只跑了解码，等后续阶段

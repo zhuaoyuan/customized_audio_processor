@@ -341,8 +341,11 @@ def repair_bytes(data: bytes, src: Optional[str | Path] = None,
 
     # 自检：重解析 + 用 delta=0 复验，确认补丁后偏移全部落在 mdat 内且单调
     patched = bytes(buf)
-    spans = mdat_spans(parse_boxes(patched))
-    verify_tables = [offsets for _, offsets in collect_stco_tables(patched, parse_boxes(patched))]
+    patched_boxes = parse_boxes(patched)
+    spans = mdat_spans(patched_boxes)
+    verify_tables = [
+        offsets for _, offsets in collect_stco_tables(patched, patched_boxes)
+    ]
     reason = validate_alignment(verify_tables, spans, 0, len(patched))
     if reason is not None:
         result.ok = False

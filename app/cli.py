@@ -136,9 +136,11 @@ def _global_parent() -> argparse.ArgumentParser:
 def _add_global_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--config", default=None, help="配置文件路径（默认 configs/default.yaml）")
     parser.add_argument("--preset", choices=list(PRESETS), default=None, help="参数预设 fast|standard|quality")
-    parser.add_argument("--out", dest="out_dir", default=None, help="产物根目录（覆盖 paths.out_dir）")
+    parser.add_argument("--out", dest="out_dir", default=None,
+                        help="产物根目录（覆盖 paths.out_dir；同时把 db/logs 落到该目录）")
     parser.add_argument("--db", dest="db_path", default=None, help="SQLite 路径（覆盖 paths.db_path）")
-    parser.add_argument("--cache-dir", default=None, help="中间 wav 目录（覆盖 paths.cache_dir）")
+    parser.add_argument("--cache-dir", default=None,
+                        help="中间 wav 目录（覆盖 paths.cache_dir；默认 work/cache，不随 --out 变化）")
     parser.add_argument("-v", "--verbose", action="store_true", help="DEBUG 日志")
     parser.add_argument("--log-level", default=None, choices=["DEBUG", "INFO", "WARNING", "ERROR"])
 
@@ -515,7 +517,10 @@ def cmd_decode(args: argparse.Namespace, cfg: Config) -> int:
                   f"{result.sample_rate:>6d}Hz {extra:16s} {elapsed:6.2f}s{note}")
 
         if args.cleanup:
-            removed = cleanup_cache(cfg.path("cache_dir"), job_id, keep_16k=True, keep_44k=False)
+            # 仅清 44k/fixed 等中间文件；保留 16k + 缓存元数据，否则下次又得重新解码
+            removed = cleanup_cache(
+                cfg.path("cache_dir"), job_id, keep_16k=True, keep_44k=False, keep_meta=True
+            )
             if removed and not args.json:
                 print(f"       清理 {len(removed)} 个中间文件")
 
