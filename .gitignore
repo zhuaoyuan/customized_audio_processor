@@ -15,6 +15,9 @@ out/review/
 work/cache/
 work/pip_cache/
 work/pytest_tmp/
+work/pytest_tmp_*/
+work/p5mock_*/
+tmp????????/
 work/pip_*.log
 work/_*.py
 
