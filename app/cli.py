@@ -62,6 +62,9 @@ def build_parser() -> argparse.ArgumentParser:
             "  python -m app.cli scan data/ --out out/\n"
             "  python -m app.cli status\n"
             "  python -m app.cli decode --all\n"
+            "  python -m app.cli transcribe --all\n"
+            "  python -m app.cli correct --all\n"
+            "  python -m app.cli export --all\n"
         ),
     )
     parser.add_argument("--version", action="version", version=f"audio_processer {__version__}")
@@ -153,6 +156,51 @@ def build_parser() -> argparse.ArgumentParser:
                           help="保留中间 wav（denoised/clean/normalized，调试用）")
     p_render.add_argument("--json", action="store_true", help="以 JSON 输出")
     p_render.set_defaults(func=cmd_render)
+
+    # transcribe（P4：VAD 段逐段 ASR + clean/orig 双时间轴）
+    p_transcribe = subparsers.add_parser(
+        "transcribe",
+        help="转写阶段：VAD 段逐段 SenseVoice + clean/orig 句级时间戳 → transcript.json",
+        parents=[global_parent],
+    )
+    p_transcribe.add_argument("target", nargs="?", default=None, help="job id 或输入文件路径")
+    p_transcribe.add_argument("--all", action="store_true", help="转写数据库里全部 job")
+    p_transcribe.add_argument("--limit", type=int, default=None, help="--all 时最多处理 N 个")
+    p_transcribe.add_argument("--no-cache", action="store_true",
+                              help="已有 transcript.json 也重做")
+    p_transcribe.add_argument("--merge-gap", type=float, default=None,
+                              help="可选：合并 gap<=N 秒的相邻段（默认不合并；>30s 不合并）")
+    p_transcribe.add_argument("--json", action="store_true", help="以 JSON 输出")
+    p_transcribe.set_defaults(func=cmd_transcribe)
+
+    # correct（P5：DeepSeek 分块纠错 + 校验回退）
+    p_correct = subparsers.add_parser(
+        "correct",
+        help="纠错阶段：deepseek-flash 按主题/热词分块纠错，校验不过整块回退 → corrections.json",
+        parents=[global_parent],
+    )
+    p_correct.add_argument("target", nargs="?", default=None, help="job id 或输入文件路径")
+    p_correct.add_argument("--all", action="store_true", help="纠错数据库里全部 job")
+    p_correct.add_argument("--limit", type=int, default=None, help="--all 时最多处理 N 个")
+    p_correct.add_argument("--no-cache", action="store_true",
+                           help="已有 corrections.json 也重做")
+    p_correct.add_argument("--json", action="store_true", help="以 JSON 输出")
+    p_correct.set_defaults(func=cmd_correct)
+
+    # export（P5-T4：md/srt/txt 文本导出；音频导出仍走 render）
+    p_export = subparsers.add_parser(
+        "export",
+        help="文本导出：transcript.json → transcript.md / .srt / .txt（clean 轴，句级）",
+        parents=[global_parent],
+    )
+    p_export.add_argument("target", nargs="?", default=None, help="job id 或输入文件路径")
+    p_export.add_argument("--all", action="store_true", help="导出数据库里全部 job")
+    p_export.add_argument("--limit", type=int, default=None, help="--all 时最多处理 N 个")
+    p_export.add_argument("--formats", default="md,srt,txt",
+                          help="逗号分隔的格式（默认 md,srt,txt）")
+    p_export.add_argument("--force", action="store_true", help="已有文本也覆盖")
+    p_export.add_argument("--json", action="store_true", help="以 JSON 输出")
+    p_export.set_defaults(func=cmd_export)
 
     return parser
 
@@ -856,6 +904,308 @@ def cmd_render(args: argparse.Namespace, cfg: Config) -> int:
     else:
         ok_n = len(summaries) - failures
         print(f"\n渲染完成：成功 {ok_n} / {len(summaries)}"
+              + (f"，失败 {failures}" if failures else ""))
+    return EXIT_OK if failures == 0 else EXIT_RUNTIME
+
+
+# ---------------------------------------------------------------- 转写/纠错/导出（P4/P5）
+def _resolve_stage_targets(
+    args: argparse.Namespace, store: Storage, action: str
+) -> List[Tuple[str, Path]]:
+    """P4/P5 子命令共用的目标解析（``<id|path>`` / ``--all`` / ``--limit``）。"""
+    if getattr(args, "all", False):
+        jobs = store.list_jobs()
+        if getattr(args, "limit", None):
+            jobs = jobs[: args.limit]
+        return [(job.id, Path(job.source)) for job in jobs]
+    if not getattr(args, "target", None):
+        raise ConfigError(f"请给出 job id / 文件路径，或用 --all {action}全部任务")
+    target = args.target
+    job = store.get_job(target)
+    if job is not None:
+        return [(job.id, Path(job.source))]
+    path = Path(target)
+    if path.is_file():
+        existing = store.get_job_by_source(path)
+        return [(existing.id if existing else make_job_id(path), path)]
+    raise ConfigError(f"找不到 job 或文件：{target}")
+
+
+def _stage_job_done(store: Storage, job_id: str, stage: str) -> None:
+    """阶段成功后更新 job（P3 已把 job 置 done，这里只推进 stage）。"""
+    if store.get_job(job_id) is not None:
+        store.update_job(job_id, status=STATUS_DONE, stage=stage)
+
+
+def _transcribe_summary(result: Dict[str, Any]) -> Dict[str, Any]:
+    report = result.get("report") or {}
+    asr = result.get("asr") or report.get("asr") or {}
+    speakers = result.get("speakers") or report.get("speakers") or {}
+    return {
+        "job_id": result.get("job_id"),
+        "ok": bool(result.get("ok")),
+        "skipped": bool(result.get("skipped")),
+        "stage": result.get("stage"),
+        "error": result.get("error", ""),
+        "n_segments": asr.get("n_segments", result.get("n_segments")),
+        "chars": asr.get("chars", result.get("chars")),
+        "n_empty": asr.get("n_empty", result.get("n_empty")),
+        "rtf": asr.get("rtf", result.get("rtf")),
+        "elapsed_s": asr.get("elapsed_s", result.get("elapsed_s")),
+        "speakers": speakers,
+        "diarize": result.get("diarize"),
+        "transcript": result.get("transcript"),
+    }
+
+
+def _transcribe_row(job_id: str, summary: Dict[str, Any]) -> str:
+    if not summary["ok"]:
+        return (f"[FAIL] {_pad(job_id, 40)} {str(summary.get('stage')):9s} "
+                f"{(summary.get('error') or '')[:110]}")
+    tag = "SKIP" if summary.get("skipped") else "OK  "
+    n = summary.get("n_segments")
+    chars = summary.get("chars")
+    empty = summary.get("n_empty")
+    rtf = summary.get("rtf")
+    elapsed = summary.get("elapsed_s")
+    spk = summary.get("speakers") or {}
+    return (
+        f"[{tag}] {_pad(job_id, 40)} "
+        f"segs={n if n is not None else '-':>5} "
+        f"chars={chars if chars is not None else '-':>6} "
+        f"empty={empty if empty is not None else '-':>3} "
+        f"rtf={float(rtf) if rtf is not None else float('nan'):.4f} "
+        f"spk={spk.get('method', '-')}/{spk.get('n', '-')} "
+        f"{float(elapsed) if elapsed is not None else float('nan'):6.1f}s"
+    )
+
+
+def cmd_transcribe(args: argparse.Namespace, cfg: Config) -> int:
+    from .pipeline.asr import transcribe_job
+
+    store = make_storage(cfg)
+    store.init_db()
+    try:
+        targets = _resolve_stage_targets(args, store, "转写")
+    except ConfigError as exc:
+        print(f"[错误] {exc}", file=sys.stderr)
+        store.close()
+        return EXIT_USAGE
+    if not targets:
+        print("[警告] 没有待转写的任务", file=sys.stderr)
+        store.close()
+        return EXIT_OK
+
+    summaries: List[Dict[str, Any]] = []
+    failures = 0
+    diar_mode = str(cfg.get("diar.mode", "none") or "none")
+    for job_id, source in targets:
+        result = transcribe_job(
+            job_id, cfg,
+            force=args.no_cache,
+            merge_gap_s=args.merge_gap,
+            on_stage=_stage_recorder(store, job_id),
+        )
+        if result.get("ok") and diar_mode != "none":
+            try:
+                from .pipeline.diarize import diarize_job
+
+                result["diarize"] = diarize_job(
+                    job_id, cfg, force=args.no_cache,
+                    on_stage=_stage_recorder(store, job_id),
+                )
+            except Exception as exc:  # diar 失败不阻塞转写产物
+                log.warning("说话人阶段失败（不影响 transcript）：%s", exc)
+                result["diarize"] = {"ok": False, "error": str(exc)}
+        summary = _transcribe_summary(result)
+        summaries.append(summary)
+        if result.get("ok"):
+            _stage_job_done(store, job_id, "diarize" if diar_mode != "none" else "asr")
+            if not args.json:
+                print(_transcribe_row(job_id, summary))
+        else:
+            failures += 1
+            if store.get_job(job_id) is not None:
+                store.fail_job(job_id, result.get("error") or "转写失败")
+            if not args.json:
+                print(_transcribe_row(job_id, summary))
+
+    store.close()
+    if args.json:
+        _json_dump({"ok": failures == 0, "n": len(summaries), "failures": failures,
+                    "results": summaries})
+    else:
+        ok_n = len(summaries) - failures
+        print(f"\n转写完成：成功 {ok_n} / {len(summaries)}"
+              + (f"，失败 {failures}" if failures else ""))
+    return EXIT_OK if failures == 0 else EXIT_RUNTIME
+
+
+def _correct_summary(result: Dict[str, Any]) -> Dict[str, Any]:
+    report = result.get("report") or {}
+    corr = result.get("correct") or report.get("correct") or {}
+    return {
+        "job_id": result.get("job_id"),
+        "ok": bool(result.get("ok")),
+        "skipped": bool(result.get("skipped")),
+        "stage": result.get("stage"),
+        "error": result.get("error", ""),
+        "enabled": corr.get("enabled", result.get("enabled")),
+        "chunks": corr.get("chunks", result.get("chunks")),
+        "edits": corr.get("edits", result.get("edits")),
+        "rejected": corr.get("rejected", result.get("rejected")),
+        "cost_cny": corr.get("cost_cny", result.get("cost_cny")),
+        "elapsed_s": corr.get("elapsed_s", result.get("elapsed_s")),
+    }
+
+
+def _correct_row(job_id: str, summary: Dict[str, Any]) -> str:
+    if not summary["ok"]:
+        return (f"[FAIL] {_pad(job_id, 40)} {str(summary.get('stage')):9s} "
+                f"{(summary.get('error') or '')[:110]}")
+    tag = "SKIP" if summary.get("skipped") else "OK  "
+    return (
+        f"[{tag}] {_pad(job_id, 40)} enabled={str(bool(summary.get('enabled'))):5s} "
+        f"chunks={summary.get('chunks') if summary.get('chunks') is not None else '-':>3} "
+        f"edits={summary.get('edits') if summary.get('edits') is not None else '-':>4} "
+        f"rejected={summary.get('rejected') if summary.get('rejected') is not None else '-':>2} "
+        f"cost=¥{float(summary.get('cost_cny') or 0.0):.4f} "
+        f"{float(summary.get('elapsed_s') or 0.0):6.1f}s"
+    )
+
+
+def cmd_correct(args: argparse.Namespace, cfg: Config) -> int:
+    from .pipeline.correct import correct_job
+
+    store = make_storage(cfg)
+    store.init_db()
+    try:
+        targets = _resolve_stage_targets(args, store, "纠错")
+    except ConfigError as exc:
+        print(f"[错误] {exc}", file=sys.stderr)
+        store.close()
+        return EXIT_USAGE
+    if not targets:
+        print("[警告] 没有待纠错的任务", file=sys.stderr)
+        store.close()
+        return EXIT_OK
+
+    summaries: List[Dict[str, Any]] = []
+    failures = 0
+    for job_id, source in targets:
+        result = correct_job(
+            job_id, cfg,
+            force=args.no_cache,
+            on_stage=_stage_recorder(store, job_id),
+        )
+        summary = _correct_summary(result)
+        summaries.append(summary)
+        if result.get("ok"):
+            _stage_job_done(store, job_id, "correct")
+            if not args.json:
+                print(_correct_row(job_id, summary))
+        else:
+            failures += 1
+            if store.get_job(job_id) is not None:
+                store.fail_job(job_id, result.get("error") or "纠错失败")
+            if not args.json:
+                print(_correct_row(job_id, summary))
+
+    store.close()
+    if args.json:
+        _json_dump({"ok": failures == 0, "n": len(summaries), "failures": failures,
+                    "results": summaries})
+    else:
+        ok_n = len(summaries) - failures
+        print(f"\n纠错完成：成功 {ok_n} / {len(summaries)}"
+              + (f"，失败 {failures}" if failures else ""))
+    return EXIT_OK if failures == 0 else EXIT_RUNTIME
+
+
+def _export_summary(result: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "job_id": result.get("job_id"),
+        "ok": bool(result.get("ok")),
+        "skipped": bool(result.get("skipped")),
+        "stage": result.get("stage"),
+        "error": result.get("error", ""),
+        "formats": result.get("formats"),
+        "files": result.get("files"),
+        "n_segments": result.get("n_segments"),
+        "elapsed_s": result.get("elapsed_s"),
+    }
+
+
+def _export_row(job_id: str, summary: Dict[str, Any]) -> str:
+    if not summary["ok"]:
+        return (f"[FAIL] {_pad(job_id, 40)} {str(summary.get('stage')):9s} "
+                f"{(summary.get('error') or '')[:110]}")
+    tag = "SKIP" if summary.get("skipped") else "OK  "
+    formats = summary.get("formats")
+    if isinstance(formats, (list, tuple)):
+        formats = ",".join(str(x) for x in formats)
+    return (
+        f"[{tag}] {_pad(job_id, 40)} "
+        f"segs={summary.get('n_segments') if summary.get('n_segments') is not None else '-':>5} "
+        f"fmt={formats or '-':14s} "
+        f"{float(summary.get('elapsed_s') or 0.0):6.2f}s"
+    )
+
+
+def cmd_export(args: argparse.Namespace, cfg: Config) -> int:
+    from .pipeline.export import export_text
+
+    formats = [f.strip().lower() for f in str(args.formats or "").split(",") if f.strip()]
+    if not formats:
+        print("[错误] --formats 不能为空（可选 md,srt,txt）", file=sys.stderr)
+        return EXIT_USAGE
+    unknown = [f for f in formats if f not in ("md", "srt", "txt", "json")]
+    if unknown:
+        print(f"[错误] 不支持的格式：{', '.join(unknown)}（可选 md,srt,txt）", file=sys.stderr)
+        return EXIT_USAGE
+
+    store = make_storage(cfg)
+    store.init_db()
+    try:
+        targets = _resolve_stage_targets(args, store, "导出")
+    except ConfigError as exc:
+        print(f"[错误] {exc}", file=sys.stderr)
+        store.close()
+        return EXIT_USAGE
+    if not targets:
+        print("[警告] 没有待导出的任务", file=sys.stderr)
+        store.close()
+        return EXIT_OK
+
+    summaries: List[Dict[str, Any]] = []
+    failures = 0
+    for job_id, source in targets:
+        result = export_text(
+            job_id, cfg,
+            formats=formats,
+            force=args.force,
+            on_stage=_stage_recorder(store, job_id),
+        )
+        summary = _export_summary(result)
+        summaries.append(summary)
+        if result.get("ok"):
+            _stage_job_done(store, job_id, "export")
+            if not args.json:
+                print(_export_row(job_id, summary))
+        else:
+            failures += 1
+            if store.get_job(job_id) is not None:
+                store.fail_job(job_id, result.get("error") or "导出失败")
+            if not args.json:
+                print(_export_row(job_id, summary))
+
+    store.close()
+    if args.json:
+        _json_dump({"ok": failures == 0, "n": len(summaries), "failures": failures,
+                    "results": summaries})
+    else:
+        ok_n = len(summaries) - failures
+        print(f"\n导出完成：成功 {ok_n} / {len(summaries)}"
               + (f"，失败 {failures}" if failures else ""))
     return EXIT_OK if failures == 0 else EXIT_RUNTIME
 

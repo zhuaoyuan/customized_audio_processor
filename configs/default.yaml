@@ -162,7 +162,7 @@ asr:
 # ---------------------------------------------------------------- 说话人
 diar:
   mode: none                       # none | sampled | full
-  sample_minutes: 10
+  sample_minutes: 15               # 抽样总时长（3 窗 × 5 min，正文、避头尾 2 min）
   sample_segments: 3
   threshold: 0.7
   min_speaker_s: 5.0
@@ -184,6 +184,12 @@ correct:
   timeout_s: 120
   max_retries: 3
   concurrency: 8
+  # deepseek-flash 空闲价（¥/百万 token，2026-10-21 官方价）；仅用于报告里的 cost_cny 估算
+  price_input_cny_per_m: 1.0       # 输入（未命中缓存）
+  price_output_cny_per_m: 4.0      # 输出
+  price_cache_hit_cny_per_m: 0.02  # 输入（命中前缀缓存）
+  retry_backoff_s: 1.0             # 429/5xx 指数退避初始值
+  retry_backoff_max_s: 30.0        # 退避上限
 
 # ---------------------------------------------------------------- 无关人声
 unrelated_speech:

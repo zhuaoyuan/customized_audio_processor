@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import shutil
 import subprocess
 import time
@@ -34,6 +35,7 @@ from ..models import (
     REMOVE_HEAD,
     REMOVE_INTERNAL_SILENCE,
     REMOVE_TAIL,
+    SPEAKER_MAIN,
     AnalyzeResult,
     DecodeResult,
     GainInfo,
@@ -725,3 +727,367 @@ def render_job(
                 log.debug("清理 44.1k 解码缓存失败：%s", job_id, exc_info=True)
         else:
             log.info("保留中间文件：%s", ", ".join(str(caches[k]) for k in ("denoised", "clean44", "norm44")))
+
+
+# ================================================================ 文本导出（P5-T4）
+#
+# ``transcript.json``（P4 产物，契约 §4.3，顶层是 **list**）→ ``transcript.md`` / ``.srt`` / ``.txt``。
+# 时间轴约定（任务卡 P5-T4）：
+# - md / txt 的 ``[mm:ss]`` 与 srt 的 ``HH:MM:SS,mmm`` 都取 **clean 轴**的 ``start``（向下取整到秒），
+#   所以同一段的 md 行首时间与 srt 起始时间逐条一致；md 括号内才是 orig 轴（``orig_start``）。
+# - md **逐段一行、不合并段落**（PoC 的 md 是合并过的，会把多段并到一行，导致条数与 srt 不一致）。
+# - 空文本 / 纯标点段不写入三个文本产物（但仍计在 n_segments 里），srt 序号在过滤后连续。
+# - 全部文件 UTF-8（无 BOM）/ LF；写入用临时文件 + 原子替换，与 ``write_json`` 一致。
+
+#: 文本产物文件名（P5-T4 契约）
+PRODUCT_TRANSCRIPT = "transcript.json"
+PRODUCT_MD = "transcript.md"
+PRODUCT_SRT = "transcript.srt"
+PRODUCT_TXT = "transcript.txt"
+
+#: export_text 默认导出的文本格式（transcript.json 由 P4 落盘，不重复写）
+TEXT_FORMATS: Tuple[str, ...] = ("md", "srt", "txt")
+_FORMAT_FILES = {"md": PRODUCT_MD, "srt": PRODUCT_SRT, "txt": PRODUCT_TXT}
+
+#: SRT 单条最短时长兜底（start == end 时用 ``start + SRT_MIN_DURATION_S``）
+SRT_MIN_DURATION_S = 0.3
+
+#: 「有内容」判定：汉字/字母/数字；纯标点、空白、表情段跳过（与 asr.count_speech_chars 同口径）
+_SPEECH_CHAR_RE = re.compile(r"[\u4e00-\u9fffA-Za-z0-9]")
+
+
+def _as_seconds(value: Any, default: float = 0.0) -> float:
+    """宽松转 float：None/非法/NaN/Inf 均返回 ``default``（导出不能因为脏时间戳崩掉）。"""
+    try:
+        seconds = float(value)
+    except (TypeError, ValueError):
+        return default
+    return seconds if math.isfinite(seconds) else default
+
+
+def format_mmss(seconds: Any) -> str:
+    """秒 → ``mm:ss``；**≥1 h 用 ``h:mm:ss``**（小时不补零，如 ``1:02:05``）。
+
+    选择 ``h:mm:ss`` 而不是让分钟继续累加（``62:05``）：2 h 以上的长讲座
+    （f04 clean 8131.8 s ≈ 2:15:32）更易读，也与 srt 的 ``HH:MM:SS`` 便于目视对照。
+    向下取整到秒（63.9 → 63）；负数 / NaN / Inf 记 0。
+    """
+    total = int(max(0.0, _as_seconds(seconds)))
+    hours, rem = divmod(total, 3600)
+    minutes, secs = divmod(rem, 60)
+    if hours:
+        return f"{hours}:{minutes:02d}:{secs:02d}"
+    return f"{minutes:02d}:{secs:02d}"
+
+
+def format_srt_time(seconds: Any) -> str:
+    """秒 → SRT 时间戳 ``HH:MM:SS,mmm``（四舍五入到毫秒；负数 / NaN / Inf 记 0）。"""
+    total_ms = int(round(max(0.0, _as_seconds(seconds)) * 1000.0))
+    hours, rem = divmod(total_ms, 3_600_000)
+    minutes, rem = divmod(rem, 60_000)
+    secs, millis = divmod(rem, 1000)
+    return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
+
+
+def _segment_field(seg: Any, key: str, default: Any = None) -> Any:
+    """兼容 transcript.json 的 dict 条目与 ``TranscriptSegment`` dataclass。"""
+    if isinstance(seg, dict):
+        return seg.get(key, default)
+    return getattr(seg, key, default)
+
+
+def _has_speech_text(text: str) -> bool:
+    return bool(_SPEECH_CHAR_RE.search(text or ""))
+
+
+def _normalize_segments(segments: Optional[Sequence[Any]]) -> List[Dict[str, Any]]:
+    """把 transcript 条目规整成导出用 dict，并跳过空文本 / 纯标点段。
+
+    返回按输入顺序的列表，元素：``{start, end, orig_start, speaker, text}``。
+    ``text`` 会压掉换行/多余空白，保证 md/txt 一段一行、srt 一条一块。
+    """
+    rows: List[Dict[str, Any]] = []
+    for seg in segments or []:
+        text = " ".join(str(_segment_field(seg, "text", "") or "").split())
+        if not _has_speech_text(text):
+            continue
+        start = max(0.0, _as_seconds(_segment_field(seg, "start", 0.0)))
+        end = max(0.0, _as_seconds(_segment_field(seg, "end", start), start))
+        orig_start = _segment_field(seg, "orig_start", None)
+        orig_start = start if orig_start is None else max(0.0, _as_seconds(orig_start, start))
+        speaker = str(_segment_field(seg, "speaker", "") or "").strip() or SPEAKER_MAIN
+        rows.append({
+            "start": start,
+            "end": end,
+            "orig_start": orig_start,
+            "speaker": speaker,
+            "text": text,
+        })
+    return rows
+
+
+def _resolve_title(title: Optional[str], source: Optional[str]) -> str:
+    """md 标题：显式 title > 来源文件名的 stem > 兜底「转写」。"""
+    if title and str(title).strip():
+        return str(title).strip()
+    if source:
+        stem = Path(str(source)).stem
+        if stem:
+            return stem
+    return "转写"
+
+
+def transcript_to_md(
+    segments: Optional[Sequence[Any]],
+    *,
+    source: Optional[str] = None,
+    title: Optional[str] = None,
+) -> str:
+    """transcript 段 → Markdown 文本：逐段一行 ``[mm:ss (orig mm:ss)] 发言人：text``。
+
+    - clean 轴时间取自 ``start``，括号内 orig 轴取自 ``orig_start``；
+    - **不合并段落**（一段一行），条数与 srt 逐条对应；
+    - 文件头两行：``# <title> · 句级时间戳转写`` 与 ``> 时间轴：clean 音轨；括号内为原始音轨时间。``。
+    """
+    rows = _normalize_segments(segments)
+    lines = [
+        f"# {_resolve_title(title, source)} · 句级时间戳转写",
+        "",
+        "> 时间轴：clean 音轨；括号内为原始音轨时间。",
+    ]
+    body = [
+        f"[{format_mmss(row['start'])} (orig {format_mmss(row['orig_start'])})] "
+        f"{row['speaker']}：{row['text']}"
+        for row in rows
+    ]
+    if body:
+        lines.extend([""] + body)
+    return "\n".join(lines) + "\n"
+
+
+def transcript_to_srt(segments: Optional[Sequence[Any]]) -> str:
+    """transcript 段 → SRT（clean 轴）：序号从 1，``HH:MM:SS,mmm --> HH:MM:SS,mmm``，正文 ``发言人：text``。
+
+    ``end`` 用 ``max(end, start + 0.3)`` 兜底，保证 ``end > start``；块间空行；末尾单个换行。
+    """
+    rows = _normalize_segments(segments)
+    blocks: List[str] = []
+    for index, row in enumerate(rows, start=1):
+        start = row["start"]
+        end = max(row["end"], start + SRT_MIN_DURATION_S)
+        blocks.append(
+            f"{index}\n{format_srt_time(start)} --> {format_srt_time(end)}\n"
+            f"{row['speaker']}：{row['text']}"
+        )
+    return "\n\n".join(blocks) + ("\n" if blocks else "")
+
+
+def transcript_to_txt(segments: Optional[Sequence[Any]]) -> str:
+    """transcript 段 → 纯文本：逐段一行 ``[mm:ss] 发言人：text``（clean 轴，无 orig 括号）。"""
+    rows = _normalize_segments(segments)
+    return "".join(
+        f"[{format_mmss(row['start'])}] {row['speaker']}：{row['text']}\n" for row in rows
+    )
+
+
+def _normalize_formats(formats: Optional[Sequence[str] | str]) -> List[str]:
+    """格式列表规整：去空白/点号/小写、保序去重。接受 ``"md,srt"`` 字符串。"""
+    if isinstance(formats, str):
+        raw: Sequence[str] = formats.split(",")
+    else:
+        raw = list(formats or ())
+    out: List[str] = []
+    for item in raw:
+        name = str(item or "").strip().lower().lstrip(".")
+        if name and name not in out:
+            out.append(name)
+    return out
+
+
+def _read_json_dict(path: Path) -> Dict[str, Any]:
+    """读 JSON 对象；文件缺失 / 非法 / 顶层不是 dict 时返回空 dict（导出不因此失败）。"""
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _write_text_atomic(path: Path, text: str) -> Path:
+    """UTF-8（无 BOM）/ LF 原子写入：先写 ``*.tmp`` 再 replace。"""
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    tmp = target.with_suffix(target.suffix + ".tmp")
+    with open(tmp, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write(text)
+    tmp.replace(target)
+    return target
+
+
+def _srt_monotonic_error(rows: Sequence[Dict[str, Any]]) -> str:
+    """校验 srt 时间单调：段 ``start`` 必须非递减（end 由 max(end, start+0.3) 兜底恒 > start）。"""
+    previous = -1.0
+    for index, row in enumerate(rows):
+        if row["start"] + 1e-6 < previous:
+            return (
+                f"transcript 段未按 start 单调排序（第 {index + 1} 段 start={row['start']:.3f} "
+                f"< 上一段 {previous:.3f}）"
+            )
+        previous = max(previous, row["start"])
+    return ""
+
+
+def export_text(
+    job_id: str,
+    cfg: Any,
+    *,
+    out_dir: Optional[str | Path] = None,
+    formats: Optional[Sequence[str] | str] = None,
+    force: bool = False,
+    on_stage: Optional[Callable[[str, str, Dict[str, Any]], None]] = None,
+) -> Dict[str, Any]:
+    """``out/<id>/transcript.json`` → ``transcript.md / .srt / .txt``，并回写 report.json。
+
+    行为
+    ----
+    - 只读 ``out/<id>/transcript.json``（契约 §4.3，顶层 list）；不碰 clean.m4a / edit.json；
+    - 默认 ``formats=["md","srt","txt"]``；``json`` 视为 P4 已落盘，不重复写；
+    - 空文本 / 纯标点段跳过，不写入文本产物；
+    - report.json **只读-改-写**：合并 ``output.formats``（保留 codec/size 等既有键）与
+      ``timing.export_text_s``，其余字段原样保留（report 不存在时创建最小 dict）；
+    - 目标文件全部存在且 ``force=False`` → 跳过（``skipped=True``）；
+    - 失败不抛异常：返回 ``{"ok": False, "stage": "export", "error": ...}``，便于批处理；
+    - ``on_stage("export", "done"/"failed", metrics)`` 供编排器落 stages 表。
+
+    返回：``{"ok", "job_id", "out_dir", "skipped", "stage", "error", "formats", "files",
+    "n_segments", "n_written", "n_skipped_empty", "elapsed_s", "timings", "report"}``。
+    """
+    started = time.perf_counter()
+    job_id = str(job_id)
+    job_out = Path(out_dir) / job_id if out_dir else None
+    if job_out is None:
+        if cfg is None:
+            job_out = Path(".") / job_id
+        else:
+            job_out = cfg.path("out_dir") / job_id
+    fmt_list = _normalize_formats(formats if formats is not None else TEXT_FORMATS)
+    writable = [name for name in fmt_list if name in _FORMAT_FILES]
+
+    def notify(stage_name: str, status: str, metrics: Optional[Dict[str, Any]] = None) -> None:
+        if on_stage is not None:
+            try:
+                on_stage(stage_name, status, metrics or {})
+            except Exception:  # pragma: no cover - 回调失败不影响主流程
+                log.debug("on_stage 回调失败", exc_info=True)
+
+    def fail(message: str, n_segments: int = 0) -> Dict[str, Any]:
+        elapsed = round(time.perf_counter() - started, 2)
+        log.warning("文本导出失败：%s：%s", job_id, message)
+        notify("export", "failed", {"error": message, "elapsed_s": elapsed})
+        return {
+            "ok": False, "job_id": job_id, "out_dir": str(job_out), "skipped": False,
+            "stage": "export", "error": message, "formats": fmt_list, "files": {},
+            "n_segments": n_segments, "n_written": 0, "n_skipped_empty": 0,
+            "elapsed_s": elapsed, "timings": {"export_text_s": elapsed}, "report": None,
+        }
+
+    if not fmt_list:
+        return fail("formats 为空，至少指定 md/srt/txt 之一")
+    if not writable:
+        # CLI 允许 ``--formats json``：json 就是 P4 已落盘的 transcript.json，无需再写文本产物
+        if "json" in fmt_list:
+            log.info("仅请求 json（transcript.json 已由 P4 落盘），无需文本导出：%s", job_id)
+            notify("export", "done", {"skipped": True, "formats": fmt_list})
+            return {
+                "ok": True, "job_id": job_id, "out_dir": str(job_out), "skipped": True,
+                "stage": "export", "error": "", "formats": fmt_list, "files": {},
+                "n_segments": 0, "n_written": 0, "n_skipped_empty": 0,
+                "elapsed_s": 0.0, "timings": {"export_text_s": 0.0}, "report": None,
+            }
+        return fail(f"formats={fmt_list} 中没有可导出的文本格式（支持 md/srt/txt；json 由 P4 落盘）")
+    if not force:
+        targets = [job_out / _FORMAT_FILES[name] for name in writable]
+        if all(path.is_file() for path in targets):
+            log.info("文本产物已存在，跳过：%s（formats=%s）", job_out, ",".join(writable))
+            notify("export", "done", {"skipped": True, "formats": writable})
+            return {
+                "ok": True, "job_id": job_id, "out_dir": str(job_out), "skipped": True,
+                "stage": "export", "error": "", "formats": fmt_list,
+                "files": {name: str(job_out / _FORMAT_FILES[name]) for name in writable},
+                "n_segments": 0, "n_written": 0, "n_skipped_empty": 0,
+                "elapsed_s": 0.0, "timings": {"export_text_s": 0.0}, "report": None,
+            }
+
+    transcript_path = job_out / PRODUCT_TRANSCRIPT
+    if not transcript_path.is_file():
+        return fail(f"缺少 transcript.json：{transcript_path}")
+    try:
+        raw = json.loads(transcript_path.read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError) as exc:
+        return fail(f"transcript.json 读取/解析失败：{transcript_path}：{exc}")
+    if not isinstance(raw, list):
+        return fail(
+            f"transcript.json 顶层必须是 list（契约 §4.3），实际是 {type(raw).__name__}：{transcript_path}"
+        )
+
+    rows = _normalize_segments(raw)
+    error = _srt_monotonic_error(rows)
+    if error:
+        return fail(error, n_segments=len(raw))
+
+    report_path = job_out / PRODUCT_REPORT
+    report = _read_json_dict(report_path)
+    source = report.get("source")
+    title = report.get("title")
+    contents: Dict[str, str] = {}
+    if "md" in writable:
+        contents["md"] = transcript_to_md(rows, source=source if isinstance(source, str) else None,
+                                          title=title if isinstance(title, str) else None)
+    if "srt" in writable:
+        contents["srt"] = transcript_to_srt(rows)
+    if "txt" in writable:
+        contents["txt"] = transcript_to_txt(rows)
+
+    files: Dict[str, str] = {}
+    t_write = time.perf_counter()
+    try:
+        job_out.mkdir(parents=True, exist_ok=True)
+        for name in writable:
+            path = _write_text_atomic(job_out / _FORMAT_FILES[name], contents[name])
+            files[name] = str(path)
+    except OSError as exc:
+        return fail(f"写入文本产物失败：{job_out}：{exc}", n_segments=len(raw))
+    elapsed = time.perf_counter() - started
+    write_elapsed = time.perf_counter() - t_write
+
+    # report.json 只读-改-写：output.formats（合并）+ timing.export_text_s（保留其它 timing）
+    output = report.get("output") if isinstance(report.get("output"), dict) else {}
+    output["formats"] = fmt_list
+    report["output"] = output
+    timing = report.get("timing") if isinstance(report.get("timing"), dict) else {}
+    timing["export_text_s"] = round(elapsed, 2)
+    report["timing"] = timing
+    report.setdefault("id", job_id)
+    write_json(report_path, report)
+
+    n_total = len(raw)
+    n_written = len(rows)
+    metrics = {
+        "formats": fmt_list, "n_segments": n_total, "n_written": n_written,
+        "n_skipped_empty": n_total - n_written,
+        "bytes": {name: (job_out / _FORMAT_FILES[name]).stat().st_size for name in writable},
+        "elapsed_s": round(elapsed, 2), "write_s": round(write_elapsed, 2),
+    }
+    notify("export", "done", metrics)
+    log.info(
+        "文本导出完成：%s formats=%s 段=%d（写入 %d，空/纯标点跳过 %d）耗时 %.2fs",
+        job_id, ",".join(fmt_list), n_total, n_written, n_total - n_written, elapsed,
+    )
+    return {
+        "ok": True, "job_id": job_id, "out_dir": str(job_out), "skipped": False,
+        "stage": "export", "error": "", "formats": fmt_list, "files": files,
+        "n_segments": n_total, "n_written": n_written,
+        "n_skipped_empty": n_total - n_written,
+        "elapsed_s": round(elapsed, 2), "timings": {"export_text_s": round(elapsed, 2)},
+        "report": report,
+    }
