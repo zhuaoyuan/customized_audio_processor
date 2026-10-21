@@ -35,6 +35,7 @@ from .models import (
 from .pipeline.decode import decode as run_decode
 from .pipeline.decode import DecodeError, cleanup_cache, wav_info
 from .pipeline.analyze import analyze as run_analyze
+from .pipeline.export import ExportError, render_job
 from .storage import Storage, StorageError
 
 EXIT_OK = 0
@@ -137,6 +138,21 @@ def build_parser() -> argparse.ArgumentParser:
     p_analyze.add_argument("--limit", type=int, default=None, help="--all 时最多处理 N 个")
     p_analyze.add_argument("--json", action="store_true", help="以 JSON 输出")
     p_analyze.set_defaults(func=cmd_analyze)
+
+    # render（P3：降噪 → 裁剪 → 响度 → AAC 输出）
+    p_render = subparsers.add_parser(
+        "render",
+        help="渲染阶段：降噪 → 裁剪 → 响度归一化 → 真峰值限幅 → clean.m4a / edit.json / report.json",
+        parents=[global_parent],
+    )
+    p_render.add_argument("target", nargs="?", default=None, help="job id 或输入文件路径")
+    p_render.add_argument("--all", action="store_true", help="渲染数据库里全部 job")
+    p_render.add_argument("--limit", type=int, default=None, help="--all 时最多处理 N 个")
+    p_render.add_argument("--force", action="store_true", help="已有产物也重做（仍复用 decode/analyze 缓存）")
+    p_render.add_argument("--keep-intermediates", action="store_true",
+                          help="保留中间 wav（denoised/clean/normalized，调试用）")
+    p_render.add_argument("--json", action="store_true", help="以 JSON 输出")
+    p_render.set_defaults(func=cmd_render)
 
     return parser
 
@@ -699,6 +715,151 @@ def _analyze_row(job_id: str, result: Any, elapsed: float) -> str:
     )
 
 
+# ---------------------------------------------------------------- render（P3）
+def _resolve_render_targets(
+    args: argparse.Namespace, store: Storage
+) -> List[Tuple[str, Path]]:
+    if args.all:
+        jobs = store.list_jobs()
+        if args.limit:
+            jobs = jobs[: args.limit]
+        return [(job.id, Path(job.source)) for job in jobs]
+    if not args.target:
+        raise ConfigError("请给出 job id / 文件路径，或用 --all 渲染全部任务")
+    job = store.get_job(args.target)
+    if job is not None:
+        return [(job.id, Path(job.source))]
+    path = Path(args.target)
+    if path.is_file():
+        existing = store.get_job_by_source(path)
+        return [(existing.id if existing else make_job_id(path), path)]
+    raise ConfigError(f"找不到 job 或文件：{args.target}")
+
+
+def _stage_recorder(store: Storage, job_id: str):
+    """render_job 的阶段回调：denoise/trim/loudness/export 落 stages 表。"""
+
+    def on_stage(stage: str, status: str, metrics: Dict[str, Any]) -> None:
+        if store.get_job(job_id) is None:
+            return
+        try:
+            if status == "done":
+                store.start_stage(job_id, stage, reset=True)
+                store.finish_stage(job_id, stage, STATUS_DONE, metrics)
+            elif status == "failed":
+                store.fail_stage(
+                    job_id, stage, str(metrics.get("error") or "渲染失败"), metrics
+                )
+        except Exception:  # pragma: no cover - 落库失败不阻塞渲染
+            log.debug("阶段落库失败：%s/%s", job_id, stage, exc_info=True)
+
+    return on_stage
+
+
+def _render_summary(result: Dict[str, Any]) -> Dict[str, Any]:
+    """JSON 输出用的精简摘要（完整报告在 out/<id>/report.json）。"""
+    report = result.get("report") or {}
+    trim = report.get("trim") or {}
+    levels = report.get("levels") or {}
+    out = report.get("output") or {}
+    loud = report.get("loudness") or {}
+    timing = report.get("timing") or result.get("timings") or {}
+    return {
+        "job_id": result.get("job_id"),
+        "ok": bool(result.get("ok")),
+        "skipped": bool(result.get("skipped")),
+        "stage": result.get("stage"),
+        "error": result.get("error", ""),
+        "clean_dur_s": trim.get("clean_dur_s"),
+        "cut_ratio": trim.get("cut_ratio"),
+        "asl_in_dbfs": levels.get("asl_in_dbfs"),
+        "asl_out_dbfs": levels.get("asl_out_dbfs"),
+        "asl_dev_db": levels.get("asl_dev_db"),
+        "lufs_out": levels.get("lufs_out"),
+        "true_peak_out_dbtp": levels.get("true_peak_out_dbtp"),
+        "clipped_samples_out": levels.get("clipped_samples_out"),
+        "gain_db": loud.get("gain_db"),
+        "gain_min_db": (loud.get("gain") or {}).get("min_db"),
+        "gain_max_db": (loud.get("gain") or {}).get("max_db"),
+        "max_rate_db_s": (loud.get("gain") or {}).get("max_rate_db_s"),
+        "limiter_triggers": (loud.get("gain") or {}).get("limiter_triggers"),
+        "bit_rate": out.get("bit_rate"),
+        "size_bytes": out.get("size_bytes"),
+        "timing": timing,
+    }
+
+
+def _render_row(job_id: str, summary: Dict[str, Any]) -> str:
+    if not summary["ok"]:
+        return (f"[FAIL] {_pad(job_id, 40)} {str(summary.get('stage')):9s} "
+                f"{(summary.get('error') or '')[:110]}")
+    tag = "SKIP" if summary.get("skipped") else "OK  "
+    timing = summary.get("timing") or {}
+    total = timing.get("total_s")
+    total_s = f"{float(total):7.1f}s" if isinstance(total, (int, float)) else "     -  "
+    return (
+        f"[{tag}] {_pad(job_id, 40)} "
+        f"asl_in={summary.get('asl_in_dbfs') if summary.get('asl_in_dbfs') is not None else float('nan'):7.2f} "
+        f"out={summary.get('asl_out_dbfs') if summary.get('asl_out_dbfs') is not None else float('nan'):7.2f} "
+        f"gain={summary.get('gain_db') if summary.get('gain_db') is not None else float('nan'):+6.1f}dB "
+        f"TP={summary.get('true_peak_out_dbtp') if summary.get('true_peak_out_dbtp') is not None else float('nan'):6.2f}dBTP "
+        f"clip={summary.get('clipped_samples_out')} "
+        f"clean={float(summary.get('clean_dur_s') or 0.0) / 60.0:6.1f}min "
+        f"{total_s}"
+    )
+
+
+def cmd_render(args: argparse.Namespace, cfg: Config) -> int:
+    store = make_storage(cfg)
+    store.init_db()
+    try:
+        targets = _resolve_render_targets(args, store)
+    except ConfigError as exc:
+        print(f"[错误] {exc}", file=sys.stderr)
+        store.close()
+        return EXIT_USAGE
+    if not targets:
+        print("[警告] 没有待渲染的任务", file=sys.stderr)
+        store.close()
+        return EXIT_OK
+
+    summaries: List[Dict[str, Any]] = []
+    failures = 0
+    for job_id, source in targets:
+        result = render_job(
+            job_id, source, cfg,
+            force=args.force,
+            keep_intermediates=args.keep_intermediates,
+            on_stage=_stage_recorder(store, job_id),
+        )
+        summary = _render_summary(result)
+        summaries.append(summary)
+        if result.get("ok"):
+            if store.get_job(job_id) is not None:
+                store.update_job(job_id, status=STATUS_DONE, stage="export")
+            if not args.json:
+                print(_render_row(job_id, summary))
+                if result.get("skipped"):
+                    print(f"       产物已存在，跳过（--force 可重做）")
+        else:
+            failures += 1
+            message = result.get("error") or "渲染失败"
+            if store.get_job(job_id) is not None:
+                store.fail_job(job_id, message)
+            if not args.json:
+                print(_render_row(job_id, summary))
+
+    store.close()
+    if args.json:
+        _json_dump({"ok": failures == 0, "n": len(summaries), "failures": failures,
+                    "results": summaries})
+    else:
+        ok_n = len(summaries) - failures
+        print(f"\n渲染完成：成功 {ok_n} / {len(summaries)}"
+              + (f"，失败 {failures}" if failures else ""))
+    return EXIT_OK if failures == 0 else EXIT_RUNTIME
+
+
 # ---------------------------------------------------------------- 入口
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = build_parser()
@@ -725,7 +886,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     except ConfigError as exc:
         print(f"[配置错误] {exc}", file=sys.stderr)
         return EXIT_USAGE
-    except (StorageError, DecodeError) as exc:
+    except (StorageError, DecodeError, ExportError) as exc:
         print(f"[错误] {exc}", file=sys.stderr)
         return EXIT_RUNTIME
     except KeyboardInterrupt:

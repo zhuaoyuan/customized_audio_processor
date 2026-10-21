@@ -111,6 +111,7 @@ denoise:
     model: sh.rnnn                 # 相对模型目录（Windows 盘符冒号会破坏 filter 解析）
     resample_sr: 48000             # rnnoise 只支持 48k，须 aresample 进出
   low_snr_db: 12.0                 # SNR 低于此值时提示可升 nr/切 arnndn
+  low_snr_nr: 16.0                 # SNR < low_snr_db 且 mode=afftdn 时用的 nr 值
 
 # ---------------------------------------------------------------- 响度
 loudness:
@@ -124,14 +125,26 @@ loudness:
     clamp_db: 3.0
     high_drift_clamp_db: 6.0       # 源内波动 > drift_threshold_db 时放宽
     drift_threshold_db: 6.0
+    min_speech_s: 3.0              # 20 s 窗内语音帧不足此值就不更新控制点
+    smooth_s: 1.0                  # 块级增益包络的滑动平均窗（秒），抑制台阶
     max_rate_db_s: 1.5
     crossfade_ms: 20
   v3: "off"                        # 按说话人增益：默认关闭
   limiter:
-    target_tp_dbtp: -1.0           # 真峰值硬指标
-    ceiling_dbfs: -2.75            # 初始 ceiling（4x 过采样测真峰值后回读下调）
+    target_tp_dbtp: -1.0           # 真峰值硬指标（最终 m4a 验收值）
+    ceiling_dbfs: -2.75            # 初始 ceiling（此处的 dBTP；4x 过采样测峰后回读下调）
     oversample: 4
     max_iterations: 3
+    attack_ms: 5.0                 # 前瞻攻击时间（真峰值限幅器）
+    release_ms: 150.0              # 释放时间常数（避免泵动）
+    codec_margin_db: 0.5           # AAC 编码后 TP 回读不达标时，ceiling 下调的额外余量
+  measure:
+    clean_sr: 16000                # ASL 测量轴（与 analyze/PoC 口径一致，不是渲染轴）
+    asl_tolerance_db: 0.03         # 渲染后 ASL 与目标的偏差阈值，超了迭代校正
+    max_asl_iterations: 3
+  render:
+    chunk_s: 120.0                 # 44.1k 渲染/限幅的分块长度（百分钟文件不爆内存）
+    context_s: 1.0                 # 分块重叠上下文（前瞻/释放/滤波边界）
 
 # ---------------------------------------------------------------- 转写
 asr:
