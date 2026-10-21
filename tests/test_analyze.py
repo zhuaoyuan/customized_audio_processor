@@ -399,6 +399,51 @@ def _write_wav(path: Path, x: np.ndarray, sr: int = SR) -> Path:
     return path
 
 
+# ---------------------------------------------------------------- 人工抽听修正
+def test_match_review_and_apply():
+    from app.pipeline.analyze import _match_review, apply_manual_review
+
+    reviews = {
+        "621cb91c": {"tail_s": 3000.5, "note": "f00 片尾收设备声"},
+        "4db18037_20_丁耘理想国_古希腊哲学": {"head_s": 89.5},
+    }
+    assert _match_review(reviews, "621cb91c_0_20140227_丁耘_西方哲学")["tail_s"] == 3000.5
+    assert _match_review(reviews, "4db18037_20_丁耘理想国_古希腊哲学")["head_s"] == 89.5
+    assert _match_review(reviews, "ffffffff_unknown") is None
+
+    # 越界（3000.5 > dur=600）→ 整条忽略，且不改动 trim
+    trim = {"head_s": 0.0, "tail_s": 600.0, "flags": []}
+    assert apply_manual_review(trim, 600.0, reviews, "621cb91c_0_20140227_丁耘_西方哲学") is None
+    assert trim["tail_s"] == 600.0 and "manual" not in trim
+
+    trim = {"head_s": 0.0, "tail_s": 600.0, "flags": []}
+    ok = apply_manual_review(trim, 600.0, {"abc12345": {"tail_s": 500.0, "note": "n"}}, "abc12345_x")
+    assert ok == {"note": "n", "tail_s": 500.0}
+    assert trim["tail_s"] == 500.0 and "manual_review" in trim["flags"]
+
+
+def test_manual_review_override_via_config(cfg, tmp_path: Path):
+    """configs/manual_review.yaml 生效：覆盖边界 + 缓存指纹变化。"""
+    review_file = tmp_path / "manual.yaml"
+    review_file.write_text(
+        "reviews:\n  \"abcd1234\":\n    tail_s: 300.0\n    note: 人工抽听测试\n",
+        encoding="utf-8",
+    )
+    cfg2 = cfg.replace({
+        "analyze.cache_enabled": True,
+        "analyze.manual_review_file": str(review_file),
+    })
+    x = _make_signal(640.0, 100.0, 500.0)
+    wav = _write_wav(tmp_path / "m.16k.wav", x)
+    result = analyze_wav(wav, cfg2, job_id="abcd1234_test", run_boundary=False,
+                         segments=[(100.0, 500.0)], use_cache=False)
+    assert result.trim["tail_s"] == 300.0
+    assert result.trim["manual"]["note"] == "人工抽听测试"
+    assert "manual_review" in result.trim["flags"]
+    # 内部长静音按最终边界重新分类（300 s 之后算尾区）
+    assert result.trim["internal_cut_s"] <= result.internal_silence["total_s"]
+
+
 def test_analyze_wav_without_asr(cfg, tmp_path: Path):
     x = _make_signal(640.0, 100.0, 500.0, loud_amp=0.2)
     wav = _write_wav(tmp_path / "t.16k.wav", x)

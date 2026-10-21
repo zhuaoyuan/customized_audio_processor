@@ -677,6 +677,7 @@ def _analyze_metrics(result: Any, elapsed: float) -> Dict[str, Any]:
         "internal_cut_s": trim.get("internal_cut_s"),
         "internal_gap_total_s": trim.get("internal_gap_total_s"),
         "flags": trim.get("flags"),
+        "manual_review": trim.get("manual"),
         "boundary_method": boundary.get("method"),
         "from_cache": bool(result.from_cache),
         "elapsed_s": round(elapsed, 2),

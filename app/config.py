@@ -355,6 +355,9 @@ def validate_config(data: Mapping[str, Any]) -> None:
             value = analyze.get(key, True)
             if not isinstance(value, bool):
                 errors.append(f"analyze.{key} 必须是 bool，当前={value!r}")
+        review_file = analyze.get("manual_review_file", "")
+        if review_file is not None and not isinstance(review_file, str):
+            errors.append("analyze.manual_review_file 必须是字符串路径（可为空）")
 
     diar = section("diar")
     if diar.get("mode") not in _DIAR_MODES:

@@ -766,6 +766,128 @@ def detect_boundaries(
     return result
 
 
+# ---------------------------------------------------------------- 人工抽听修正
+def manual_review_path(cfg: Any) -> Optional[Path]:
+    """``analyze.manual_review_file`` 的绝对路径；未配置返回 None。"""
+    if cfg is None:
+        return None
+    value = cfg.get("analyze.manual_review_file", "")
+    if not value:
+        return None
+    path = Path(str(value))
+    if path.is_absolute():
+        return path
+    root = Path(getattr(cfg, "root", Path.cwd()))
+    return root / path
+
+
+def load_manual_reviews(cfg: Any) -> Dict[str, Any]:
+    """读取人工抽听修正表（``configs/manual_review.yaml``）。
+
+    支持两种写法：``reviews: {<job_id 或 8 位前缀>: {...}}`` 或
+    ``reviews: [{job_id: ..., head_s: ..., tail_s: ..., note: ...}]``。
+    文件不存在/格式不对时返回空表（不阻塞流水线）。
+    """
+    path = manual_review_path(cfg)
+    if path is None or not path.is_file():
+        return {}
+    try:
+        from ..config import read_yaml
+
+        data = read_yaml(path)
+    except Exception as exc:  # pragma: no cover - 配置坏掉不该阻塞分析
+        log.warning("人工修正表读取失败（忽略）：%s：%s", path, exc)
+        return {}
+    reviews = data.get("reviews") if isinstance(data, dict) else None
+    if isinstance(reviews, list):
+        out: Dict[str, Any] = {}
+        for item in reviews:
+            if isinstance(item, dict) and item.get("job_id"):
+                out[str(item["job_id"])] = item
+        return out
+    return reviews if isinstance(reviews, dict) else {}
+
+
+def review_fingerprint(cfg: Any) -> str:
+    """人工修正表内容指纹（进了分析缓存 key，改文件自动失效）。"""
+    path = manual_review_path(cfg)
+    if path is None or not path.is_file():
+        return ""
+    try:
+        import hashlib
+
+        return hashlib.sha1(path.read_bytes()).hexdigest()[:12]
+    except OSError:  # pragma: no cover
+        return ""
+
+
+def _match_review(reviews: Dict[str, Any], job_id: str) -> Optional[Dict[str, Any]]:
+    """按 job id 全名 / 8 位 hash 前缀 / 名字前缀匹配人工修正条目。"""
+    if not reviews or not job_id:
+        return None
+    if job_id in reviews:
+        item = reviews[job_id]
+        return item if isinstance(item, dict) else None
+    head = job_id[:8]
+    if head in reviews:
+        item = reviews[head]
+        return item if isinstance(item, dict) else None
+    for key, value in reviews.items():
+        if isinstance(value, dict) and job_id.startswith(str(key)):
+            return value
+    return None
+
+
+def apply_manual_review(
+    trim: Dict[str, Any],
+    duration: float,
+    reviews: Dict[str, Any],
+    job_id: str,
+) -> Optional[Dict[str, Any]]:
+    """把人工修正覆盖到 ``trim``（head_s/tail_s）；返回已应用的条目。
+
+    先校验再改 ``trim``：人工表写错（越界/非数值）时**不改动任何字段**，只打 warning。
+    """
+    review = _match_review(reviews, job_id)
+    if review is None:
+        return None
+    applied: Dict[str, Any] = {"note": str(review.get("note", ""))}
+    new_head = float(trim["head_s"])
+    new_tail = float(trim["tail_s"])
+    changed = False
+    for key in ("head_s", "tail_s"):
+        if review.get(key) is None:
+            continue
+        try:
+            value = float(review[key])
+        except (TypeError, ValueError):
+            log.warning("人工修正 %s.%s 不是数值，忽略：%r", job_id, key, review[key])
+            continue
+        if key == "head_s":
+            new_head = value
+        else:
+            new_tail = value
+        applied[key] = round(value, 2)
+        changed = True
+    if not changed:
+        return None
+    if not (0.0 <= new_head < duration) or not (new_head < new_tail <= duration + 1e-6):
+        log.warning(
+            "人工修正后边界不合法（head=%.1f tail=%.1f dur=%.1f），已忽略：%s",
+            new_head, new_tail, duration, job_id,
+        )
+        return None
+    trim["head_s"] = round(new_head, 2)
+    trim["tail_s"] = round(new_tail, 2)
+    trim["manual"] = applied
+    trim["flags"] = sorted(set(trim.get("flags") or []) | {"manual_review"})
+    log.info(
+        "应用人工抽听修正：%s head=%.1fs tail=%.1fs（%s）",
+        job_id, new_head, new_tail, applied["note"][:40],
+    )
+    return applied
+
+
 # ---------------------------------------------------------------- 缓存
 def _cache_path(cache_dir: str | Path, job_id: str) -> Path:
     return Path(cache_dir) / f"{job_id}{CACHE_SUFFIX}"
@@ -780,6 +902,7 @@ def _cache_params(cfg: Any, run_boundary: bool) -> Dict[str, Any]:
         "trim.boundary_soft_chars_per_sec": float(cfg.get("trim.boundary_soft_chars_per_sec", 1.0)),
         "levels.min_continuous_speech_s": float(cfg.get("levels.min_continuous_speech_s", 3.0)),
         "boundary_ran": bool(run_boundary),
+        "manual_review": review_fingerprint(cfg),
     }
 
 
@@ -936,8 +1059,23 @@ def analyze_wav(
     timings["boundary_s"] = time.perf_counter() - t0
     head_s = float(boundary["head"]["boundary_s"])
     tail_s = float(boundary["tail"]["boundary_s"])
+    head_method = "window_asr" if boundary["method"] == "window_asr" else boundary["method"]
+    flags = sorted(set(boundary["head"]["flags"] + boundary["tail"]["flags"]))
 
-    # 7) 内部长静音：头尾边界确定后再分类（头尾区内的空隙归头尾裁剪）
+    # 6.5) 人工抽听修正（configs/manual_review.yaml；只覆盖边界，不改算法）
+    trim: Dict[str, Any] = {
+        "head_s": round(head_s, 2),
+        "tail_s": round(tail_s, 2),
+        "head_method": head_method,
+        "flags": flags,
+    }
+    manual_reviews = load_manual_reviews(cfg)
+    if manual_reviews:
+        apply_manual_review(trim, duration, manual_reviews, job_id)
+        head_s = float(trim["head_s"])
+        tail_s = float(trim["tail_s"])
+
+    # 7) 内部长静音：用**最终**头尾边界分类（头尾区内的空隙归头尾裁剪）
     silence = internal_silence(
         seg_list, duration,
         min_s=float(cfg.get("trim.internal_silence_min_s", 3.0)) if cfg else 3.0,
@@ -945,16 +1083,10 @@ def analyze_wav(
         head_s=head_s, tail_s=tail_s,
     )
 
-    trim = {
-        "head_s": round(head_s, 2),
-        "tail_s": round(tail_s, 2),
+    trim.update({
         "internal_cut_s": silence["cut_s"],
         "internal_gap_total_s": silence["total_s"],
-        "head_method": (
-            "window_asr" if boundary["method"] == "window_asr" else boundary["method"]
-        ),
-        "flags": sorted(set(boundary["head"]["flags"] + boundary["tail"]["flags"])),
-    }
+    })
 
     vad = {
         "engine": "silero-v6",

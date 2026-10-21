@@ -64,6 +64,7 @@ analyze:
   cache_enabled: true              # work/cache/<id>.analyze.json 复用（P3 直接读边界/段表）
   boundary_use_asr: true           # 头尾边界必须用 ASR 字符率；关掉则「不裁」并标 uncertain
   ebur128: true                    # 用 ffmpeg ebur128 测 LUFS 作对照（量级级慢于 VAD，可关）
+  manual_review_file: configs/manual_review.yaml  # 人工抽听后的逐文件边界修正（可空）
 
 # ---------------------------------------------------------------- VAD
 vad:
