@@ -2,6 +2,19 @@
 data/
 out/*.m4a
 out/*.wav
+out/**/*.m4a
+out/**/*.wav
+
+# ---- 运行期状态与产物（本地生成，不入库）----
+out/*.db
+out/*.db-wal
+out/*.db-shm
+out/logs/
+out/quarantine/
+work/cache/
+work/pip_cache/
+work/pytest_tmp/
+work/pip_*.log
 
 # ---- 虚拟环境 / 依赖 ----
 work/venv/
@@ -41,6 +54,7 @@ work/bench/models/
 __pycache__/
 *.pyc
 .pytest_cache/
+pytest-of-*/
 .venv/
 
 # ---- 编辑器 / 系统 ----

@@ -1,0 +1,31 @@
+# audio_processer 运行依赖（Python 3.10 / Windows）
+#
+# 安装（本项目实测命令）：
+#   $env:PIP_CACHE_DIR = "$PWD\work\pip_cache"      # 必须！见下方「坑」
+#   work\venv\Scripts\python -m pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+#
+# 坑（2026-10-21 实测）：本机全局 pip 缓存 %LOCALAPPDATA%\pip\cache 有 3.8 GB / 1000+ 文件，
+#   `pip install` 一旦读写它会**无输出空转**（CPU 占用拉满、10 min 不结束），
+#   而 PyPI 直连又超时。把 PIP_CACHE_DIR 指到一个新目录（或加 --no-cache-dir）即可 12 s 装完。
+#   详见 docs/工程日志.md「环境坑」。
+#
+# 版本 = 本机实测通过的组合，不要随意漂移。
+
+# --- 核心音频/模型推理（全部 CPU，无 torch 依赖）---
+sherpa-onnx==1.13.8
+onnxruntime==1.23.2
+numpy==2.2.6
+scipy==1.15.3
+
+# --- 配置与 CLI ---
+PyYAML==6.0.3
+
+# --- Web UI（P7 使用，P0 一次装齐）---
+fastapi==0.156.4
+uvicorn==0.54.0
+
+# --- 测试 ---
+pytest==9.1.1
+
+# --- 仅测试/对照用（Silero VAD 模型来自其内置 assets；生产流水线不依赖）---
+faster-whisper==1.2.1

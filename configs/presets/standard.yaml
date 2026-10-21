@@ -1,0 +1,5 @@
+# standard 预设：与 configs/default.yaml 完全一致（生产默认）
+# 保持本文件为空/最小，便于在 config show 中看出「默认值 = 锁定值」。
+preset:
+  name: standard
+  description: 生产默认：afftdn nr=12 + V2 慢变 + 真峰值限幅 + 纠错开启

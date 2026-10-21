@@ -1,0 +1,14 @@
+# quality 预设：质量优先（重噪文件更干净、纠错分块更小更稳）
+preset:
+  name: quality
+  description: 质量优先：加强降噪、纠错小块、保留全部采样细节
+denoise:
+  afftdn:
+    nr: 16.0
+correct:
+  chunk_min_chars: 1500
+  chunk_max_chars: 2000
+  concurrency: 4
+loudness:
+  limiter:
+    ceiling_dbfs: -3.0

@@ -1,0 +1,14 @@
+# fast 预设：只出干净音频骨架，跳过慢变增益与 LLM 纠错（用于快速试跑/冒烟）
+preset:
+  name: fast
+  description: 快速试跑：轻降噪、关闭 V2 慢变、跳过纠错
+denoise:
+  afftdn:
+    nr: 8.0
+loudness:
+  v2:
+    enabled: false
+correct:
+  enabled: false
+diar:
+  mode: none
