@@ -12,11 +12,17 @@ out/*.db-shm
 out/logs/
 out/quarantine/
 out/review/
+out/uploads/
+work/locks/
+work/cache_p6/
+out_p6/
+out_p7/
 work/cache/
 work/pip_cache/
 work/pytest_tmp/
 work/pytest_tmp_*/
 work/p5mock_*/
+work/*.png
 tmp????????/
 work/pip_*.log
 work/_*.py
