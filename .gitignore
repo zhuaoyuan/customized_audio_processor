@@ -1,3 +1,9 @@
+# ---- 本地密钥 / 私有覆盖配置（绝不入库）----
+work/set_key.ps1
+work/*.local.*
+configs/local.yaml
+configs/*.local.yaml
+
 # ---- 原始数据（体积大，本地保留，不入库）----
 data/
 out/*.m4a
