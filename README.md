@@ -11,9 +11,12 @@
 - ✅ P0 基础设施、P1 解码、P2 分析、P3 渲染（降噪/裁剪/响度）、P4 ASR + 说话人、P5 纠错 + 文本导出
 - ✅ P6 编排器与 CLI：断点续跑、失败隔离、磁盘水位、quarantine、`run / batch / retry / status / serve`
 - ✅ P7 本地 Web UI：原生 HTML/CSS/JS，无构建、无外部依赖，离线可用
-- ⬜ P8 回归 / 500 h 推算 / 交付文档（本轮不做）
+- ✅ P8 回归 / 500 h 推算 / 交付文档：`app/tools/regress.py` 六文件回归、`docs/运行评估.md`、
+  `docs/使用说明.md`、`CHANGELOG.md`
 
 `data/` 下 6 个真实样例（576 min）已跑完，产物在 `out/<job_id>/`，任务库是 `out/jobs.db`。
+实测全链路 **RTF 0.1282 → 500 h（300 文件 × 100 min）≈ 64.1 h**、交付磁盘 **≈23 GB / 500 h**；
+与 DoD「≤30 h」的差距、优化选项与重订建议见 [docs/运行评估.md](docs/运行评估.md)。
 
 ## 安装
 
@@ -108,8 +111,45 @@ edit.json         裁剪/增益编辑记录
 
 上传上限由服务端控制（单文件 2 GB）；同一任务正在跑时，改字会被拒绝（HTTP 409）。
 
+## 回归与运行评估
+
+6 文件真实回归脚本是 `app/tools/regress.py`（P8-T1 在 P3 六文件回归基础上扩展），
+也可用 CLI 入口 `python -m app.cli regress`（与脚本等价，默认 reuse）。两种模式：
+
+- `--reuse`（默认，秒级）：只读 `out/<job_id>/report.json` + 8 件产物做结构化断言，不重跑流水线；
+- `--rerun`：用**独立** `--out out_p8 --cache-dir work/cache_p8` 真跑（禁止写 `out/`）。
+
+```powershell
+$env:PYTHONIOENCODING='utf-8'
+
+# 读真实产物做断言（ASL 极差 ≤1 dB、TP ≤−1 dBTP、削波 0、单文件 render ≤900 s、
+# 与 P3 基线的 cut_ratio/ASL/TP 偏差、时间戳基线、ASR 段数/字数偏差）；结果落 work/regress/p8.json
+work\venv\Scripts\python -m app.tools.regress --reuse --json
+# 等价的 CLI 入口（默认 reuse）
+work\venv\Scripts\python -m app.cli regress --reuse --json
+
+# 独立目录真跑抽样（慢，用后台 job；禁止写 out/）
+work\venv\Scripts\python -m app.tools.regress --rerun --limit 2 --out out_p8 --cache-dir work\cache_p8 --json
+work\venv\Scripts\python -m app.cli regress --rerun --limit 2 --json
+```
+
+本机 `--reuse` 实测：`ok=true`、6/6 文件通过；ASL 极差 0.05 dB、最大真峰值 −1.30 dBTP、
+削波 0、最大单文件 render 735.5 s、cut_ratio/ASL/TP 与 P3 基线偏差 0、时间戳 0.18/0.47 s、
+ASR 段数/字数偏差 0；汇总见 `work/regress/p8.json`。
+
+`--rerun --limit 2` 抽样真跑（按 data 路径排序取 **f00+f20**，独立 `out_p8/cache_p8`）实测 **PASS**：
+batch 1,054.9 s（≈17.6 min），2 文件各 8 件产物齐全、report 含 asr/speakers/correct；
+明细见 [docs/运行评估.md](docs/运行评估.md) §8.5。
+
+回归断言口径、6 文件分阶段 RTF 表、500 h 推算（64.1 h）、磁盘（≈23 GB）、电费、
+纠错成本、与 DoD ≤30 h 目标的差距和优化/重订建议，见
+[**docs/运行评估.md**](docs/运行评估.md)；从零跑通第一个文件的 10 分钟指南见
+[**docs/使用说明.md**](docs/使用说明.md)。
+
 ## 已知限制
 
+- **性能**：本机实测全链路 RTF 0.1282，500 h 全量约 **64.1 h**，**未达 DoD「≤30 h」**（超约 2.1 倍）；
+  差距原因、优化选项与重订建议见 [docs/运行评估.md](docs/运行评估.md) §7。
 - **只监听 127.0.0.1，无鉴权**：这是本机工具，不要改 `--host 0.0.0.0` 或转发到公网。
 - **单进程 / 单机**：`--jobs` 参数保留但只支持 1；同一 job 不会重复跑（重复提交返回 409），
   但不要并发跑多个大任务（ASR 单例 8 线程，会争 CPU）；Web 与 CLI 也不要同时跑同一个 job。
@@ -121,18 +161,23 @@ edit.json         裁剪/增益编辑记录
   的 `rejected_chunks` 比例。
 - **纠错写回保守**：单块 / 单段 diff 超过 12% 会整块回退，极短段里的 1 字修正可能被拒
   （宁少改不串行）；不支持人工在此 UI 里直接编辑 `corrections.json`。
-- **改字范围**：只改 `text`，保留 `text_raw` / 时间轴 / 说话人；保存后 md/srt/txt 会被覆盖重写。
+- **改字范围**：只改 `text`，保留 `text_raw` / 时间轴 / 说话人；P8 起原子写沿用原文件换行
+  （CRLF→CRLF、LF→LF）；保存后 md/srt/txt 会被覆盖重写。
 - **播放**：2 小时级 `clean.m4a` 首次定位可能需要等浏览器缓冲；Safari 未验证，建议 Chrome/Edge。
 - **前端**：未做移动端深度适配；无构建链、无 CDN，离线可用。
 
 ## 测试
 
 ```powershell
-# 全量单测（415 项，必须全绿；原 P0–P5 360 项 + P6/P7 新增 55 项）
+# 全量单测 447 项（415 基线 + P8 新增 32：regress 25 + orchestrator 2 + server 2 + cli 3）；必须全绿
 work\venv\Scripts\python -m pytest tests/ -q
 
-# 慢测（真实 100 min 音频回归，约 7–8 分钟）
+# 慢测 4 passed（3 基线 + 1 P8 regress 真实 6 文件 reuse，约 7–8 分钟）
 work\venv\Scripts\python -m pytest tests/ -m slow -q
+
+# P8 六文件回归用例：25 passed（快速）；1 passed（slow，真实 6 文件 --reuse）
+work\venv\Scripts\python -m pytest tests/test_regress.py -q
+work\venv\Scripts\python -m pytest tests/test_regress.py -m slow -q
 ```
 
 ## 目录结构
@@ -163,9 +208,12 @@ start_web.bat           双击启动 Web UI（UTF-8，127.0.0.1:7860）
 |---|---|
 | [docs/实施计划.md](docs/实施计划.md) | P0–P8 任务卡、写作用域、验收命令、回归基线 |
 | [docs/工程日志.md](docs/工程日志.md) | 各阶段的真实施工记录、实测数字、偏差与遗留 |
+| [docs/运行评估.md](docs/运行评估.md) | 6 文件分阶段 RTF、500 h ≈64 h 推算、磁盘/电费/纠错成本、与 30 h 目标差距与优化建议 |
+| [docs/使用说明.md](docs/使用说明.md) | 新用户 10 分钟跑通第一个文件（环境、快速路径、Web UI、常见问题） |
 | [docs/调研报告_需求对齐版.md](docs/调研报告_需求对齐版.md) | 主报告：需求实测、批量架构、开发成本、验收标准 |
 | [docs/开发启动Prompt_P6P7.md](docs/开发启动Prompt_P6P7.md) | P6/P7 的启动 prompt（含 API 契约与已知坑） |
 | [docs/research/](docs/research/) | 多文件体检、PoC、ASR/降噪基准、说话人、云/本地选型 |
+| [CHANGELOG.md](CHANGELOG.md) | v0.1.0（P0–P8）按阶段变更记录与关键数字 |
 
 ## 仓库说明
 
