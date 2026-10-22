@@ -17,7 +17,11 @@ work/locks/
 work/cache_p6/
 out_p6/
 out_p7/
+out_p8/
+out_demo/
 work/cache/
+work/cache_p8/
+work/cache_demo/
 work/pip_cache/
 work/pytest_tmp/
 work/pytest_tmp_*/

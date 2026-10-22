@@ -67,6 +67,7 @@ def build_parser() -> argparse.ArgumentParser:
             "  python -m app.cli retry <job id>\n"
             "  python -m app.cli status --watch\n"
             "  python -m app.cli serve --port 7860\n"
+            "  python -m app.cli regress --reuse --json\n"
             "  python -m app.cli transcribe --all\n"
             "  python -m app.cli correct --all\n"
             "  python -m app.cli export --all\n"
@@ -259,6 +260,27 @@ def build_parser() -> argparse.ArgumentParser:
     p_serve.add_argument("--host", default="127.0.0.1",
                          help="监听地址（默认 127.0.0.1；本工具无鉴权，勿改 0.0.0.0）")
     p_serve.set_defaults(func=cmd_serve)
+
+    # regress（P8-T1：6 文件回归）
+    p_regress = subparsers.add_parser(
+        "regress",
+        help="6 文件回归：默认 --reuse 只读真实产物断言（秒级）；--rerun 独立目录真跑（慢）",
+        parents=[global_parent],
+    )
+    p_regress.add_argument("data_dir", nargs="?", default=None,
+                           help="输入目录或文件（rerun 枚举输入；默认 data/）")
+    regress_mode = p_regress.add_mutually_exclusive_group()
+    regress_mode.add_argument("--reuse", dest="regress_mode", action="store_const",
+                              const="reuse",
+                              help="只读 out/<id>/report.json + 8 件产物做断言（默认，不跑流水线）")
+    regress_mode.add_argument("--rerun", dest="regress_mode", action="store_const",
+                              const="rerun",
+                              help="用独立 out_p8/work/cache_p8 真跑后断言（慢；禁止写 out/）")
+    p_regress.add_argument("--limit", type=int, default=None, help="只处理前 N 个文件")
+    p_regress.add_argument("--regress-dir", default=None,
+                           help="p8.json/p8_rerun.json 输出目录（默认 work/regress）")
+    p_regress.add_argument("--json", action="store_true", help="以 JSON 输出")
+    p_regress.set_defaults(func=cmd_regress, regress_mode="reuse")
 
     return parser
 
@@ -1588,6 +1610,52 @@ def cmd_serve(args: argparse.Namespace, cfg: Config) -> int:
     print("Ctrl-C 退出", flush=True)
     uvicorn.run(app, host=host, port=port, log_level="info")
     return EXIT_OK
+
+
+def cmd_regress(args: argparse.Namespace, cfg: Config) -> int:
+    """P8-T1 六文件回归：默认 reuse 只读真实产物；rerun 用独立目录真跑（绝不写 out/）。"""
+    from .tools.regress import _print_check_summary, _write_p8_payload
+    from .tools.regress import check_regression, run_regression
+
+    mode = str(getattr(args, "regress_mode", None) or "reuse")
+    data_dir = getattr(args, "data_dir", None) or None
+    out_dir = getattr(args, "out_dir", None) or None
+    cache_dir = getattr(args, "cache_dir", None) or None
+    regress_dir = Path(getattr(args, "regress_dir", None) or "work/regress")
+    if not regress_dir.is_absolute():
+        regress_dir = (Path.cwd() / regress_dir)
+
+    base_cfg = cfg
+    if mode == "rerun" and (out_dir or getattr(args, "db_path", None)):
+        # rerun 的 out_dir 不能同时被全局 --out 覆盖进 cfg，否则会被安全校验误判为「写 out/」；
+        # 这里按 config+preset 重新加载一份未覆盖 out 的 cfg，再由 out_dir/cache_dir 参数显式指定。
+        base_cfg = load_config(
+            config_path=getattr(args, "config", None),
+            preset=getattr(args, "preset", None),
+        )
+
+    try:
+        result = run_regression(
+            data_dir, base_cfg, mode=mode,
+            out_dir=out_dir, cache_dir=cache_dir, limit=args.limit,
+        )
+    except ValueError as exc:  # rerun 目录安全校验 / 非法 mode
+        print(f"[参数错误] {exc}", file=sys.stderr)
+        return EXIT_USAGE
+
+    baseline = regress_dir / "audio.csv"
+    check = check_regression(
+        result,
+        baseline_csv=baseline if baseline.is_file() else None,
+        scan_dir=regress_dir.parent / "scan",
+    )
+    out_path = regress_dir / ("p8_rerun.json" if mode == "rerun" else "p8.json")
+    payload = _write_p8_payload(result=result, check=check, out_path=out_path)
+    if args.json:
+        _json_dump(payload)
+    else:
+        _print_check_summary(result, check, out_path)
+    return EXIT_OK if check.get("ok") else EXIT_RUNTIME
 
 
 # ---------------------------------------------------------------- 入口

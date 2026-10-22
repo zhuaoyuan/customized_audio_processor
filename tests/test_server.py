@@ -630,6 +630,51 @@ def test_transcript_edit_updates_products(live_server: LiveServer, cfg: Config, 
     assert "改过的文本".encode("utf-8") in detail_body
 
 
+def test_transcript_edit_preserves_crlf_newlines(live_server: LiveServer, cfg: Config,
+                                                 fake_orchestrator):
+    """P6/P7 遗留 #2：原文件是 CRLF 时，改字后仍写 CRLF（不把换行风格规范成 LF）。"""
+    _register_job(cfg, "job_crlf", status=STATUS_DONE, stage="export")
+    job_dir = _write_job_files(cfg, "job_crlf")
+    path = job_dir / "transcript.json"
+    # 显式写 CRLF 版本（不依赖平台默认换行）
+    path.write_bytes(
+        json.dumps(SAMPLE_SEGMENTS, ensure_ascii=False, indent=2).encode("utf-8")
+        .replace(b"\n", b"\r\n")
+    )
+    assert b"\r\n" in path.read_bytes()
+
+    status, _, body = _json_request(
+        f"{live_server}/api/jobs/job_crlf/transcript",
+        {"segments": [{"index": 0, "text": "CRLF 保留"}]},
+    )
+    assert status == 200 and _json_body(body)["ok"] is True
+    raw = path.read_bytes()
+    assert b"\r\n" in raw, "改字后 CRLF 被规范化成 LF"
+    assert raw.replace(b"\r\n", b"").count(b"\r") == 0  # 没有残留孤立 CR
+    assert "CRLF 保留" in raw.decode("utf-8")
+
+
+def test_transcript_edit_keeps_lf_when_original_is_lf(live_server: LiveServer, cfg: Config,
+                                                     fake_orchestrator):
+    """原文件是 LF 时保持 LF（不因沿用逻辑把换行改成 CRLF）。"""
+    _register_job(cfg, "job_lf", status=STATUS_DONE, stage="export")
+    job_dir = _write_job_files(cfg, "job_lf")
+    path = job_dir / "transcript.json"
+    path.write_bytes(
+        json.dumps(SAMPLE_SEGMENTS, ensure_ascii=False, indent=2).encode("utf-8")
+    )
+    assert b"\r\n" not in path.read_bytes()
+
+    status, _, body = _json_request(
+        f"{live_server}/api/jobs/job_lf/transcript",
+        {"segments": [{"index": 1, "text": "LF 保留"}]},
+    )
+    assert status == 200 and _json_body(body)["ok"] is True
+    raw = path.read_bytes()
+    assert b"\r\n" not in raw, "原 LF 文件被写成 CRLF"
+    assert "LF 保留" in raw.decode("utf-8")
+
+
 def test_transcript_full_list(live_server: LiveServer, cfg: Config):
     """完整 list（与 transcript 同长）按位置更新 text。"""
     _register_job(cfg, "job_full", status=STATUS_DONE, stage="export")

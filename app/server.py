@@ -175,11 +175,21 @@ def _read_json(path: Path, default: Any = None, *, expect: Optional[type] = None
 
 
 def _atomic_write_json(path: Path, payload: Any) -> None:
-    """先写同目录临时文件再 ``os.replace``（Windows 同卷原子替换）。"""
+    """先写同目录临时文件再 ``os.replace``（Windows 同卷原子替换）。
+
+    换行风格沿用原文件（P6/P7 遗留 #2）：读既有文件判断是否 CRLF；原文件是 CRLF 就继续
+    写 CRLF，避免改字把 ``transcript.json`` 从 CRLF 规范成 LF。文件不存在时用 LF。
+    """
+    newline = "\n"
+    try:
+        if path.is_file() and b"\r\n" in path.read_bytes()[:65536]:
+            newline = "\r\n"
+    except OSError:  # pragma: no cover - 读失败不影响写入
+        newline = "\n"
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(f".{path.name}.{os.getpid()}.{threading.get_ident()}.tmp")
     try:
-        with open(tmp, "w", encoding="utf-8", newline="\n") as handle:
+        with open(tmp, "w", encoding="utf-8", newline=newline) as handle:
             json.dump(payload, handle, ensure_ascii=False, indent=2)
             handle.write("\n")
         os.replace(tmp, path)

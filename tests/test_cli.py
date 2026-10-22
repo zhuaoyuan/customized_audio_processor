@@ -334,3 +334,95 @@ def test_decode_command_stage_and_cleanup(capsys, tmp_path: Path, monkeypatch):
     assert stage.metrics["duration_s"] == pytest.approx(12.5)
     assert job.stage == "decode"
     assert job.status == "pending"  # 只跑了解码，等后续阶段
+
+
+# ================================================================ P8 regress 子命令
+def _fake_regress_result(mode: str = "reuse") -> dict:
+    return {
+        "ok": True,
+        "mode": mode,
+        "n": 1,
+        "rows": [{"job_id": "j1", "clean_s": 100.0, "asl_out_dbfs": -20.0,
+                  "asl_dev_db": 0.0, "true_peak_out_dbtp": -2.0, "clipped_samples": 0,
+                  "cut_ratio": 0.05, "render_total_s": 10.0, "asr_s": 5.0,
+                  "total_wall_s": 15.0, "n_segments": 3, "chars": 9, "ok": True,
+                  "error": ""}],
+        "summary": {"mode": mode, "n": 1, "full_chain_rtf": 0.1, "ok": True},
+    }
+
+
+def test_regress_command_reuse_json(capsys, tmp_path: Path, monkeypatch):
+    """`cli regress --reuse --json`：跑 run_regression + check_regression 并落 p8.json。"""
+    import app.tools.regress as regress_mod
+
+    seen: dict = {}
+
+    def fake_run(data_dir, cfg, *, mode="reuse", out_dir=None, cache_dir=None, limit=None):
+        seen.update(mode=mode, out_dir=out_dir, cache_dir=cache_dir, limit=limit)
+        return _fake_regress_result(mode)
+
+    def fake_check(result, *, baseline_csv=None, scan_dir=None):
+        seen["baseline_csv"] = str(baseline_csv) if baseline_csv else None
+        return {"ok": True, "failures": [], "summary": {"ok": True}}
+
+    monkeypatch.setattr(regress_mod, "run_regression", fake_run)
+    monkeypatch.setattr(regress_mod, "check_regression", fake_check)
+    regress_dir = tmp_path / "regress"
+
+    code = main(["regress", "--reuse", "--limit", "2", "--json",
+                 "--regress-dir", str(regress_dir)])
+
+    assert code == EXIT_OK
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["ok"] is True and payload["mode"] == "reuse"
+    assert seen["mode"] == "reuse" and seen["limit"] == 2
+    assert (regress_dir / "p8.json").is_file()
+    assert not (regress_dir / "p8_rerun.json").exists()
+
+
+def test_regress_command_failure_exit_1(capsys, tmp_path: Path, monkeypatch):
+    """断言失败（check_regression.ok=False）→ 退出码 1，p8.json 仍落盘（含 failures）。"""
+    import app.tools.regress as regress_mod
+
+    monkeypatch.setattr(regress_mod, "run_regression",
+                        lambda *a, **k: _fake_regress_result("reuse"))
+    monkeypatch.setattr(regress_mod, "check_regression",
+                        lambda *a, **k: {"ok": False, "failures": ["tp: 超限"],
+                                         "summary": {"ok": False}})
+    regress_dir = tmp_path / "regress"
+
+    code = main(["regress", "--json", "--regress-dir", str(regress_dir)])
+
+    assert code == 1
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["ok"] is False and payload["failures"] == ["tp: 超限"]
+
+
+def test_regress_command_rerun_uses_independent_dirs(capsys, tmp_path: Path, monkeypatch):
+    """`--rerun` 默认 out_p8/work/cache_p8；安全校验 ValueError → 退出码 2。"""
+    import app.tools.regress as regress_mod
+
+    seen: dict = {}
+
+    def fake_run(data_dir, cfg, *, mode="reuse", out_dir=None, cache_dir=None, limit=None):
+        seen.update(mode=mode, out_dir=out_dir, cache_dir=cache_dir)
+        return _fake_regress_result(mode)
+
+    monkeypatch.setattr(regress_mod, "run_regression", fake_run)
+    monkeypatch.setattr(regress_mod, "check_regression",
+                        lambda *a, **k: {"ok": True, "failures": [], "summary": {}})
+    regress_dir = tmp_path / "regress"
+    assert main(["regress", "--rerun", "--json",
+                 "--regress-dir", str(regress_dir)]) == EXIT_OK
+    assert seen["mode"] == "rerun"
+    assert (regress_dir / "p8_rerun.json").is_file()
+
+    def raising_run(*a, **k):
+        raise ValueError("rerun 模式禁止写 out/")
+
+    monkeypatch.setattr(regress_mod, "run_regression", raising_run)
+    capsys.readouterr()
+    code = main(["regress", "--rerun", "--out", str(tmp_path / "out"),
+                 "--regress-dir", str(regress_dir)])
+    assert code == EXIT_USAGE
+    assert "禁止写 out/" in capsys.readouterr().err

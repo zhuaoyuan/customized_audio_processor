@@ -762,3 +762,57 @@ def test_batch_force_reruns_complete_job(monkeypatch, cfg):
     _statuses, rows = _stage_rows(cfg, job_id)
     decode_row = next(row for row in rows if row.stage == "decode")
     assert decode_row.metrics.get("duration_s") == 123.4  # 旧 seed metrics 被覆盖
+
+
+# ================================================================ P6 遗留 #1：模块阶段实时
+def test_run_job_module_stages_are_live_in_jobs_stage(monkeypatch, cfg):
+    """ASR/diarize/correct 跑动期间 ``jobs.stage`` 就是当前阶段（不再滞后到 loudness）。"""
+    job_id = "job-live-stage"
+    source = _make_source(cfg, job_id)
+    _register(cfg, job_id, source)
+    install_fakes(monkeypatch, cfg)
+
+    seen: Dict[str, tuple] = {}
+
+    def _spy(name: str):
+        fn = getattr(orch, name)
+
+        def wrapper(job_id_: str, cfg_: Any, **kwargs: Any) -> Any:
+            store = Storage(cfg_.path("db_path"))
+            store.init_db()
+            try:
+                job = store.get_job(job_id_)
+                seen[name] = (job.stage, job.status)
+            finally:
+                store.close()
+            return fn(job_id_, cfg_, **kwargs)
+
+        return wrapper
+
+    monkeypatch.setattr(orch, "transcribe_job", _spy("transcribe_job"))
+    monkeypatch.setattr(orch, "diarize_job", _spy("diarize_job"))
+    monkeypatch.setattr(orch, "correct_job", _spy("correct_job"))
+
+    result = orch.run_job(job_id, source, cfg)
+
+    assert result["ok"] is True
+    assert seen["transcribe_job"] == ("asr", "running")
+    assert seen["diarize_job"] == ("diarize", "running")
+    assert seen["correct_job"] == ("correct", "running")
+
+
+def test_run_job_does_not_reset_done_module_stage(monkeypatch, cfg):
+    """已 done 的模块阶段（非 force）不被实时置 running，旧 metrics 保留。"""
+    job_id = "job-keep-done-stage"
+    source = _make_source(cfg, job_id)
+    _register(cfg, job_id, source)
+    _seed_stages(cfg, job_id, ["asr"], {"n_segments": 999, "chars": 1})
+    install_fakes(monkeypatch, cfg)
+
+    result = orch.run_job(job_id, source, cfg)
+
+    assert result["ok"] is True
+    _statuses, rows = _stage_rows(cfg, job_id)
+    asr_row = next(row for row in rows if row.stage == "asr")
+    assert asr_row.metrics.get("n_segments") == 999  # 旧指标未被 fake 的 1 覆盖
+    assert asr_row.metrics.get("chars") == 1

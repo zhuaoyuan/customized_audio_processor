@@ -69,7 +69,7 @@ from ..models import (
     STATUS_FAILED,
     STATUS_SKIPPED,
 )
-from ..storage import Storage
+from ..storage import Storage, StorageError
 from .asr import CLEAN16K_SUFFIX, transcribe_job
 from .correct import correct_job
 from .diarize import diarize_job
@@ -472,8 +472,21 @@ def _mark_failed(store: Storage, job_id: str, stage: str, error: str,
 
 def _invoke(stage: str, fn: Callable[[], Any], *, store: Storage, job_id: str,
             state: Dict[str, Any], on_event: Optional[Callable[[str, str, Dict[str, Any]], None]],
-            timings: Dict[str, float], timings_key: str) -> Dict[str, Any]:
-    """执行一个阶段（兜底捕获异常并落失败），返回阶段结果 dict；耗时写进 ``timings``。"""
+            timings: Dict[str, float], timings_key: str,
+            live_stage: bool = False, force: bool = False) -> Dict[str, Any]:
+    """执行一个阶段（兜底捕获异常并落失败），返回阶段结果 dict；耗时写进 ``timings``。
+
+    ``live_stage=True``：调用阶段函数前把该阶段置为 ``running``（未 done 或 ``force`` 时），
+    让 ASR/diarize/correct 跑动期间 ``jobs.stage`` 就是当前真实阶段（P6 遗留 #1）。
+    阶段模块正常结束会自己回调 ``on_stage(stage, "done")``；若模块抛异常/返回失败，
+    ``_mark_failed`` 会把阶段置为 failed，不会留下 running 悬挂。
+    """
+    if live_stage and store is not None:
+        try:
+            if force or not store.is_stage_done(job_id, stage):
+                store.start_stage(job_id, stage, reset=True)
+        except StorageError:  # pragma: no cover - job 已被删除等异常场景
+            log.warning("实时阶段置 running 失败：%s/%s", job_id, stage, exc_info=True)
     started = time.perf_counter()
     try:
         result = fn()
@@ -861,6 +874,7 @@ def run_job(
             ),
             store=store, job_id=job_id, state=state, on_event=on_event,
             timings=timings, timings_key="asr_s",
+            live_stage=True, force=force,
         )
         if not asr_result.get("ok"):
             return finish_failure("asr", str(asr_result.get("error") or "转写失败"))
@@ -877,6 +891,7 @@ def run_job(
             ),
             store=store, job_id=job_id, state=state, on_event=on_event,
             timings=timings, timings_key="diarize_s",
+            live_stage=True, force=force,
         )
         if not diarize_result.get("ok"):
             return finish_failure("diarize", str(diarize_result.get("error") or "说话人标注失败"))
@@ -892,6 +907,7 @@ def run_job(
             ),
             store=store, job_id=job_id, state=state, on_event=on_event,
             timings=timings, timings_key="correct_s",
+            live_stage=True, force=force,
         )
         if not correct_result.get("ok"):
             return finish_failure("correct", str(correct_result.get("error") or "纠错失败"))
@@ -907,6 +923,7 @@ def run_job(
             ),
             store=store, job_id=job_id, state=state, on_event=on_event,
             timings=timings, timings_key="export_text_s",
+            live_stage=True, force=force,
         )
         if not export_result.get("ok"):
             return finish_failure(STAGE_EXPORT, str(export_result.get("error") or "文本导出失败"))
