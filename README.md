@@ -13,6 +13,8 @@
 - ✅ P7 本地 Web UI：原生 HTML/CSS/JS，无构建、无外部依赖，离线可用
 - ✅ P8 回归 / 500 h 推算 / 交付文档：`app/tools/regress.py` 六文件回归、`docs/运行评估.md`、
   `docs/使用说明.md`、`CHANGELOG.md`
+- ✅ P9 纠错质量修复：真实 DeepSeek 输出可安全写回（字符对齐映射 + 逐段护栏回退），
+  f24 实测 202 edits / 164 段、0 整块回退；真实成本 ≈¥0.379/文件
 
 `data/` 下 6 个真实样例（576 min）已跑完，产物在 `out/<job_id>/`，任务库是 `out/jobs.db`。
 实测全链路 **RTF 0.1282 → 500 h（300 文件 × 100 min）≈ 64.1 h**、交付磁盘 **≈23 GB / 500 h**；
@@ -82,11 +84,12 @@ work\venv\Scripts\python -m app.cli serve --port 7860
 
 ```
 clean.m4a         降噪 + 裁剪 + 响度归一化后的成品音轨
-transcript.json   段表（start/end/orig_start/orig_end/speaker/text_raw/text/flags）
+transcript.json   段表（start/end/orig_start/orig_end/speaker/text_raw/text/flags；
+                  flags 可能含 rejected_chunk / rejected_segment）
 transcript.md     带时间戳的转写稿
 transcript.srt    字幕（clean 轴）
 transcript.txt    纯文本
-corrections.json  纠错明细（无 key 时为空结构）
+corrections.json  纠错明细（items / rejected_chunks / segment_rejections；无 key 时为空结构）
 report.json       全流程指标（decode/vad/levels/trim/denoise/loudness/asr/speakers/correct…）
 edit.json         裁剪/增益编辑记录
 ```
@@ -156,12 +159,14 @@ batch 1,054.9 s（≈17.6 min），2 文件各 8 件产物齐全、report 含 as
 - **中文文件名 / 路径**：含中文、空格、括号的样例实测可用；请保持控制台 UTF-8
   （`start_web.bat` 已 `chcp 65001`）。超长路径（>260 字符）未验证。
 - **首跑模型加载慢**：SenseVoice 首次加载 + 模型目录不在仓库；模型缺失会让 ASR 阶段失败。
-- **真实 DeepSeek：已验证连通，但纠错质量路径尚不可用**：2026-10-22 用真实 key 跑过 f24 全量（7 块
-  ≈101 s、**≈¥0.434/文件**，是 P5 估算 ¥0.112 的 3.9 倍），但真实输出被现有校验 **7/7 全拒**
-  （`unsafe_writeback`，0 改动）；单块另见 `number_changed`。修复项（映射鲁棒性、数字校验口径、
-  提示词/模型、成本重估）见 [docs/工程日志.md](docs/工程日志.md) P8 验收 §7；
-  成本口径见 [docs/运行评估.md](docs/运行评估.md) §6.3。无 key 时纠错自动降级，不影响其余产物。
-- **纠错写回保守**：单块 / 单段 diff 超过 12% 会整块回退，极短段里的 1 字修正可能被拒
+- **真实 DeepSeek：P9 后已验证可用**：2026-10-22 真实 key 跑通 f24 全量（7 块 ≈79 s、
+  **≈¥0.379/文件**，是 P5 估算 ¥0.112 的 3.4 倍）；P8 时真实输出 7/7 被拒（0 改动），P9 加
+  字符对齐映射 + 逐段护栏后，f24 **202 edits / 164 段被改、0 整块回退**，121 段
+  `diff_too_large` 保守回退原文（`segment_rejections`）。细节见
+  [docs/工程日志.md](docs/工程日志.md) P9 节、[docs/运行评估.md](docs/运行评估.md) §6.4。
+  无 key 时纠错自动降级，不影响其余产物。
+- **纠错写回保守**：整块 diff 超过 12%、句数变化超 5% 才整块回退；单段超限**只回退该段**
+  （同块其它段的修正保留，flag=`rejected_segment`）；极短段里的 1 字修正可能被逐段回退
   （宁少改不串行）；不支持人工在此 UI 里直接编辑 `corrections.json`。
 - **改字范围**：只改 `text`，保留 `text_raw` / 时间轴 / 说话人；P8 起原子写沿用原文件换行
   （CRLF→CRLF、LF→LF）；保存后 md/srt/txt 会被覆盖重写。
@@ -171,7 +176,8 @@ batch 1,054.9 s（≈17.6 min），2 文件各 8 件产物齐全、report 含 as
 ## 测试
 
 ```powershell
-# 全量单测 447 项（415 基线 + P8 新增 32：regress 25 + orchestrator 2 + server 2 + cli 3）；必须全绿
+# 全量单测 455 项（415 基线 + P8 32 + P9 8：regress 25 + orchestrator 2 + server 2 + cli 3
+#   + 纠错 P9 8）；必须全绿
 work\venv\Scripts\python -m pytest tests/ -q
 
 # 慢测 4 passed（3 基线 + 1 P8 regress 真实 6 文件 reuse，约 7–8 分钟）
@@ -215,7 +221,7 @@ start_web.bat           双击启动 Web UI（UTF-8，127.0.0.1:7860）
 | [docs/调研报告_需求对齐版.md](docs/调研报告_需求对齐版.md) | 主报告：需求实测、批量架构、开发成本、验收标准 |
 | [docs/开发启动Prompt_P6P7.md](docs/开发启动Prompt_P6P7.md) | P6/P7 的启动 prompt（含 API 契约与已知坑） |
 | [docs/research/](docs/research/) | 多文件体检、PoC、ASR/降噪基准、说话人、云/本地选型 |
-| [CHANGELOG.md](CHANGELOG.md) | v0.1.0（P0–P8）按阶段变更记录与关键数字 |
+| [CHANGELOG.md](CHANGELOG.md) | v0.1.0（P0–P8）+ Unreleased P9 按阶段变更记录与关键数字 |
 
 ## 仓库说明
 
