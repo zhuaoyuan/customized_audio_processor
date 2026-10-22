@@ -47,7 +47,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 from ..logging_setup import get_logger
-from ..models import FLAG_REJECTED_CHUNK
+from ..models import FLAG_REJECTED_CHUNK, FLAG_REJECTED_SEGMENT
 
 log = get_logger(__name__)
 
@@ -75,6 +75,10 @@ _SENT_TERMINATORS = set("。！？；!?;…")
 _SENT_CLOSERS = set("”’」』）)》】〕〉\"'")
 #: 数字串
 _NUM_RE = re.compile(r"\d+")
+#: 全角数字 → 半角（数字比较口径，避免模型把「２０２０」写成「2020」就被误判）
+_FULLWIDTH_DIGITS = str.maketrans("０１２３４５６７８９", "0123456789")
+#: 数字千位逗号（1,234 → 1234）
+_NUM_SEP_RE = re.compile(r"(?<=\d),(?=\d)")
 #: 纯标点/格式符号（用于给 item 生成 reason 启发式）
 _PUNCT_ONLY_RE = re.compile(r"^[\s，。！？；：、,.!?;:…—～~（）()「」『』《》“”\"'\-]+$")
 _WHITESPACE_RE = re.compile(r"\s+")
@@ -176,8 +180,18 @@ def diff_ratio(orig: str, fixed: str) -> float:
     return changed / len(o)
 
 
+def _normalize_digits(text: str) -> str:
+    """数字比较口径（P9）：全角数字转半角、去掉数字间千位逗号。
+
+    只影响数字校验，不改写回文本本身；中文数字（「二」「十四」）暂不折算，仍按原样严格比较
+    （避免把「一样」「第一」这类普通用字误当数字）。
+    """
+    return _NUM_SEP_RE.sub("", (text or "").translate(_FULLWIDTH_DIGITS))
+
+
 def _num_runs(text: str) -> collections.Counter:
-    return collections.Counter(_NUM_RE.findall(_flat(text)))
+    """数字串计数（比较口径见 :func:`_normalize_digits`）。"""
+    return collections.Counter(_NUM_RE.findall(_normalize_digits(_flat(text))))
 
 
 def _book_counts(text: str) -> Tuple[int, int]:
@@ -473,6 +487,43 @@ def validate_correction(orig: str, fixed: str, cfg: Any) -> Dict[str, Any]:
     return detail
 
 
+def validate_block(orig: str, fixed: str, cfg: Any) -> Dict[str, Any]:
+    """**块级**安全门（P9）：空输出 / Markdown 包裹 / 整块 diff / 整块句数。
+
+    与 :func:`validate_correction` 的区别：数字与书名号**不再在块级一票否决**，而是下放到
+    :func:`_seg_guard` 逐段检查——真实模型常在一段里顺手改掉数字/书名号，块级回退会把整块
+    200 段的有用修正全部丢掉。块级只保留「整体可信度」判据（diff 与句数），防止模型大改。
+    """
+    max_diff = float(_get(cfg, "correct.max_diff_ratio", 0.12))
+    max_sent = float(_get(cfg, "correct.max_sentence_change_ratio", 0.05))
+    o, f = _flat(orig), _flat(fixed)
+    n_orig = len(split_sentences(o))
+    n_fixed = len(split_sentences(f))
+    ratio = diff_ratio(o, f)
+    detail: Dict[str, Any] = {
+        "ok": False,
+        "reason": "",
+        "diff_ratio": round(ratio, 6),
+        "n_sentences_orig": n_orig,
+        "n_sentences_fixed": n_fixed,
+        "sentence_change_ratio": (abs(n_fixed - n_orig) / n_orig) if n_orig else 0.0,
+    }
+    if not f:
+        detail["reason"] = "empty_output"
+        return detail
+    if "```" in fixed:
+        detail["reason"] = "markdown_wrapper"
+        return detail
+    if ratio > max_diff:
+        detail["reason"] = "diff_too_large"
+        return detail
+    if n_orig and abs(n_fixed - n_orig) / n_orig > max_sent:
+        detail["reason"] = "sentence_count_changed"
+        return detail
+    detail["ok"] = True
+    return detail
+
+
 @dataclass
 class Edit:
     """原文→修正文本的一处最小差异（字符级，带双侧位置，供写回覆盖检查）。"""
@@ -713,17 +764,60 @@ def _mapped_ok(chunk: Chunk, candidates: Sequence[str], cfg: Any) -> bool:
     return True
 
 
-def map_fixed_to_segments(chunk: Chunk, fixed_text: str, cfg: Any) -> Optional[List[str]]:
-    """把整块修正文本安全映射回块内各段文本；映射不了一对一回填时返回 ``None``。
+def _segment_spans(chunk: Chunk) -> Optional[List[Tuple[int, int]]]:
+    """``chunk.text`` 中每段的 ``[start, end)`` 字符区间（``plan_chunks`` 用 ``\\n`` 拼接）。"""
+    text = chunk.text or ""
+    spans: List[Tuple[int, int]] = []
+    pos = 0
+    for seg_text in chunk.segment_texts:
+        start = text.find(seg_text, pos)
+        if start < 0:
+            return None
+        spans.append((start, start + len(seg_text)))
+        pos = start + len(seg_text)
+    return spans
 
-    顺序尝试：
-    1. 按行映射（prompt 要求保持自然段分行；行数正好等于段数）；
-    2. 按句映射（行数对不上时，句数总和正好等于各段句数之和，按段句数顺序分配）。
-    两条都失败 → 整块回退（宁少改，不串行）。
+
+def _aligned_candidates(chunk: Chunk, fixed_text: str) -> Optional[List[str]]:
+    """字符级对齐兜底（P9）：用 ``difflib`` opcodes 把修正文本映射回各段。
+
+    适用于模型改了换行/标点、导致「行数、句数都对不上」但**内容顺序未变**的情况：
+    只要段内差异不大（由 :func:`_seg_guard` 判断），仍可安全写回。
+    插入文本归给「前一个」段（模型在段尾补标点的常见行为）。
     """
+    spans = _segment_spans(chunk)
+    if not spans:
+        return None
+    orig = chunk.text or ""
+    fixed = fixed_text or ""
+    if not orig or not fixed:
+        return None
+    sm = difflib.SequenceMatcher(None, orig, fixed, autojunk=False)
+    boundary = [0] * (len(orig) + 1)
+    for tag, i1, i2, j1, j2 in sm.get_opcodes():
+        if tag == "equal":
+            for k in range(i2 - i1 + 1):
+                boundary[i1 + k] = j1 + k
+        elif tag == "replace":
+            span = i2 - i1
+            for k in range(span + 1):
+                # 向上取整：替换区间末尾的字符（常是段尾标点）归给本段，避免把「，」丢掉
+                boundary[i1 + k] = j1 + (((j2 - j1) * k + span - 1) // span if span else 0)
+        elif tag == "delete":
+            for k in range(i2 - i1 + 1):
+                boundary[i1 + k] = j1
+        else:  # insert
+            boundary[i1] = j2
+    candidates = [fixed[boundary[start]:boundary[end]].strip() for start, end in spans]
+    return candidates
+
+
+def _candidate_strategies(chunk: Chunk, fixed_text: str):
+    """返回按可靠度排序的 ``[(strategy, candidates)]``：行 → 句 → 字符对齐。"""
+    strategies = []
     lines = [ln.strip() for ln in (fixed_text or "").splitlines() if ln.strip()]
-    if len(lines) == len(chunk.segment_texts) and _mapped_ok(chunk, lines, cfg):
-        return lines
+    if len(lines) == len(chunk.segment_texts):
+        strategies.append(("lines", lines))
 
     flat = _flat(fixed_text)
     sentences = split_sentences(flat)
@@ -734,9 +828,90 @@ def map_fixed_to_segments(chunk: Chunk, fixed_text: str, cfg: Any) -> Optional[L
         for count in chunk.sentence_counts:
             candidates.append("".join(sentences[pos:pos + count]))
             pos += count
+        strategies.append(("sentences", candidates))
+
+    aligned = _aligned_candidates(chunk, fixed_text)
+    if aligned:
+        strategies.append(("alignment", aligned))
+    return strategies
+
+
+def map_fixed_to_segments(chunk: Chunk, fixed_text: str, cfg: Any) -> Optional[List[str]]:
+    """把整块修正文本安全映射回块内各段文本；映射不了一对一回填时返回 ``None``。
+
+    顺序尝试：
+    1. 按行映射（prompt 要求保持自然段分行；行数正好等于段数）；
+    2. 按句映射（行数对不上时，句数总和正好等于各段句数之和，按段句数顺序分配）；
+    3. 字符级对齐（P9 新增：行/句都对不上、但内容顺序未变时按 opcode 求段区间）。
+    任一策略要求**每段**都过 ``_mapped_ok``，否则返回 ``None``（宁少改，不串行）。
+    只放过部分段的情况走 :func:`_salvage_segments`（逐段回退，不整块丢弃）。
+    """
+    for _strategy, candidates in _candidate_strategies(chunk, fixed_text):
         if _mapped_ok(chunk, candidates, cfg):
             return candidates
     return None
+
+
+def _seg_guard(orig: str, new: str, cfg: Any) -> str:
+    """单段写回护栏（P9）：空段 / diff / 数字 / 书名号 / 句数，返回失败原因（空串=通过）。
+
+    数字比较用 ``_num_runs``（全角→半角、去千位逗号）；句数变化允许
+    ``correct.max_sentence_change_ratio``（短段通常就是 1 句，任何改动都会超限 → 回退该段）。
+    """
+    new = (new or "").strip()
+    if not new:
+        return "empty_segment"
+    max_diff = float(_get(cfg, "correct.max_diff_ratio", 0.12))
+    if diff_ratio(orig, new) > max_diff:
+        return "diff_too_large"
+    if _num_runs(orig) != _num_runs(new):
+        return "number_changed"
+    if _book_counts(orig) != _book_counts(new):
+        return "book_title_changed"
+    max_sent = float(_get(cfg, "correct.max_sentence_change_ratio", 0.05))
+    o, f = _flat(orig), _flat(new)
+    n_orig = len(split_sentences(o))
+    n_fixed = len(split_sentences(f))
+    if n_orig and abs(n_fixed - n_orig) / n_orig > max_sent:
+        return "sentence_count_changed"
+    return ""
+
+
+def _salvage_segments(chunk: Chunk, fixed_text: str, cfg: Any):
+    """逐段抢救（P9）：选「通过段数最多」的映射策略，失败的段保留原文。
+
+    返回 ``(texts, rejections, strategy)``：
+    - ``texts`` 长度为段数（失败段 = 原文），``None`` 表示没有任何策略可用（整块回退）；
+    - ``rejections`` = ``[{"segment": 段内下标, "reason": ...}]``，只含回退的段；
+    - ``strategy`` 为采用的映射策略名（lines/sentences/alignment）。
+    真实模型常只在个别段改坏数字/书名号，这种「段级回退」能保住同块其它段的修正。
+    """
+    best = None
+    for strategy, candidates in _candidate_strategies(chunk, fixed_text):
+        texts: List[str] = []
+        rejections: List[Dict[str, Any]] = []
+        for i, (orig, new) in enumerate(zip(chunk.segment_texts, candidates)):
+            reason = _seg_guard(orig, new, cfg)
+            if reason:
+                rejections.append({"segment": i, "reason": reason})
+                texts.append(orig)
+            else:
+                texts.append(new.strip())
+        accepted = len(texts) - len(rejections)
+        if best is None or accepted > best[0]:
+            best = (accepted, texts, rejections, strategy)
+    if best is None:
+        return None, [], ""
+    _accepted, texts, rejections, strategy = best
+    return texts, rejections, strategy
+
+
+def _common_reason(rejections: Sequence[Dict[str, Any]]) -> str:
+    """整块全被拒时的原因：各段原因一致就沿用，否则归为 ``unsafe_writeback``。"""
+    reasons = {str(r.get("reason") or "") for r in rejections}
+    if len(reasons) == 1:
+        return next(iter(reasons)) or "unsafe_writeback"
+    return "unsafe_writeback"
 
 
 def _add_flag(seg: Dict[str, Any], flag: str) -> None:
@@ -826,22 +1001,31 @@ def correct_text(
     out["usage"] = usage
     out["cost_cny"] = round(compute_cost(usage, cfg), 6)
     detail = validate_correction(text, fixed, cfg)
+    block = validate_block(text, fixed, cfg)
     out.update({
         "diff_ratio": detail["diff_ratio"],
         "validation": detail,
+        "block": block,
         "fixed_raw": fixed,
     })
-    if not detail["ok"]:
-        out.update({"reason": detail["reason"], "fixed": text})
+    if not block["ok"]:
+        out.update({"reason": block["reason"], "fixed": text})
         return out
-    mapped = map_fixed_to_segments(chunk, fixed, cfg)
-    if mapped is None:
+    texts, rejections, strategy = _salvage_segments(chunk, fixed, cfg)
+    if texts is None:
         out.update({"reason": "unsafe_writeback", "fixed": text})
+        return out
+    accepted = len(texts) - len(rejections)
+    if accepted <= 0:
+        out.update({"reason": _common_reason(rejections), "fixed": text,
+                    "segment_rejections": rejections})
         return out
     out.update({
         "ok": True,
-        "fixed": mapped[0],
-        "items": extract_items(chunk, mapped, ctx.hotwords),
+        "fixed": texts[0] if len(texts) == 1 else "\n".join(texts),
+        "items": extract_items(chunk, texts, ctx.hotwords),
+        "segment_rejections": rejections,
+        "mapping": strategy,
     })
     return out
 
@@ -877,7 +1061,7 @@ def _write_json(path: Path, payload: Any) -> Path:
 
 
 def _empty_corrections() -> Dict[str, Any]:
-    return {"total": 0, "items": [], "rejected_chunks": []}
+    return {"total": 0, "items": [], "rejected_chunks": [], "segment_rejections": []}
 
 
 def _update_report(
@@ -890,6 +1074,7 @@ def _update_report(
     rejected: int,
     cost_cny: float,
     elapsed_s: float,
+    rejected_segments: int = 0,
 ) -> Dict[str, Any]:
     """report.json 读-改-写：只增/换 ``correct`` 与 ``timing.correct_s``，保留既有字段。"""
     path = job_out / PRODUCT_REPORT
@@ -902,6 +1087,7 @@ def _update_report(
         "chunks": int(chunks),
         "edits": int(edits),
         "rejected": int(rejected),
+        "rejected_segments": int(rejected_segments),
         "cost_cny": round(float(cost_cny), 6),
         "elapsed_s": round(float(elapsed_s), 3),
     }
@@ -948,6 +1134,7 @@ def correct_job(
         "chunks": 0,
         "edits": 0,
         "rejected": 0,
+        "rejected_segments": 0,
         "cost_cny": 0.0,
         "elapsed_s": 0.0,
         "error": "",
@@ -975,6 +1162,7 @@ def correct_job(
             "chunks": result.get("chunks"),
             "edits": result.get("edits"),
             "rejected": result.get("rejected"),
+            "rejected_segments": result.get("rejected_segments"),
             "cost_cny": result.get("cost_cny"),
             "elapsed_s": result["elapsed_s"],
         })
@@ -1009,6 +1197,7 @@ def correct_job(
                 "chunks": existing_chunks,
                 "edits": int(existing.get("total") or 0),
                 "rejected": len(existing.get("rejected_chunks") or []),
+                "rejected_segments": len(existing.get("segment_rejections") or []),
                 "corrections": existing,
                 "report": report,
             })
@@ -1082,10 +1271,11 @@ def correct_job(
                 f"第 {first.get('chunk')} 块请求失败：{first.get('error') or '未知错误'}"
             )
 
-        # 7) 逐块校验 + 安全写回
+        # 7) 逐块：块级安全门 + 逐段护栏（P9：个别段被拒时保留同块其它段的修正）
         usage_total = {"prompt_tokens": 0, "completion_tokens": 0, "cache_hit_tokens": 0}
         items: List[Dict[str, Any]] = []
         rejected_chunks: List[Dict[str, Any]] = []
+        segment_rejections: List[Dict[str, Any]] = []
         n_changed = 0
         dirty = False
         for chunk, response in zip(chunks, chunk_results):
@@ -1093,24 +1283,24 @@ def correct_job(
             for key in usage_total:
                 usage_total[key] += usage[key]
             fixed_text = str(response.get("text") or "")
-            detail = validate_correction(chunk.text, fixed_text, cfg)
-            if not detail["ok"]:
+            block = validate_block(chunk.text, fixed_text, cfg)
+            if not block["ok"]:
                 rejected_chunks.append({
                     "chunk": chunk.index,
-                    "diff_ratio": detail["diff_ratio"],
-                    "reason": detail["reason"],
+                    "diff_ratio": block["diff_ratio"],
+                    "reason": block["reason"],
                 })
                 for idx in chunk.segment_indices:
                     _add_flag(segments[idx], FLAG_REJECTED_CHUNK)
                 dirty = True
-                log.warning("纠错块 %d 校验不过（%s，diff=%.4f），整块回退",
-                            chunk.index, detail["reason"], detail["diff_ratio"])
+                log.warning("纠错块 %d 块级校验不过（%s，diff=%.4f），整块回退",
+                            chunk.index, block["reason"], block["diff_ratio"])
                 continue
-            mapped = map_fixed_to_segments(chunk, fixed_text, cfg)
-            if mapped is None:
+            texts, rejections, strategy = _salvage_segments(chunk, fixed_text, cfg)
+            if texts is None:
                 rejected_chunks.append({
                     "chunk": chunk.index,
-                    "diff_ratio": detail["diff_ratio"],
+                    "diff_ratio": block["diff_ratio"],
                     "reason": "unsafe_writeback",
                 })
                 for idx in chunk.segment_indices:
@@ -1118,12 +1308,40 @@ def correct_job(
                 dirty = True
                 log.warning("纠错块 %d 句/段映射不安全，整块回退", chunk.index)
                 continue
-            for idx, new_text in zip(chunk.segment_indices, mapped):
+            accepted = len(texts) - len(rejections)
+            if accepted <= 0:
+                reason = _common_reason(rejections)
+                rejected_chunks.append({
+                    "chunk": chunk.index,
+                    "diff_ratio": block["diff_ratio"],
+                    "reason": reason,
+                })
+                for idx in chunk.segment_indices:
+                    _add_flag(segments[idx], FLAG_REJECTED_CHUNK)
+                dirty = True
+                log.warning("纠错块 %d 所有段被逐段护栏拒绝（%s），整块回退",
+                            chunk.index, reason)
+                continue
+            for rejection in rejections:
+                local_i = int(rejection.get("segment") or 0)
+                seg_idx = chunk.segment_indices[local_i]
+                _add_flag(segments[seg_idx], FLAG_REJECTED_SEGMENT)
+                segment_rejections.append({
+                    "chunk": chunk.index,
+                    "segment": seg_idx,
+                    "segment_in_chunk": local_i,
+                    "reason": rejection.get("reason") or "",
+                })
+                dirty = True
+            for idx, new_text in zip(chunk.segment_indices, texts):
                 new_text = new_text.strip()
                 if new_text and new_text != _seg_text(segments[idx]):
                     segments[idx]["text"] = new_text
                     n_changed += 1
-            items.extend(extract_items(chunk, mapped, hotwords))
+            items.extend(extract_items(chunk, texts, hotwords))
+            if rejections:
+                log.info("纠错块 %d：策略=%s 段=%d 逐段回退=%d",
+                         chunk.index, strategy, len(texts), len(rejections))
 
         cost_cny = compute_cost(usage_total, cfg)
         elapsed = round(time.perf_counter() - started, 3)
@@ -1135,22 +1353,26 @@ def correct_job(
             "total": len(items),
             "items": items,
             "rejected_chunks": rejected_chunks,
+            "segment_rejections": segment_rejections,
         }
         _write_json(corrections_path, corrections)
         report = _update_report(
             job_out, job_id, enabled=True, chunks=len(chunks), edits=len(items),
             rejected=len(rejected_chunks), cost_cny=cost_cny, elapsed_s=elapsed,
+            rejected_segments=len(segment_rejections),
         )
         log.info(
-            "纠错完成：%s chunks=%d edits=%d rejected=%d 改段=%d cost=¥%.5f %.1fs",
-            job_id, len(chunks), len(items), len(rejected_chunks), n_changed,
-            cost_cny, elapsed,
+            "纠错完成：%s chunks=%d edits=%d rejected=%d rejected_segments=%d 改段=%d "
+            "cost=¥%.5f %.1fs",
+            job_id, len(chunks), len(items), len(rejected_chunks),
+            len(segment_rejections), n_changed, cost_cny, elapsed,
         )
         return finish_ok({
             "enabled": True,
             "chunks": len(chunks),
             "edits": len(items),
             "rejected": len(rejected_chunks),
+            "rejected_segments": len(segment_rejections),
             "cost_cny": round(cost_cny, 6),
             "usage": usage_total,
             "corrections": corrections,

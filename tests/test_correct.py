@@ -22,10 +22,13 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import pytest
 
-from app.models import FLAG_REJECTED_CHUNK
+from app.models import FLAG_REJECTED_CHUNK, FLAG_REJECTED_SEGMENT
 from app.pipeline.correct import (
     Chunk,
     CorrectError,
+    _num_runs,
+    _salvage_segments,
+    _seg_guard,
     chat_completion,
     compute_cost,
     correct_job,
@@ -36,6 +39,7 @@ from app.pipeline.correct import (
     map_fixed_to_segments,
     plan_chunks,
     split_sentences,
+    validate_block,
     validate_correction,
 )
 
@@ -366,6 +370,85 @@ def test_map_fixed_to_segments_unsafe_returns_none():
     assert map_fixed_to_segments(chunk, "丙。丁。\n甲。乙。", cfg=None) is None
 
 
+# ================================================================ P9：真实模型输出的鲁棒写回
+def test_num_runs_normalizes_fullwidth_and_thousands():
+    """数字校验口径（P9）：全角→半角、去千位逗号；数值本身变化仍不等。"""
+    assert _num_runs("２０２０年的第３页") == _num_runs("2020年的第3页")
+    assert _num_runs("共1,234页内容") == _num_runs("共1234页内容")
+    assert _num_runs("第2卷") != _num_runs("第3卷")
+
+
+def test_validate_block_defers_numbers_and_books():
+    """块级门不再因个别数字/书名号整块否决（下放到逐段护栏），但大改仍拒。"""
+    orig = "版本2020年的第3页。《书名》不变。"
+    changed_numbers = "版本2021年的第3页。《书名》不变。"
+    block = validate_block(orig, changed_numbers, cfg=None)
+    assert block["ok"] is True and block["diff_ratio"] <= 0.12
+
+    wholesale = validate_block(orig, "这是一段完全不相干的话，和原文没有任何关系。", cfg=None)
+    assert wholesale["ok"] is False and wholesale["reason"] == "diff_too_large"
+    assert validate_block("这是测试文本。", "```\n这是测试文本。\n```", cfg=None)["reason"] \
+        == "markdown_wrapper"
+
+
+def test_map_fixed_to_segments_alignment_fallback():
+    """行数、句数都对不上时，用字符级对齐兜底（P9）。"""
+    chunk = Chunk(
+        index=1,
+        text="这是第一段文本内容。\n这是第二段文本内容。",
+        segment_indices=[0, 1],
+        segment_texts=["这是第一段文本内容。", "这是第二段文本内容。"],
+        sentence_counts=[1, 1], char_count=22, content_hash="x",
+    )
+    # 模型把第一段句号改成逗号、整体并成一行：按行(1≠2)、按句(1≠2)都不行，对齐能恢复
+    fixed = "这是第一段文本内容，这是第二段文本内容。"
+    assert map_fixed_to_segments(chunk, fixed, cfg=None) == [
+        "这是第一段文本内容，", "这是第二段文本内容。"
+    ]
+
+
+def test_seg_guard_reasons():
+    assert _seg_guard("这个教研室就肯定是做不下来。", "这个教研室就肯定是坐不下来。",
+                      cfg=None) == ""
+    assert _seg_guard("这个教研室就肯定是做不下来。", "完全不同的文本内容，和原文无关。",
+                      cfg=None) == "diff_too_large"
+    assert _seg_guard("版本2020年不变。", "版本2021年不变。", cfg=None) == "number_changed"
+    assert _seg_guard("参阅《工具论》相关论述再仔细核对。",
+                      "参阅工具论相关论述再仔细核对。", cfg=None) == "book_title_changed"
+    assert _seg_guard("这是第一句测试文本。这是第二句测试文本。",
+                      "这是第一句测试文本，这是第二句测试文本。",
+                      cfg=None) == "sentence_count_changed"
+
+
+def test_salvage_reverts_only_offending_segment():
+    """逐段抢救：只有改坏数字的那段回退，其它段的修正保留。"""
+    texts = ["这个教研室就肯定是做不下来。", "版本2020年不变。", "第三段内容不变。"]
+    chunk = Chunk(
+        index=1, text="\n".join(texts), segment_indices=[0, 1, 2],
+        segment_texts=list(texts), sentence_counts=[1, 1, 1],
+        char_count=sum(len(t) for t in texts), content_hash="x",
+    )
+    fixed = "这个教研室就肯定是坐不下来。\n版本2021年不变。\n第三段内容不变。"
+    salvaged, rejections, strategy = _salvage_segments(chunk, fixed, cfg=None)
+    assert strategy == "lines"
+    assert salvaged == ["这个教研室就肯定是坐不下来。", "版本2020年不变。", "第三段内容不变。"]
+    assert rejections == [{"segment": 1, "reason": "number_changed"}]
+
+
+def test_salvage_all_rejected_reports_common_reason():
+    texts = ["版本2020年保持不变的内容。", "共1234页内容说明。"]
+    chunk = Chunk(
+        index=1, text="\n".join(texts), segment_indices=[0, 1],
+        segment_texts=list(texts), sentence_counts=[1, 1],
+        char_count=sum(len(t) for t in texts), content_hash="x",
+    )
+    fixed = "版本2021年保持不变的内容。\n共1235页内容说明。"
+    salvaged, rejections, _strategy = _salvage_segments(chunk, fixed, cfg=None)
+    assert salvaged == texts
+    assert all(r["reason"] == "number_changed" for r in rejections)
+    assert len(rejections) == 2
+
+
 # ================================================================ 热词 / prompt
 def test_load_hotwords_lookup_order_and_tolerance(tmp_path: Path, cfg):
     hw = tmp_path / "hotwords"
@@ -489,7 +572,8 @@ def test_correct_job_no_key_writes_empty_and_keeps_transcript(cfg, monkeypatch):
     assert result["enabled"] is False and result["skipped"] is True
     assert (job_out / "corrections.json").read_text(encoding="utf-8").strip() != ""
     corrections = json.loads((job_out / "corrections.json").read_text(encoding="utf-8"))
-    assert corrections == {"total": 0, "items": [], "rejected_chunks": []}
+    assert corrections == {"total": 0, "items": [], "rejected_chunks": [],
+                           "segment_rejections": []}
     assert (job_out / "transcript.json").read_bytes() == before
     updated_report = json.loads((job_out / "report.json").read_text(encoding="utf-8"))
     assert updated_report["decode"] == {"repaired": False, "ok": True}
@@ -511,7 +595,8 @@ def test_correct_job_empty_transcript_writes_empty_structure(cfg, make_cfg):
         assert server.requests == []  # 没有文本不发请求
     assert result["ok"] is True and result["chunks"] == 0
     corrections = json.loads((job_out / "corrections.json").read_text(encoding="utf-8"))
-    assert corrections == {"total": 0, "items": [], "rejected_chunks": []}
+    assert corrections == {"total": 0, "items": [], "rejected_chunks": [],
+                           "segment_rejections": []}
     report = json.loads((job_out / "report.json").read_text(encoding="utf-8"))
     assert report["correct"]["enabled"] is True and report["correct"]["chunks"] == 0
 
@@ -608,7 +693,8 @@ def test_correct_job_single_chunk_roundtrip(make_cfg, cfg):
     assert transcript[1]["start"] == 3.0  # 时间/说话人不动
 
     corrections = json.loads((job_out / "corrections.json").read_text(encoding="utf-8"))
-    assert set(corrections) == {"total", "items", "rejected_chunks"}
+    assert set(corrections) == {"total", "items", "rejected_chunks", "segment_rejections"}
+    assert corrections["segment_rejections"] == []
     assert corrections["total"] == len(corrections["items"]) == result["edits"]
     assert corrections["rejected_chunks"] == []
     assert any(item["orig"] == "做" and item["fixed"] == "坐" for item in corrections["items"])
@@ -655,6 +741,55 @@ def test_correct_job_rejects_chunk_and_rolls_back(make_cfg, cfg):
     assert all(FLAG_REJECTED_CHUNK in item["flags"] for item in transcript)
     updated_report = json.loads((job_out / "report.json").read_text(encoding="utf-8"))
     assert updated_report["correct"]["rejected"] == 1
+
+
+def test_correct_job_salvages_per_segment(make_cfg, cfg):
+    """P9：同块内只有一段改坏数字 → 该段回退、其它段的修正保留，整块不回退。"""
+    job_id = "job_salvage"
+    s1 = "这个教研室就肯定是做不下来。"
+    s2 = "版本2020年不变。"
+    s3 = "第三段内容不变。"
+    segments = [seg(s1), seg(s2), seg(s3)]
+    report = {"id": job_id, "source": "data/x.m4a", "ok": True,
+              "decode": {"ok": True, "repaired": False}, "timing": {"decode_s": 1.0}}
+    job_out = write_job(_out_dir(cfg), job_id, segments, report)
+    content = "这个教研室就肯定是坐不下来。\n版本2021年不变。\n第三段内容不变。"
+
+    with MockServer([ok(content)]) as server:
+        result = correct_job(job_id, make_cfg(server))
+
+    assert result["ok"] is True
+    assert result["rejected"] == 0            # 没有整块回退
+    assert result["rejected_segments"] == 1
+    assert result["edits"] >= 1
+
+    transcript = json.loads((job_out / "transcript.json").read_text(encoding="utf-8"))
+    assert transcript[0]["text"] == "这个教研室就肯定是坐不下来。"
+    assert transcript[1]["text"] == s2        # 数字被改的段回退原文
+    assert FLAG_REJECTED_SEGMENT in transcript[1]["flags"]
+    assert FLAG_REJECTED_CHUNK not in transcript[1]["flags"]
+    assert transcript[2]["text"] == s3
+
+    corrections = json.loads((job_out / "corrections.json").read_text(encoding="utf-8"))
+    assert corrections["rejected_chunks"] == []
+    assert corrections["segment_rejections"] == [{
+        "chunk": 1, "segment": 1, "segment_in_chunk": 1, "reason": "number_changed",
+    }]
+    assert any(item["orig"] == "做" and item["fixed"] == "坐"
+               for item in corrections["items"])
+
+    updated_report = json.loads((job_out / "report.json").read_text(encoding="utf-8"))
+    assert updated_report["correct"]["rejected"] == 0
+    assert updated_report["correct"]["rejected_segments"] == 1
+
+
+def test_correct_text_number_change_reverts(make_cfg):
+    """单块金标工具：数字被改 → reason=number_changed、fixed 保持原文。"""
+    with MockServer([ok("版本2021年不变。")]) as server:
+        result = correct_text("版本2020年不变。", make_cfg(server))
+    assert result["ok"] is False
+    assert result["reason"] == "number_changed"
+    assert result["fixed"] == "版本2020年不变。"
 
 
 def test_correct_job_request_failure_returns_error(make_cfg, cfg):

@@ -58,6 +58,7 @@ SPEAKER_MAIN = "主讲"
 
 #: 转写条目 flags
 FLAG_REJECTED_CHUNK = "rejected_chunk"
+FLAG_REJECTED_SEGMENT = "rejected_segment"
 FLAG_UNCERTAIN_SPEAKER = "uncertain_speaker"
 
 #: 媒体扩展名（与 configs/default.yaml scan.extensions 保持一致的兜底值）
