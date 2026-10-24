@@ -6,6 +6,8 @@ P0–P5：``config show|check``、``scan``、``status``、``decode``、``analyze
 P6/P7 新增：``run`` / ``batch`` / ``retry``（全链路编排，见 ``app/pipeline/orchestrator.py``）、
 ``status --watch``、``serve``（本地 Web UI，见 ``app/server.py``）。
 P10 新增：``compose``（全文成稿：整讲课程档案 + 分块整理为书面稿；独立于 ``run`` 全链路）。
+P11 新增：``finalize``（交付目录整理：job 目录按原始文件名重命名，clean.m4a / manuscript.md
+集中到 ``output/audio`` / ``output/manuscript``；幂等，见 ``app/pipeline/finalize.py``）。
 
 约定
 ----
@@ -231,6 +233,17 @@ def build_parser() -> argparse.ArgumentParser:
                            help="覆盖 compose.concurrency（1–16）")
     p_compose.add_argument("--json", action="store_true", help="以 JSON 输出")
     p_compose.set_defaults(func=cmd_compose)
+
+    # finalize（P11：流水线尾部交付目录整理）
+    p_finalize = subparsers.add_parser(
+        "finalize",
+        help="交付目录整理：job 目录改为原始文件名，clean.m4a/manuscript.md 集中到 output/",
+        parents=[global_parent],
+    )
+    p_finalize.add_argument("--dry-run", action="store_true",
+                            help="只打印计划，不改动文件/数据库")
+    p_finalize.add_argument("--json", action="store_true", help="以 JSON 输出")
+    p_finalize.set_defaults(func=cmd_finalize)
 
     # run（P6-T2：单 job 全链路 decode→...→export）
     p_run = subparsers.add_parser(
@@ -1354,6 +1367,57 @@ def _compose_row(job_id: str, summary: Dict[str, Any]) -> str:
         f"cost=¥{float(summary.get('cost_cny') or 0.0):.2f} "
         f"{float(summary.get('elapsed_s') or 0.0):6.1f}s"
     )
+
+
+# ---------------------------------------------------------------- 交付目录整理（P11）
+def cmd_finalize(args: argparse.Namespace, cfg: Config) -> int:
+    """流水线尾部整理：job 目录改原始文件名 + audio/manuscript 集中归档（幂等）。"""
+    from .pipeline.finalize import FinalizeError, finalize_run
+
+    out_root = cfg.path("out_dir")
+    progress = None
+    if not args.json:
+        def progress(item: Dict[str, Any]) -> None:
+            if item.get("error"):
+                tag = "FAIL"
+            elif item.get("dir_renamed"):
+                tag = "MOVE"
+            else:
+                tag = "KEEP"
+            print(
+                f"  [{tag}] {item.get('old_id', '-')} → {item.get('new_id', '-')} "
+                f"audio={item.get('audio', '-')} md={item.get('manuscript', '-')}",
+                flush=True,
+            )
+
+    try:
+        result = finalize_run(
+            out_root,
+            db_path=cfg.path("db_path"),
+            dry_run=bool(getattr(args, "dry_run", False)),
+            on_progress=progress,
+        )
+    except FinalizeError as exc:
+        print(f"[错误] {exc}", file=sys.stderr)
+        return EXIT_RUNTIME
+
+    if args.json:
+        _json_dump(result)
+    else:
+        for warning in result.get("warnings") or []:
+            print(f"[警告] {warning}", file=sys.stderr)
+        for error in result.get("errors") or []:
+            print(f"[错误] {error}", file=sys.stderr)
+        verb = "计划（dry-run）" if result.get("dry_run") else "完成"
+        print(
+            f"\nfinalize {verb}：job {result.get('n_jobs', 0)}，目录改名 "
+            f"{result.get('renamed', 0)}，音频归档 {result.get('audio_moved', 0)}"
+            f"（已在位 {result.get('audio_present', 0)}），成稿归档 "
+            f"{result.get('manuscript_copied', 0)}，警告 {len(result.get('warnings') or [])}，"
+            f"失败 {len(result.get('errors') or [])}"
+        )
+        print(f"  产物根：{result.get('out_dir')}（布局：output/audio、output/manuscript）")
+    return EXIT_OK if result.get("ok") else EXIT_RUNTIME
 
 
 def _export_summary(result: Dict[str, Any]) -> Dict[str, Any]:

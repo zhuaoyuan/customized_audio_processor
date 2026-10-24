@@ -53,6 +53,7 @@ from ..config import Config, ConfigError, PROJECT_ROOT, load_config
 from ..logging_setup import get_logger, setup_logging
 from ..models import make_job_id
 from ..pipeline.export import render_job
+from ..pipeline.finalize import resolve_product
 from ..pipeline.orchestrator import PRODUCT_FILES, batch_run
 from ..storage import Storage
 
@@ -200,7 +201,20 @@ def _full_chain_s(timing: Any) -> Optional[float]:
 
 
 def _missing_products(job_dir: Path) -> List[str]:
-    return [name for name in PRODUCT_FILES if not (Path(job_dir) / name).is_file()]
+    """缺产物清单；``clean.m4a`` 认可 finalize 后的 ``<out>/output/audio/`` 布局。"""
+    job_dir = Path(job_dir)
+    report = _read_json(job_dir / "report.json")
+    if not isinstance(report, dict):
+        report = None
+    out_root = job_dir.parent
+    missing: List[str] = []
+    for name in PRODUCT_FILES:
+        if name == "clean.m4a":
+            if resolve_product(job_dir, out_root, name, report=report) is None:
+                missing.append(name)
+        elif not (job_dir / name).is_file():
+            missing.append(name)
+    return missing
 
 
 def _normalized_source(path: str | Path, base: Optional[Path] = None) -> str:

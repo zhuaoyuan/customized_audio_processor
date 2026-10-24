@@ -1,7 +1,32 @@
 # CHANGELOG
 
-本项目遵循「按阶段里程碑」记录（非严格 SemVer 发布节奏）；当前已发布版本 **v0.2.0** = P0–P10
-（v0.1.0 = P0–P8；P9 纠错质量修复、P10 全文成稿并入 v0.2.0）。
+本项目遵循「按阶段里程碑」记录（非严格 SemVer 发布节奏）；当前已发布版本 **v0.2.1** = P0–P10 +
+交付目录整理（v0.2.0 = P0–P10，P9 纠错质量修复、P10 全文成稿并入；v0.1.0 = P0–P8）。
+
+## [0.2.1] - 2026-10-25 · 交付目录整理（finalize）
+
+v0.2.0 的交付目录有两个问题：job id 由 20 字 slug 截断生成，`(04下-20100325)`、`(08上-…)`、
+`(08下-…)` 三讲被截成同名 `…_物理学`，目录无法区分；`clean.m4a` 散落在各 job 目录、成稿也只留在
+job 目录里，交付时得手工翻找。v0.2.1 在完整流程（`batch` → `compose`）之后新增 `finalize`：
+
+- **job id 命名修复**：`app/models.py` 新增 `source_basename / source_stem / safe_stem`，
+  `make_job_id` 改为 `<hash8>_<原始文件名主体>`——不再按 20 字截断，完整保留 `04下/08上/08下`
+  等区分后缀；空格、《》() 等合法字符原样保留，仅替换 Windows 非法字符、去尾部点/空格；
+  极端长名仍做 120 字上限保护，同名冲突追加 4 位路径 hash；
+- **新增 CLI**：`work\venv\Scripts\python -m app.cli finalize --out <产物根> [--dry-run] [--json]`，
+  遍历产物根下的每个 job 目录：
+  1. 按 `<hash8>_<原始文件名主体>` 重命名目录（名字取自该目录 `report.json` 的 `source`）；
+  2. `clean.m4a` 移动到 `<产物根>/output/audio/<源原始文件名>`（含扩展名，不保留冗余副本）；
+  3. `manuscript.md` 复制到 `<产物根>/output/manuscript/<原始文件名主体>.md`（job 目录原稿保留）；
+  4. 同步更新 `report.json`（`id` + 新增 `delivery` 段）、`manuscript.json` / `compose_report.json`
+     的 job_id/path、`jobs.db` 的 jobs/stages id；
+  5. **幂等**：重复执行只补缺失/更新；`--dry-run` 只打印计划、不改盘；`--json` 输出机器可读结果；
+- **下游兼容**：Web UI 播放（服务端 `/api/jobs/{id}/audio` 回退到 `output/audio`）、`status`/`retry`、
+  `regress --reuse` 的缺产物检查都适配新布局；`run_abc.ps1` 尾部在 A+B+C 之后自动执行 finalize；
+- **迁移**：`out/1`（14 个 job）已用新逻辑迁移，其中 `04下`/`08上`/`08下` 三个目录已能区分，
+  Web UI 仍可播放；
+- **测试**：新增 `tests/test_finalize.py`（目录改名 / audio 移动 / manuscript 复制 / report+DB 同步 /
+  幂等 / dry-run / CLI JSON），`tests/test_repair.py` 等按新命名契约更新断言；全量测试须全绿。
 
 ## [0.2.0] - 2026-10-24 · P10 全文成稿
 

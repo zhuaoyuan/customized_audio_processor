@@ -75,6 +75,21 @@ _SLUG_NOISE = {
 _ID_SLUG_MAX = 20
 _ID_SLUG_MIN = 2
 
+#: Windows 目录/文件名非法字符（最严格口径，兼顾跨平台同步盘）
+_WIN_BAD_CHARS = frozenset('<>:"/\\|?*')
+
+#: Windows 保留设备名（不能作为目录/文件名主体）
+_WIN_RESERVED = frozenset(
+    {"CON", "PRN", "AUX", "NUL"}
+    | {f"COM{i}" for i in range(1, 10)}
+    | {f"LPT{i}" for i in range(1, 10)}
+)
+
+#: job id / 交付目录名里「原始文件名主体」的最大长度。
+#: 正常文件名（含 04下/08上 等区分后缀）远小于该值；仅对极端长文件名做长度保护，
+#: 唯一性由 8 位文件哈希前缀（以及同名冲突时的 4 位路径哈希）保证。
+_ID_STEM_MAX = 120
+
 
 # ---------------------------------------------------------------- 通用小工具
 def now_ts() -> int:
@@ -129,6 +144,60 @@ def slugify(name: str, max_len: int = _ID_SLUG_MAX) -> str:
     return out
 
 
+def _strip_unsafe(text: str) -> str:
+    """把 Windows 非法字符 / 控制字符替换为 ``_``。"""
+    out: List[str] = []
+    for ch in text:
+        if ch in _WIN_BAD_CHARS or ord(ch) < 0x20 or ord(ch) == 0x7F:
+            out.append("_")
+        else:
+            out.append(ch)
+    return "".join(out)
+
+
+def safe_stem(name: str, max_len: int = _ID_STEM_MAX) -> str:
+    """原始文件名主体 → **可安全落盘**的目录名主体（不做 token 截断）。
+
+    规则：
+    - 只取 basename（兼容调用方误传全路径）；
+    - ``<>:"/\\|?*`` 与控制字符 → ``_``；
+    - 去掉首尾空白、尾部点/空格（Windows 会静默丢弃尾部点/空格，导致 id 与目录名不一致）、
+      前导点（避免生成隐藏目录）；
+    - 保留中文/空格/《》()等合法字符，原样保留原始信息（04下 / 08上 / 08下 不再丢失）；
+    - 空 → ``audio``；命中 Windows 保留设备名 → 前缀 ``_``；
+    - 仅当长度超过 ``max_len`` 时硬截断（极端长文件名的路径长度保护）。
+    """
+    text = unicodedata.normalize("NFC", str(name or ""))
+    text = text.replace("\\", "/").rsplit("/", 1)[-1]
+    text = _strip_unsafe(text).strip()
+    text = text.rstrip(". ").lstrip(". ")
+    if not text:
+        text = "audio"
+    if text.upper() in _WIN_RESERVED:
+        text = f"_{text}"
+    if len(text) > max_len:
+        text = text[:max_len].rstrip(". ") or "audio"
+    return text
+
+
+def source_basename(source: str | Path) -> str:
+    """源文件路径 → 原始文件名（含扩展名；同时兼容 ``/`` 与 ``\\`` 分隔符）。"""
+    raw = str(source or "")
+    return raw.replace("\\", "/").rsplit("/", 1)[-1]
+
+
+def source_stem(source: str | Path) -> str:
+    """源文件路径 → 原始文件名主体（去掉最后一个扩展名，并转成安全目录名主体）。
+
+    例：``【...】 亚里士多德《物理学》(05-20100401)_5_normal..m4a`` →
+    ``【...】 亚里士多德《物理学》(05-20100401)_5_normal``（尾部多点会被去掉）。
+    """
+    base = source_basename(source)
+    if "." in base:
+        base = base.rsplit(".", 1)[0]
+    return safe_stem(base)
+
+
 def file_hash8(path: str | Path) -> str:
     """文件名（basename）的 sha1 前 8 位——移动目录不变，便于稳定 id。"""
     name = Path(path).name
@@ -136,18 +205,20 @@ def file_hash8(path: str | Path) -> str:
 
 
 def make_job_id(path: str | Path, taken: Optional[Dict[str, str]] = None) -> str:
-    """由文件名生成稳定 job id：``<hash8>_<可读短名>``。
+    """由文件名生成稳定 job id：``<hash8>_<原始文件名主体>``。
+
+    与旧版（20 字 slug）的区别：完整保留原始文件名主体，不再按 token 截断，
+    因此 ``(04下-20100325)`` / ``(08上-...)`` / ``(08下-...)`` 等能区分；
+    Windows 非法字符替换为 ``_``（空格/《》() 等合法字符原样保留）。
 
     ``taken`` 传入 {id: source}；若 id 已被**另一个**源文件占用，则追加 4 位全路径 hash 区分，
     保证同名文件放在不同目录时也能各自成 job。
     """
-    p = Path(path)
-    stem = p.stem
-    # ``xxx.m4a`` 之外，去掉结尾的 ``.`` 造成的空扩展（样例里有 ``_normal..m4a``）
-    base_id = f"{file_hash8(p)}_{slugify(stem)}"
+    p = Path(str(path))
+    base_id = f"{file_hash8(p)}_{source_stem(p)}"
     if taken:
         owner = taken.get(base_id)
-        if owner is not None and Path(owner) != p:
+        if owner is not None and Path(str(owner)) != p:
             extra = hashlib.sha1(str(p.resolve()).encode("utf-8")).hexdigest()[:4]
             base_id = f"{base_id}_{extra}"
     return base_id

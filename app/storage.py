@@ -352,6 +352,42 @@ class Storage:
             cur = conn.execute("DELETE FROM jobs WHERE id=?", (job_id,))
             return bool(cur.rowcount)
 
+    def rename_job(
+        self,
+        old_id: str,
+        new_id: str,
+        source: Optional[str] = None,
+    ) -> bool:
+        """把 job 的 id 改成 ``new_id``（同步 stages 表），finalize 整改目录名时使用。
+
+        - 旧 id 不存在：若新 id 已存在视为已迁移（返回 False），否则抛 :class:`StorageError`；
+        - 新旧都存在：抛 :class:`StorageError`（避免误合并两条任务）；
+        - ``source`` 非空时顺带刷新（源文件路径不变，一般不需要）。
+        """
+        old_id, new_id = str(old_id), str(new_id)
+        if old_id == new_id:
+            return False
+        with self._tx() as conn:
+            row = conn.execute("SELECT * FROM jobs WHERE id=?", (old_id,)).fetchone()
+            if row is None:
+                if conn.execute("SELECT 1 FROM jobs WHERE id=?", (new_id,)).fetchone() is not None:
+                    return False  # 已迁移
+                raise StorageError(f"job 不存在：{old_id}")
+            if conn.execute("SELECT 1 FROM jobs WHERE id=?", (new_id,)).fetchone() is not None:
+                raise StorageError(f"目标 job id 已存在：{new_id}（旧：{old_id}）")
+            conn.execute("UPDATE stages SET job_id=? WHERE job_id=?", (new_id, old_id))
+            if source is not None:
+                conn.execute(
+                    "UPDATE jobs SET id=?, source=?, updated_at=? WHERE id=?",
+                    (new_id, str(Path(source)), now_ts(), old_id),
+                )
+            else:
+                conn.execute(
+                    "UPDATE jobs SET id=?, updated_at=? WHERE id=?",
+                    (new_id, now_ts(), old_id),
+                )
+            return True
+
     # ------------------------------------------------------------ jobs：读
     def get_job(self, job_id: str) -> Optional[Job]:
         row = self.connect().execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()

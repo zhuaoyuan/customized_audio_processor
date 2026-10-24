@@ -74,6 +74,7 @@ from .asr import CLEAN16K_SUFFIX, transcribe_job
 from .correct import correct_job
 from .diarize import diarize_job
 from .export import export_text, render_job
+from .finalize import resolve_product
 
 log = logging.getLogger(__name__)
 
@@ -176,12 +177,24 @@ def artifacts(job_id: str, cfg: Any, *, out_dir: str | Path | None = None) -> Li
     :data:`PRODUCT_FILES`；``out_dir`` 缺省取 ``cfg.path("out_dir")``。
     """
     try:
-        job_out = _job_dir(_out_root(cfg, out_dir), job_id)
+        out_root = _out_root(cfg, out_dir)
+        job_out = _job_dir(out_root, job_id)
     except ValueError:
         return []
+    report: Optional[Dict[str, Any]] = None
     items: List[Dict[str, Any]] = []
     for name in PRODUCT_FILES:
         path = job_out / name
+        if not path.is_file():
+            if name != "clean.m4a":
+                continue
+            # finalize 后 clean.m4a 在 <out>/output/audio/ 下（不在 job 目录）
+            if report is None:
+                report = _read_report(job_out)
+            resolved = resolve_product(job_out, out_root, name, report=report)
+            if resolved is None:
+                continue
+            path = resolved
         try:
             stat = path.stat()
         except OSError:
@@ -198,13 +211,24 @@ def artifacts(job_id: str, cfg: Any, *, out_dir: str | Path | None = None) -> Li
 
 def _missing_products(job_id: str, cfg: Any,
                       out_dir: str | Path | None = None) -> Tuple[List[str], List[str]]:
-    """返回 ``(缺失文件名, report 缺失/非对象的段名)``；用于完成判定与错误信息。"""
+    """返回 ``(缺失文件名, report 缺失/非对象的段名)``；用于完成判定与错误信息。
+
+    ``clean.m4a`` 认可两种位置：job 目录（流水线原布局）或 ``<out>/output/audio/``
+    （``finalize`` 后的交付布局），否则已整理过的任务会被误判为未完成而重跑。
+    """
     try:
-        job_out = _job_dir(_out_root(cfg, out_dir), job_id)
+        out_root = _out_root(cfg, out_dir)
+        job_out = _job_dir(out_root, job_id)
     except ValueError:
         return list(PRODUCT_FILES), list(_REPORT_SECTIONS)
-    missing = [name for name in PRODUCT_FILES if not (job_out / name).is_file()]
     report = _read_report(job_out)
+    missing: List[str] = []
+    for name in PRODUCT_FILES:
+        if name == "clean.m4a":
+            if resolve_product(job_out, out_root, name, report=report) is None:
+                missing.append(name)
+        elif not (job_out / name).is_file():
+            missing.append(name)
     missing_sections = [key for key in _REPORT_SECTIONS
                         if not isinstance(report.get(key), dict)]
     return missing, missing_sections

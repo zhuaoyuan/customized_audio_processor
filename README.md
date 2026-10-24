@@ -5,11 +5,13 @@
 说话人标注 → LLM 纠错 → 导出 `clean.m4a` + `transcript.md/srt/txt`。
 全部在本机 CPU 上跑（不需要 GPU / torch），另带一个只在 `127.0.0.1` 监听的本地 Web UI，
 可以完成「扫描/上传 → 跑 → 播放 → 改字 → 导出」全流程。v0.2.0 起另附可选的 `compose`：
-把整讲转写通读后整理成完整、通顺的书面讲稿（独立命令，不改变主流水线）。
+把整讲转写通读后整理成完整、通顺的书面讲稿（独立命令，不改变主流水线）。v0.2.1 起再加
+`finalize`：在完整流程之后把 job 目录按原始文件名重命名，并把成品音频 / 成稿集中到 `output/`，
+交付目录一目了然（幂等，可重复执行）。
 
 ## 状态
 
-当前版本 **v0.2.0**（P0–P10）。
+当前版本 **v0.2.1**（v0.2.0 的 P0–P10 + `finalize` 交付目录整理）。
 
 - ✅ P0 基础设施、P1 解码、P2 分析、P3 渲染（降噪/裁剪/响度）、P4 ASR + 说话人、P5 纠错 + 文本导出
 - ✅ P6 编排器与 CLI：断点续跑、失败隔离、磁盘水位、quarantine、`run / batch / retry / status / serve`
@@ -20,8 +22,12 @@
   f24 实测 202 edits / 164 段、0 整块回退；真实成本 ≈¥0.379/文件
 - ✅ P10 全文成稿（`compose`）：整讲课程档案 + 分块整理为书面稿；1 小时 43 分实测
   31,151→21,145 字、105 段、0 回退，成本 ≈¥0.58–0.61/讲（新讲冷启动约 ¥0.60）、串行 14 min（独立命令，默认不进 `run`）
+- ✅ v0.2.1 交付目录整理（`finalize`）：job id 改为 `<hash8>_<原始文件名主体>`（修复 `04下`/`08上`/`08下`
+  被 20 字截断成同名 `…_物理学` 的问题）；`clean.m4a` → `output/audio/`、`manuscript.md` 副本 →
+  `output/manuscript/`；幂等 + `--dry-run`；`out/1` 的 14 个 job 已迁移
 
-`data/` 下 6 个真实样例（576 min）已跑完，产物在 `out/<job_id>/`，任务库是 `out/jobs.db`。
+`data/` 下 6 个真实样例（576 min）已跑完，产物在 `out/<job_id>/`（跑过 `finalize` 后 job 目录名是
+`<hash8>_<原始文件名主体>`，成品在 `out/output/`），任务库是 `out/jobs.db`。
 实测全链路 **RTF 0.1282 → 500 h（300 文件 × 100 min）≈ 64.1 h**、交付磁盘 **≈23 GB / 500 h**；
 与 DoD「≤30 h」的差距、优化选项与重订建议见 [docs/运行评估.md](docs/运行评估.md)。
 
@@ -85,11 +91,17 @@ work\venv\Scripts\python -m app.cli status --watch
 work\venv\Scripts\python -m app.cli compose <job_id>
 work\venv\Scripts\python -m app.cli compose <job_id> --dry-run   # 只看分块方案，不调 API
 
+# 交付目录整理（可选，batch/compose 之后）：job 目录名改为 <hash8>_<原始文件名主体>，
+# clean.m4a → output/audio/<源原始文件名>，manuscript.md 副本 → output/manuscript/<文件名主体>.md
+work\venv\Scripts\python -m app.cli finalize --out <产物根> --dry-run   # 只打印计划，不改盘
+work\venv\Scripts\python -m app.cli finalize --out <产物根>
+
 # 启动本地 Web UI（只 bind 127.0.0.1）
 work\venv\Scripts\python -m app.cli serve --port 7860
 ```
 
-每个 job 完成后 `out/<job_id>/` 会有 8 件产物：
+每个 job 完成后 `out/<job_id>/` 会有 8 件产物（job 目录名 = `<hash8>_<原始文件名主体>`，
+如 `dc97800d_【复旦哲学系丁耘】 亚里士多德《物理学》(04下-20100325)_4_normal`）：
 
 ```
 clean.m4a         降噪 + 裁剪 + 响度归一化后的成品音轨
@@ -112,6 +124,17 @@ compose_card.json   课程档案（结构大纲 + 术语表；transcript 变化�
 compose_report.json 分块校验、回退、用量与成本
 ```
 
+最后跑一次 `finalize`（见下节）整理交付目录：`clean.m4a` 移到 `output/audio/`、`manuscript.md`
+复制一份到 `output/manuscript/`，job 目录里只剩过程产物：
+
+```
+out/
+  output/audio/【复旦哲学系丁耘】 亚里士多德《物理学》(05-20100401)_5_normal..m4a
+  output/manuscript/【复旦哲学系丁耘】 亚里士多德《物理学》(05-20100401)_5_normal.md
+  dc97800d_【复旦哲学系丁耘】 亚里士多德《物理学》(04下-20100325)_4_normal/   ← report.json / transcript.* / manuscript.md 等
+  jobs.db  logs/
+```
+
 ## 全文成稿（`compose`，可选）
 
 `correct` 只改同音错字、不润色；`compose` 解决「整段读不通」的问题：先把**整讲**通读成一份
@@ -127,6 +150,49 @@ compose_report.json 分块校验、回退、用量与成本
   `--concurrency N` 调并发；`--dry-run` 不调 API。
 - 成稿**未逐字校对**：引文、页码/Bekker 号、专名仍需对照原音复核；无法辨认的乱码会标
   `〔原音不清〕` 或按上下文略去。
+
+## 交付目录整理（`finalize`，可选）
+
+`batch` / `compose` 跑完后执行一次，把「要交付的东西」按原始文件名集中到产物根，名字可读、可区分：
+
+```powershell
+# 先看计划（不移动/不改名，不改盘）
+work\venv\Scripts\python -m app.cli finalize --out out --dry-run
+
+# 真正整理（幂等，可重复执行）
+work\venv\Scripts\python -m app.cli finalize --out out
+
+# 机器可读结果
+work\venv\Scripts\python -m app.cli finalize --out out --json
+```
+
+它做四件事：
+
+1. **重命名 job 目录**：`<hash8>_<原始文件名主体>`（名字取自该目录 `report.json` 的 `source`）。
+   不再按 20 字截断，`(04下-20100325)` / `(08上)` / `(08下)` 这类同名不同讲能区分开；
+2. **集中成品音频**：`clean.m4a` → `<产物根>/output/audio/<源原始文件名>`（含扩展名，不保留冗余副本）；
+3. **集中成稿**：`manuscript.md` 复制到 `<产物根>/output/manuscript/<原始文件名主体>.md`，
+   job 目录里的原稿保留；
+4. **同步索引**：`report.json`（`id` + 新增 `delivery` 段）、`manuscript.json` /
+   `compose_report.json` 的 job_id/path、`jobs.db` 的 jobs/stages id 一起更新。
+
+整理后的典型布局（以 `out/1` 为例，14 个 job 已迁移）：
+
+```
+out/1/
+  output/audio/【复旦哲学系丁耘】 亚里士多德《物理学》(05-20100401)_5_normal..m4a
+  output/manuscript/【复旦哲学系丁耘】 亚里士多德《物理学》(05-20100401)_5_normal.md
+  dc97800d_【复旦哲学系丁耘】 亚里士多德《物理学》(04下-20100325)_4_normal/
+    report.json / transcript.* / manuscript.md / …（clean.m4a 已移走）
+  jobs.db  logs/
+```
+
+- **幂等**：重复执行只补缺失/更新，不会改乱已整理好的目录；`--dry-run` 只打印计划、不改盘；
+- **与重跑的关系**：`run` / `batch` 重跑仍写回原 job 目录（按产物跳过/续跑），整理过的目录再跑完
+  可再执行一次 `finalize` 补齐；`status` / `retry` 用的 `jobs.db` id 已同步，不受影响；
+- **Web UI 不受影响**：服务端 `/api/jobs/{id}/audio` 会回退到 `output/audio`，播放 / 改字 / 导出照旧；
+- **先看计划再执行**：`clean.m4a` 是移动不是复制，job 目录改名后旧 id / 旧路径不再存在；
+  `run_abc.ps1` 已在 A+B+C 之后自动执行 finalize。
 
 ## 使用 Web UI
 
@@ -153,7 +219,8 @@ compose_report.json 分块校验、回退、用量与成本
 6 文件真实回归脚本是 `app/tools/regress.py`（P8-T1 在 P3 六文件回归基础上扩展），
 也可用 CLI 入口 `python -m app.cli regress`（与脚本等价，默认 reuse）。两种模式：
 
-- `--reuse`（默认，秒级）：只读 `out/<job_id>/report.json` + 8 件产物做结构化断言，不重跑流水线；
+- `--reuse`（默认，秒级）：只读 `out/<job_id>/report.json` + 8 件产物做结构化断言，不重跑流水线
+  （`finalize` 后 `clean.m4a` 在 `out/output/audio/`，检查会回退到该目录）；
 - `--rerun`：用**独立** `--out out_p8 --cache-dir work/cache_p8` 真跑（禁止写 `out/`）。
 
 ```powershell
@@ -212,13 +279,16 @@ batch 1,054.9 s（≈17.6 min），2 文件各 8 件产物齐全、report 含 as
 - **全文成稿是「整理」不是「校对」**：`compose` 会删口头禅、合并碎片句、按术语表纠错，
   也可能略去极短的无效碎片；不保证逐字保真，引用/页码需人工对照原音。它复用 `correct` 的
   API key，但不是 `run` 的必跑阶段（默认不做，避免成本失控）。
+- **`finalize` 会移动/重命名产物**：`clean.m4a` 移走后 job 目录不再保留副本（播放走
+  `output/audio` 回退），job 目录改名后旧 id / 旧路径不再存在；外部脚本若按旧路径引用需同步改，
+  执行前先 `--dry-run` 看计划。
 - **播放**：2 小时级 `clean.m4a` 首次定位可能需要等浏览器缓冲；Safari 未验证，建议 Chrome/Edge。
 - **前端**：未做移动端深度适配；无构建链、无 CDN，离线可用。
 
 ## 测试
 
 ```powershell
-# 全量单测 479 项（455 基线 + P10 成稿 18 + 打包 2 + P10.1 回归 1 + P10.2 推理 3）；必须全绿
+# 全量单测（含 v0.2.1 finalize / 命名契约用例）；必须全绿，数量随版本增加，以实际输出为准
 work\venv\Scripts\python -m pytest tests/ -q
 
 # 慢测 4 passed（3 基线 + 1 P8 regress 真实 6 文件 reuse，约 7–8 分钟）
@@ -233,29 +303,30 @@ work\venv\Scripts\python -m pytest tests/test_regress.py -m slow -q
 
 ```powershell
 work\venv\Scripts\python -m app.tools.package_release
-# → dist/audio_processer-v0.2.0-<yyyymmdd>.zip
+# → dist/audio_processer-v0.2.1-<yyyymmdd>.zip
 ```
 
 只收 `app/ configs/ docs/ tests/` + 根目录说明/依赖文件，**不含** `data/ out/ work/`、模型、
-`.git/`、密钥；实测 89 个文件、压缩后约 **4.5 MiB**。包内附
+`.git/`、密钥；实测压缩后约 **4.5 MiB**（文件清单随版本略有变化）。包内附
 [docs/交付说明.md](docs/交付说明.md)（功能清单、用法、打包边界、验收清单）。
 
 ## 目录结构
 
 ```
 app/
-  cli.py                命令行入口（config/scan/status/decode/…/run/batch/retry/serve）
+  cli.py                命令行入口（config/scan/status/decode/…/run/batch/retry/compose/finalize/serve）
   server.py             FastAPI 应用（/api/*，本地 Web UI 后端）
   config.py             配置加载 / 预设 / 校验
   storage.py            SQLite jobs/stages 状态机（断点续跑的数据基础）
   models.py             数据模型与常量（阶段顺序、状态、id 生成）
   pipeline/             decode / analyze / denoise / trim / loudness / asr / diarize /
-                        correct / compose / export / orchestrator
+                        correct / compose / finalize / export / orchestrator
   web/                  原生前端（index.html / app.js / style.css，无 build）
   tools/                测速、回归、MP4 修复等辅助脚本
 configs/                default.yaml、presets/、hotwords/、prompts/
 data/                   原始 m4a（只读，不入库）
-out/                    产物根目录：<job_id>/ 八件文件、jobs.db、uploads/、logs/
+out/                    产物根目录：<job_id>/ 八件文件、output/（finalize 后的 audio/manuscript）、
+                        jobs.db、uploads/、logs/
 work/                   虚拟环境、缓存（16k/analyze）、模型、证据脚本（可随时删）
 docs/                   调研报告、实施计划、工程日志、研究记录
 tests/                  pytest（含 -m slow 真实音频回归）
@@ -277,7 +348,7 @@ start_web.bat           双击启动 Web UI（UTF-8，127.0.0.1:7860）
 | [docs/调研报告_需求对齐版.md](docs/调研报告_需求对齐版.md) | 主报告：需求实测、批量架构、开发成本、验收标准 |
 | [docs/开发启动Prompt_P6P7.md](docs/开发启动Prompt_P6P7.md) | P6/P7 的启动 prompt（含 API 契约与已知坑） |
 | [docs/research/](docs/research/) | 多文件体检、PoC、ASR/降噪基准、说话人、云/本地选型 |
-| [CHANGELOG.md](CHANGELOG.md) | v0.2.0（P0–P10）按阶段变更记录与关键数字 |
+| [CHANGELOG.md](CHANGELOG.md) | v0.2.1（P0–P10 + finalize）按阶段变更记录与关键数字 |
 
 ## 仓库说明
 

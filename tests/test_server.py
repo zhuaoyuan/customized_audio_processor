@@ -560,6 +560,41 @@ def test_audio_missing_404(live_server: LiveServer, cfg: Config):
     assert status == 404
 
 
+def test_audio_falls_back_to_finalized_delivery_path(live_server: LiveServer, cfg: Config):
+    """finalize 后 ``clean.m4a`` 在 ``<out>/output/audio/<原始文件名>``：接口需回退读取（200）。"""
+    job_id = "job_audio_finalized"
+    job = _register_job(cfg, job_id)
+    _write_job_files(cfg, job_id, transcript=False, report=False)
+    # finalize 布局：job 目录无 clean.m4a，音频在 output/audio/<源原始文件名>
+    audio = cfg.path("out_dir") / "output" / "audio" / f"{job_id}.m4a"
+    audio.parent.mkdir(parents=True, exist_ok=True)
+    audio.write_bytes(AUDIO_BYTES)
+    report = {
+        "id": job_id,
+        "source": job["source"],
+        "delivery": {
+            "dir": job_id,
+            "audio": f"output/audio/{job_id}.m4a",
+            "manuscript": "",
+        },
+    }
+    (cfg.path("out_dir") / job_id / "report.json").write_text(
+        json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    assert not (cfg.path("out_dir") / job_id / "clean.m4a").exists()
+
+    status, headers, body = _request(f"{live_server}/api/jobs/{job_id}/audio")
+    assert status == 200
+    assert body == AUDIO_BYTES
+    assert _header(headers, "content-type").startswith("audio/mp4")
+    # Range 请求同样走交付目录
+    status, headers, body = _request(
+        f"{live_server}/api/jobs/{job_id}/audio", headers={"Range": "bytes=0-1023"}
+    )
+    assert status == 206
+    assert body == AUDIO_BYTES[:1024]
+
+
 # ================================================================ SSE
 def test_events_first_snapshot(live_server: LiveServer, cfg: Config):
     """读到首个 ``event: snapshot`` 后关闭连接；data 是 summary+jobs JSON。"""

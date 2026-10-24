@@ -49,6 +49,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 import numpy as np
 
 from ..logging_setup import get_logger
+from .finalize import resolve_product
 
 log = get_logger(__name__)
 
@@ -813,9 +814,9 @@ def ensure_clean16k(
                 return dst
         except Exception as exc:  # 缓存损坏 → 重解
             log.warning("clean16k 缓存读取失败，重解：%s（%s）", dst, exc)
-    src = out_root / job_id / "clean.m4a"
-    if not src.is_file():
-        raise DiarError(f"clean.m4a 不存在，无法解 clean16k：{src}")
+    src = resolve_product(out_root / job_id, out_root, "clean.m4a")
+    if src is None:
+        raise DiarError(f"clean.m4a 不存在，无法解 clean16k：{out_root / job_id / 'clean.m4a'}")
     if shutil.which("ffmpeg") is None:  # pragma: no cover - 环境缺 ffmpeg
         raise DiarError("PATH 中缺 ffmpeg，无法解 clean16k")
     dst.parent.mkdir(parents=True, exist_ok=True)

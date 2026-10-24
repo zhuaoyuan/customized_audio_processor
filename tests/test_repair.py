@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import string
 import struct
 from pathlib import Path
 
@@ -314,18 +315,26 @@ def test_real_samples_have_no_offset_damage(samples, tmp_path: Path):
 
 # ---------------------------------------------------------------- id 生成（P1-T3 依赖）
 def test_make_job_id_deterministic_and_readable():
+    """新契约：``<hash8>_<完整原始文件名主体>``（不截断，空格/《》原样保留）。"""
     name = "24_【复旦哲学系丁耘】 亚里士多德《形而上学》(01)_normal..m4a"
     jid = make_job_id(name)
     assert jid == make_job_id(name)  # 稳定
-    assert len(jid.split("_")[0]) == 8
-    assert "亚里士多德" in jid
-    assert " " not in jid and "《" not in jid and "/" not in jid
-    # 不同目录同名不会撞（taken 里记录的是别的路径）
+    hash8, _, stem = jid.partition("_")
+    assert len(hash8) == 8 and all(ch in string.hexdigits for ch in hash8)
+    assert len(jid) > 20, "旧版 20 字截断已废弃"
+    assert "亚里士多德" in jid and "《形而上学》" in jid  # 中文与《》保留
+    assert " 亚里士多德" in jid and "(01)" in jid  # 空格/批次后缀保留
+    assert not any(ch in jid for ch in '<>:"/\\|?*')
+    # 同名不同目录不会撞（taken 里记录的是别的路径 → 追加 4 位路径 hash）
     other = make_job_id(
         Path("/x/24_【复旦哲学系丁耘】 亚里士多德《形而上学》(01)_normal..m4a"),
         taken={jid: "/y/another.m4a"},
     )
     assert other != jid
+    assert other.startswith(jid + "_")
+    assert len(other.rsplit("_", 1)[1]) == 4
+    # taken 里是同一个源文件 → 保持原 id（重复 scan 不漂移）
+    assert make_job_id(name, taken={jid: name}) == jid
 
 
 def test_slugify_handles_noise_and_empty():

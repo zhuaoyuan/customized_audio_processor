@@ -1,5 +1,5 @@
 # =====================================================================
-#  对目标目录下所有文件跑 A+B+C：转写+纠错+导出 → 全文成稿
+#  对目标目录下所有文件跑 A+B+C+D：转写+纠错+导出 → 全文成稿 → 交付目录整理
 #  用法：pwsh -NoProfile -ExecutionPolicy Bypass -File .\run_abc.ps1
 #        或双击同目录的 run_abc.cmd
 #  只需改下面 5 行；本文件含 API key，已被 .gitignore 忽略，不要提交。
@@ -18,6 +18,7 @@ New-Item -ItemType Directory -Force -Path $out | Out-Null
 
 & $py -m app.cli batch   $src --out $out    # A+B：登记 + 全链路（含纠错、导出）
 & $py -m app.cli compose --all --out $out   # C：全文成稿
+& $py -m app.cli finalize --out $out        # D：交付目录整理（job 目录改名 + audio/manuscript 归档）
 
 # 想「A+B 有失败就别跑 C」，把上面最后一行换成：
 # if ($LASTEXITCODE -eq 0) { & $py -m app.cli compose --all --out $out }

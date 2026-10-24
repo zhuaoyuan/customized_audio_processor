@@ -236,11 +236,20 @@ def _orchestrator():
 
 
 def _fallback_artifacts(cfg: Config, job_id: str) -> List[Dict[str, Any]]:
-    """编排器不可用时的兜底：只扫描 8 件已知产物（不列目录、不列 uploads）。"""
+    """编排器不可用时的兜底：只扫描 8 件已知产物（不列目录、不列 uploads）。
+
+    ``clean.m4a`` 认可 finalize 后的交付位置（``<out>/output/audio/``）。
+    """
     job_dir = _job_dir(cfg, job_id)
+    out_root = cfg.path("out_dir")
+    report = _read_json(job_dir / "report.json", None, expect=dict)
+    from .pipeline.finalize import resolve_product
+
     items: List[Dict[str, Any]] = []
     for name in PRODUCT_FILES:
-        path = job_dir / name
+        path = resolve_product(job_dir, out_root, name, report=report)
+        if path is None:
+            continue
         try:
             stat = path.stat()
         except OSError:
@@ -248,7 +257,7 @@ def _fallback_artifacts(cfg: Config, job_id: str) -> List[Dict[str, Any]]:
         if not path.is_file():
             continue
         items.append(
-            {"name": name, "size": int(stat.st_size), "mtime": round(stat.st_mtime, 3)}
+            {"name": name, "size": int(stat.st_size), "mtime": round(float(stat.st_mtime), 3)}
         )
     return items
 
@@ -665,12 +674,19 @@ def create_app(cfg: Optional[Config] = None) -> FastAPI:
 
     @application.get("/api/jobs/{job_id}/audio")
     def job_audio(job_id: str) -> FileResponse:
-        """``clean.m4a``；Starlette FileResponse 原生支持 Range（206）。"""
+        """``clean.m4a``；Starlette FileResponse 原生支持 Range（206）。
+
+        finalize 后音频在 ``<out>/output/audio/<原始文件名>``，这里自动回退。
+        """
         with _open_storage(resolved) as store:
             _require_job(store, job_id)
-        path = _job_dir(resolved, job_id) / "clean.m4a"
-        if not path.is_file():
-            raise HTTPException(status_code=404, detail=f"音频产物不存在：{path.name}")
+        from .pipeline.finalize import resolve_job_audio
+
+        job_dir = _job_dir(resolved, job_id)
+        report = _read_json(job_dir / "report.json", None, expect=dict) or {}
+        path = resolve_job_audio(job_dir, resolved.path("out_dir"), str(report.get("source") or ""))
+        if path is None:
+            raise HTTPException(status_code=404, detail="音频产物不存在：clean.m4a")
         return FileResponse(path, media_type="audio/mp4")
 
     # ------------------------------------------------------------ SSE

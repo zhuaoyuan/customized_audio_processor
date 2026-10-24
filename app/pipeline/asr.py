@@ -34,6 +34,7 @@ import numpy as np
 from ..logging_setup import get_logger
 from ..models import SPEAKER_MAIN, AnalyzeResult, KeptSpan, TranscriptSegment
 from .decode import decode_audio, read_wav_float32, wav_info
+from .finalize import resolve_product
 from .trim import TimeMap
 
 log = get_logger(__name__)
@@ -494,9 +495,9 @@ def decode_clean16k(job_id: str, cfg: Any, out_dir: Optional[str | Path] = None)
     """
     out_root = _out_root(cfg, out_dir)
     job_out = out_root / job_id
-    clean_m4a = job_out / "clean.m4a"
-    if not clean_m4a.is_file():
-        raise AsrError(f"clean.m4a 不存在（先跑 render）：{clean_m4a}")
+    clean_m4a = resolve_product(job_out, out_root, "clean.m4a")
+    if clean_m4a is None:
+        raise AsrError(f"clean.m4a 不存在（先跑 render）：{job_out / 'clean.m4a'}")
 
     # 预期时长：report.trim.clean_dur_s（P3 实测 kept 差）
     expected: Optional[float] = None
