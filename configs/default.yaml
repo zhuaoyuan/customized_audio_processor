@@ -191,6 +191,28 @@ correct:
   retry_backoff_s: 1.0             # 429/5xx 指数退避初始值
   retry_backoff_max_s: 30.0        # 退避上限
 
+# ---------------------------------------------------------------- 全文成稿（P10，独立命令）
+# 不在 run 全链路里；显式 `python -m app.cli compose <job|path>` 才调用（有 API 成本）。
+compose:
+  model: ""                        # 空 = 复用 correct.model
+  base_url: ""                     # 空 = 复用 correct.base_url
+  system_prompt_file: configs/prompts/compose_system.txt
+  analyze_prompt_file: configs/prompts/compose_analyze_system.txt
+  chunk_chars: 1800                # 每块目标字数（按段边界切，不切段）
+  overlap_segments: 2              # 块间重叠段数（用于衔接，成稿后自动去重）
+  min_ratio: 0.42                  # 成稿 / 原文 字数比下限
+  min_ratio_short: 0.30            # 尾块（< short_chars）放宽后的下限
+  short_chars: 400
+  max_ratio: 1.25                  # 字数比上限
+  max_retries: 1                   # 单块硬校验失败后的重试次数
+  concurrency: 1                   # 分块并发；默认 1（实测 4 路长请求会被网关排队/超时）
+  timeout_s: 120                   # 单块请求超时（另有 +30 s 硬截止，防止网关 keep-alive 拖死）
+  analyze_timeout_s: 600           # 全讲通读请求超时
+  max_input_chars: 120000          # 全讲通读输入上限（约 128k 上下文内）
+  max_glossary: 60                 # 术语表条数上限
+  cache_enabled: true
+  cache_subdir: compose_cache      # 相对 paths.work_dir
+
 # ---------------------------------------------------------------- 无关人声
 unrelated_speech:
   mode: conservative               # conservative | off | aggressive

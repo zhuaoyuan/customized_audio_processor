@@ -378,6 +378,25 @@ def validate_config(data: Mapping[str, Any]) -> None:
         num(correct, "correct", "max_diff_ratio", lo=0.0, hi=1.0)
         num(correct, "correct", "max_retries", lo=0)
 
+    compose = data.get("compose") or {}
+    if not isinstance(compose, dict):
+        errors.append("compose 段必须是 mapping")
+    else:
+        num(compose, "compose", "chunk_chars", lo=300)
+        num(compose, "compose", "overlap_segments", lo=0, hi=5)
+        lo = num(compose, "compose", "min_ratio", lo=0.0, hi=1.0)
+        hi = num(compose, "compose", "max_ratio", lo=0.0, hi=2.0)
+        if lo is not None and hi is not None and lo >= hi:
+            errors.append("compose.min_ratio 必须小于 max_ratio")
+        num(compose, "compose", "min_ratio_short", lo=0.0, hi=1.0)
+        num(compose, "compose", "short_chars", lo=0)
+        num(compose, "compose", "max_retries", lo=0, hi=5)
+        num(compose, "compose", "concurrency", lo=1, hi=16)
+        num(compose, "compose", "timeout_s", lo=1)
+        num(compose, "compose", "analyze_timeout_s", lo=1)
+        num(compose, "compose", "max_input_chars", lo=1000)
+        num(compose, "compose", "max_glossary", lo=0)
+
     batch = section("batch")
     num(batch, "batch", "jobs", lo=1)
     num(batch, "batch", "disk_free_min_gb", lo=0.0)

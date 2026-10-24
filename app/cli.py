@@ -5,6 +5,7 @@ P0–P5：``config show|check``、``scan``、``status``、``decode``、``analyze
 ``transcribe``、``correct``、``export``。
 P6/P7 新增：``run`` / ``batch`` / ``retry``（全链路编排，见 ``app/pipeline/orchestrator.py``）、
 ``status --watch``、``serve``（本地 Web UI，见 ``app/server.py``）。
+P10 新增：``compose``（全文成稿：整讲课程档案 + 分块整理为书面稿；独立于 ``run`` 全链路）。
 
 约定
 ----
@@ -71,6 +72,7 @@ def build_parser() -> argparse.ArgumentParser:
             "  python -m app.cli transcribe --all\n"
             "  python -m app.cli correct --all\n"
             "  python -m app.cli export --all\n"
+            "  python -m app.cli compose <job id>   # 全文成稿（可选，独立于全链路）\n"
         ),
     )
     parser.add_argument("--version", action="version", version=f"audio_processer {__version__}")
@@ -208,6 +210,27 @@ def build_parser() -> argparse.ArgumentParser:
     p_export.add_argument("--force", action="store_true", help="已有文本也覆盖")
     p_export.add_argument("--json", action="store_true", help="以 JSON 输出")
     p_export.set_defaults(func=cmd_export)
+
+    # compose（P10：全文成稿；独立命令，不在 run 全链路里）
+    p_compose = subparsers.add_parser(
+        "compose",
+        help="全文成稿：通读整讲生成课程档案，再分块把 ASR 转写整理为书面讲稿",
+        parents=[global_parent],
+    )
+    p_compose.add_argument("target", nargs="?", default=None, help="job id 或输入文件路径")
+    p_compose.add_argument("--all", action="store_true", help="整理数据库里全部 job")
+    p_compose.add_argument("--limit", type=int, default=None, help="--all 时最多处理 N 个")
+    p_compose.add_argument("--force", action="store_true",
+                           help="已有 manuscript.json 也重做（档案/分块缓存仍复用；重做档案请删 compose_card.json）")
+    p_compose.add_argument("--no-cache", action="store_true", help="不读分块缓存")
+    p_compose.add_argument("--dry-run", action="store_true",
+                           help="只显示分块方案，不调用 API")
+    p_compose.add_argument("--chunk-chars", type=int, default=None,
+                           help="覆盖 compose.chunk_chars")
+    p_compose.add_argument("--concurrency", type=int, default=None,
+                           help="覆盖 compose.concurrency（1–16）")
+    p_compose.add_argument("--json", action="store_true", help="以 JSON 输出")
+    p_compose.set_defaults(func=cmd_compose)
 
     # run（P6-T2：单 job 全链路 decode→...→export）
     p_run = subparsers.add_parser(
@@ -1234,6 +1257,103 @@ def cmd_correct(args: argparse.Namespace, cfg: Config) -> int:
         print(f"\n纠错完成：成功 {ok_n} / {len(summaries)}"
               + (f"，失败 {failures}" if failures else ""))
     return EXIT_OK if failures == 0 else EXIT_RUNTIME
+
+
+# ---------------------------------------------------------------- 全文成稿（P10）
+def cmd_compose(args: argparse.Namespace, cfg: Config) -> int:
+    from .pipeline.compose import ComposeError, compose_job
+
+    store = make_storage(cfg)
+    store.init_db()
+    try:
+        targets = _resolve_stage_targets(args, store, "成稿")
+    except ConfigError as exc:
+        print(f"[错误] {exc}", file=sys.stderr)
+        store.close()
+        return EXIT_USAGE
+    store.close()
+    if not targets:
+        print("[警告] 没有待成稿的任务", file=sys.stderr)
+        return EXIT_OK
+
+    summaries: List[Dict[str, Any]] = []
+    failures = 0
+    for job_id, _source in targets:
+        progress = None
+        if not args.json:
+            def progress(done: int, total: int, result: Dict[str, Any],
+                         _job: str = job_id) -> None:
+                tag = "OK" if result.get("ok") else ("FB" if result.get("fallback") else "FAIL")
+                print(f"  {_pad(_job, 36)} chunk {done:>2}/{total:<2} "
+                      f"{result.get('start', '-')}-{result.get('end', '-')} "
+                      f"[{tag}] {float(result.get('elapsed_s') or 0):5.1f}s", flush=True)
+        try:
+            result = compose_job(
+                job_id, cfg,
+                force=args.force,
+                no_cache=args.no_cache,
+                dry_run=args.dry_run,
+                chunk_chars=args.chunk_chars,
+                concurrency=args.concurrency,
+                on_progress=progress,
+            )
+        except ComposeError as exc:
+            result = {"ok": False, "job_id": job_id, "error": str(exc)}
+        except KeyboardInterrupt:
+            raise
+        summary = _compose_summary(result)
+        summaries.append(summary)
+        if not result.get("ok"):
+            failures += 1
+        if not args.json:
+            print(_compose_row(job_id, summary))
+        if args.dry_run:
+            continue
+
+    if args.json:
+        _json_dump({"ok": failures == 0, "n": len(summaries), "failures": failures,
+                    "results": summaries})
+    else:
+        ok_n = len(summaries) - failures
+        print(f"\n成稿完成：成功 {ok_n} / {len(summaries)}"
+              + (f"，失败 {failures}" if failures else ""))
+    return EXIT_OK if failures == 0 else EXIT_RUNTIME
+
+
+def _compose_summary(result: Dict[str, Any]) -> Dict[str, Any]:
+    stats = result.get("stats") or {}
+    return {
+        "job_id": result.get("job_id"),
+        "ok": bool(result.get("ok")),
+        "skipped": bool(result.get("skipped")),
+        "dry_run": bool(result.get("dry_run")),
+        "error": result.get("error", ""),
+        "manuscript": result.get("manuscript"),
+        "n_chunks": stats.get("n_chunks", result.get("n_chunks")),
+        "n_paragraphs": stats.get("n_paragraphs"),
+        "chars": stats.get("manuscript_chars"),
+        "ratio": stats.get("char_ratio"),
+        "fallback": stats.get("n_fallback", 0),
+        "cost_cny": result.get("cost_cny", stats.get("cost_cny", 0.0)),
+        "elapsed_s": result.get("elapsed_s", stats.get("elapsed_s")),
+    }
+
+
+def _compose_row(job_id: str, summary: Dict[str, Any]) -> str:
+    if not summary["ok"]:
+        return (f"[FAIL] {_pad(job_id, 40)} {str(summary.get('error') or '')[:110]}")
+    if summary.get("dry_run"):
+        return f"[DRY ] {_pad(job_id, 40)} chunks={summary.get('n_chunks') or 0}"
+    tag = "SKIP" if summary.get("skipped") else "OK  "
+    return (
+        f"[{tag}] {_pad(job_id, 40)} chunks={summary.get('n_chunks') or 0:>2} "
+        f"paras={summary.get('n_paragraphs') or 0:>3} "
+        f"chars={summary.get('chars') or 0:>6} "
+        f"ratio={float(summary.get('ratio') or 0):.2f} "
+        f"fallback={summary.get('fallback') or 0} "
+        f"cost=¥{float(summary.get('cost_cny') or 0.0):.2f} "
+        f"{float(summary.get('elapsed_s') or 0.0):6.1f}s"
+    )
 
 
 def _export_summary(result: Dict[str, Any]) -> Dict[str, Any]:
