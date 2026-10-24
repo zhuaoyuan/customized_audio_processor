@@ -397,6 +397,19 @@ def validate_config(data: Mapping[str, Any]) -> None:
         num(compose, "compose", "max_input_chars", lo=1000)
         num(compose, "compose", "max_glossary", lo=0)
 
+    allowed_efforts = {"none", "low", "high", "max"}
+    for sec_name, sec in (("correct", correct), ("compose", compose)):
+        if not isinstance(sec, dict):
+            continue
+        for key in ("reasoning_effort", "analyze_reasoning_effort"):
+            if key not in sec:
+                continue
+            value = sec.get(key)
+            if value not in allowed_efforts:
+                errors.append(
+                    f"{sec_name}.{key}={value!r} 非法，可选：none/low/high/max"
+                )
+
     batch = section("batch")
     num(batch, "batch", "jobs", lo=1)
     num(batch, "batch", "disk_free_min_gb", lo=0.0)

@@ -199,6 +199,11 @@ batch 1,054.9 s（≈17.6 min），2 文件各 8 件产物齐全、report 含 as
   `diff_too_large` 保守回退原文（`segment_rejections`）。细节见
   [docs/工程日志.md](docs/工程日志.md) P9 节、[docs/运行评估.md](docs/运行评估.md) §6.4。
   无 key 时纠错自动降级，不影响其余产物。
+- **推理强度可配（P10.2）**：`deepseek-flash` 默认 thinking=on、effort=high；默认已改为
+  `correct.reasoning_effort=low`（金标召回与 high 相同，整讲实测成本/耗时约降 20%）、
+  `compose.reasoning_effort=high`、`compose.analyze_reasoning_effort=high`。可选
+  `none/low/high/max`；`temperature` 在思考模式下不生效。实测与依据见
+  [docs/推理强度调研与实测.md](docs/推理强度调研与实测.md)。
 - **纠错写回保守**：整块 diff 超过 12%、句数变化超 5% 才整块回退；单段超限**只回退该段**
   （同块其它段的修正保留，flag=`rejected_segment`）；极短段里的 1 字修正可能被逐段回退
   （宁少改不串行）；不支持人工在此 UI 里直接编辑 `corrections.json`。
@@ -213,7 +218,7 @@ batch 1,054.9 s（≈17.6 min），2 文件各 8 件产物齐全、report 含 as
 ## 测试
 
 ```powershell
-# 全量单测 476 项（455 基线 + P10 成稿 18 + 打包 2 + P10.1 回归 1）；必须全绿
+# 全量单测 479 项（455 基线 + P10 成稿 18 + 打包 2 + P10.1 回归 1 + P10.2 推理 3）；必须全绿
 work\venv\Scripts\python -m pytest tests/ -q
 
 # 慢测 4 passed（3 基线 + 1 P8 regress 真实 6 文件 reuse，约 7–8 分钟）
@@ -268,6 +273,7 @@ start_web.bat           双击启动 Web UI（UTF-8，127.0.0.1:7860）
 | [docs/使用说明.md](docs/使用说明.md) | 新用户 10 分钟跑通第一个文件（环境、快速路径、Web UI、常见问题） |
 | [docs/交付说明.md](docs/交付说明.md) | **可打包功能清单、三种典型用法、产物/成本、打包边界与验收清单** |
 | [docs/全文成稿_方案与实测.md](docs/全文成稿_方案与实测.md) | P10 全文成稿的方法、实测、成本与边界 |
+| [docs/推理强度调研与实测.md](docs/推理强度调研与实测.md) | P10.2 thinking/reasoning_effort 控制方式、小样本实测与推荐配置 |
 | [docs/调研报告_需求对齐版.md](docs/调研报告_需求对齐版.md) | 主报告：需求实测、批量架构、开发成本、验收标准 |
 | [docs/开发启动Prompt_P6P7.md](docs/开发启动Prompt_P6P7.md) | P6/P7 的启动 prompt（含 API 契约与已知坑） |
 | [docs/research/](docs/research/) | 多文件体检、PoC、ASR/降噪基准、说话人、云/本地选型 |

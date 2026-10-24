@@ -586,8 +586,9 @@ def extract_items(
 
 # ================================================================ usage / cost
 def _normalize_usage(usage: Any) -> Dict[str, int]:
-    """归一 usage：prompt/completion/cache_hit（兼容 DeepSeek 多种字段名）。"""
-    out = {"prompt_tokens": 0, "completion_tokens": 0, "cache_hit_tokens": 0}
+    """归一 usage：prompt/completion/cache_hit/reasoning（兼容 DeepSeek 多种字段名）。"""
+    out = {"prompt_tokens": 0, "completion_tokens": 0,
+           "cache_hit_tokens": 0, "reasoning_tokens": 0}
     if not isinstance(usage, dict):
         return out
 
@@ -609,7 +610,31 @@ def _normalize_usage(usage: Any) -> Dict[str, int]:
         if isinstance(details, dict) and details.get("cached_tokens") is not None:
             hit = _int(details.get("cached_tokens"))
     out["cache_hit_tokens"] = hit
+    # 幂等：_correct_chunk 返回的 usage 已经归一过一次，这里要保留 reasoning_tokens，
+    # 否则 correct_job 二次归一后会把 reasoning_tokens 抹成 0。
+    reasoning = usage.get("reasoning_tokens")
+    if reasoning is not None:
+        out["reasoning_tokens"] = _int(reasoning)
+    else:
+        details = usage.get("completion_tokens_details")
+        if isinstance(details, dict) and details.get("reasoning_tokens") is not None:
+            out["reasoning_tokens"] = _int(details.get("reasoning_tokens"))
     return out
+
+
+def reasoning_payload(effort: Optional[str]) -> Dict[str, Any]:
+    """把 ``reasoning_effort`` 配置映射成 API 请求字段（DeepSeek V4.1）。
+
+    - 空/``default``：不传，走服务端默认（deepseek-flash 默认 thinking=on、effort=high）；
+    - ``none``：显式关闭思考模式；
+    - ``low`` / ``high`` / ``max``：开启思考模式并指定强度。
+    """
+    value = str(effort or "").strip().lower()
+    if not value or value in ("default", "auto"):
+        return {}
+    if value == "none":
+        return {"thinking": {"type": "disabled"}}
+    return {"thinking": {"type": "enabled"}, "reasoning_effort": value}
 
 
 def compute_cost(usage: Dict[str, int], cfg: Any) -> float:
@@ -687,6 +712,7 @@ def chat_completion(
     timeout_s: Optional[float] = None,
     max_retries: Optional[int] = None,
     backoff_s: Optional[float] = None,
+    reasoning_effort: Optional[str] = None,
 ) -> Dict[str, Any]:
     """调用 OpenAI 兼容 chat/completions（标准库 urllib）。
 
@@ -712,6 +738,7 @@ def chat_completion(
         "temperature": 0.0,
         "stream": False,
     }
+    payload.update(reasoning_payload(reasoning_effort))
     last_error = ""
     response: Optional[Dict[str, Any]] = None
     for attempt in range(retries + 1):
@@ -938,7 +965,10 @@ def _correct_chunk(chunk: Chunk, cfg: Any, ctx: _ChunkContext) -> Dict[str, Any]
         hotwords=ctx.hotwords, topic=ctx.topic,
     )
     try:
-        response = chat_completion(cfg, messages)
+        response = chat_completion(
+            cfg, messages,
+            reasoning_effort=str(_get(cfg, "correct.reasoning_effort", "low") or ""),
+        )
     except CorrectError as exc:
         return {"ok": False, "error": str(exc), "chunk": chunk.index}
     return {
@@ -1100,6 +1130,7 @@ def _update_report(
             "prompt_tokens": int(usage.get("prompt_tokens", 0) or 0),
             "completion_tokens": int(usage.get("completion_tokens", 0) or 0),
             "cache_hit_tokens": int(usage.get("cache_hit_tokens", 0) or 0),
+            "reasoning_tokens": int(usage.get("reasoning_tokens", 0) or 0),
         },
     }
     timing = report.get("timing")
@@ -1147,7 +1178,8 @@ def correct_job(
         "rejected": 0,
         "rejected_segments": 0,
         "cost_cny": 0.0,
-        "usage": {"prompt_tokens": 0, "completion_tokens": 0, "cache_hit_tokens": 0},
+        "usage": {"prompt_tokens": 0, "completion_tokens": 0,
+                   "cache_hit_tokens": 0, "reasoning_tokens": 0},
         "elapsed_s": 0.0,
         "error": "",
         "corrections": None,
@@ -1285,7 +1317,8 @@ def correct_job(
             )
 
         # 7) 逐块：块级安全门 + 逐段护栏（P9：个别段被拒时保留同块其它段的修正）
-        usage_total = {"prompt_tokens": 0, "completion_tokens": 0, "cache_hit_tokens": 0}
+        usage_total = {"prompt_tokens": 0, "completion_tokens": 0,
+                       "cache_hit_tokens": 0, "reasoning_tokens": 0}
         items: List[Dict[str, Any]] = []
         rejected_chunks: List[Dict[str, Any]] = []
         segment_rejections: List[Dict[str, Any]] = []

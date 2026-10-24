@@ -184,6 +184,10 @@ correct:
   timeout_s: 120
   max_retries: 3
   concurrency: 8
+  # 推理强度（DeepSeek V4.1：none=关思考 | low | high | max；默认 high）
+  # 小样本实测：纠错用 low 与 high 的金标召回/术语召回相同，整讲实测成本/耗时约为 high 的 80–81%；
+  # high 的额外 reasoning 主要产生更多过度改写，max 会触发句数护栏并显著变慢。
+  reasoning_effort: low
   # deepseek-flash 空闲价（¥/百万 token，2026-10-21 官方价）；仅用于报告里的 cost_cny 估算
   price_input_cny_per_m: 1.0       # 输入（未命中缓存）
   price_output_cny_per_m: 4.0      # 输出
@@ -208,6 +212,11 @@ compose:
   concurrency: 1                   # 分块并发；默认 1（实测 4 路长请求会被网关排队/超时）
   timeout_s: 120                   # 单块请求超时（另有 +30 s 硬截止，防止网关 keep-alive 拖死）
   analyze_timeout_s: 600           # 全讲通读请求超时
+  # 成稿的推理强度：分块保持 high（小样本里 high 的术语准确率/内容覆盖最好；
+  # low 会把 physis 写成 vis、max 会把「四因说」错成「元素」）；
+  # 课程档案也用 high（只贵约 ¥0.03/讲，术语表会贯穿全篇，不值得为省这点冒险）。
+  reasoning_effort: high
+  analyze_reasoning_effort: high
   max_input_chars: 120000          # 全讲通读输入上限（约 128k 上下文内）
   max_glossary: 60                 # 术语表条数上限
   cache_enabled: true

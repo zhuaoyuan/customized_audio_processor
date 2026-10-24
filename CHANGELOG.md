@@ -47,6 +47,28 @@
 - **测试**：`tests/test_export.py` 新增 render_job「只回读一次 + tmp_dir=cache_dir」集成用例，
   `tests/test_correct.py` 补 3 处 usage 断言；全量 **476 passed**。
 
+### P10.2 推理强度（thinking / reasoning_effort）调研与优化（2026-10-24）
+
+背景：DeepSeek V4.1 的 `deepseek-flash` **默认 thinking=on、effort=high**；此前代码不传参，
+所以纠错/成稿的 completion 中 70–90% 是 reasoning token，成本和时延都偏高。
+
+- **调研**：官方支持 `thinking:{"type":"enabled|disabled"}` 与
+  `reasoning_effort:"none|low|high|max"`（默认 high）；思考模式下 `temperature` 不生效；
+  `usage.completion_tokens_details.reasoning_tokens` 可对账。详见 `docs/推理强度调研与实测.md`。
+- **实测**（1 讲、gold 4,200 字 + ASR 原文 2 块 + compose 2 块 + 课程档案）：
+  - `correct`：**low 与 high 的金标召回相同（91.94%）**、ASR 术语变体召回相同；
+    整讲 11 块实测 low 成本/耗时约为 high 的 81% / 80%（3 样本波动大，以整讲为准）；`off` 金标召回 8.06%（不可用）；
+    `max` 触发句数护栏、diff 逼近 12%（不适用）。
+  - `compose`：**high** 术语/内容准确度最好（low 把 `physis` 写成 `vis`，max 把「四因说」
+    错成「元素」且成本约 2 倍）；课程档案 high 比 low 只贵约 ¥0.03/讲，保留 high。
+- **改动**：`correct.py` 新增 `reasoning_payload()` / `chat_completion(reasoning_effort=)`，
+  `usage` 增加 `reasoning_tokens`；`compose.py` 分块与档案分别传 effort；配置新增
+  `correct.reasoning_effort=low`、`compose.reasoning_effort=high`、
+  `compose.analyze_reasoning_effort=high`（`app/config.py` 校验 none/low/high/max）。
+- **实测**：整讲 11 块 ¥0.6377→¥0.5159（−19.1%）、150.8→120.9 s（−19.8%）；A+B+C 总成本 ¥1.2438→¥1.1220（−9.8%）。
+- **测试**：新增 3 项（reasoning payload、reasoning token 归一、compose 两阶段 effort），
+  全量 **479 passed**。
+
 ### P9 纠错质量修复（2026-10-22）
 
 真实 DeepSeek API 在 P8 验收中被证明「连通/计费正常，但真实输出 7/7 块被拒、0 edits」。

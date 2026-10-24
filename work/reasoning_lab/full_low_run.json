@@ -1,0 +1,23 @@
+{
+ "job_id": "1c34b7df_复旦哲学系丁耘_亚里士多德_物理学_01",
+ "setting": "correct.reasoning_effort=low",
+ "chunks": 11,
+ "edits": 349,
+ "rejected_chunks": 0,
+ "rejected_segments": 166,
+ "cost_cny": 0.515878,
+ "elapsed_s": 120.868,
+ "usage": {
+  "prompt_tokens": 23663,
+  "completion_tokens": 123775,
+  "cache_hit_tokens": 2944,
+  "reasoning_tokens": 0
+ },
+ "note": "usage.reasoning_tokens 为修复 _normalize_usage 二次归一抹零前的旧值；cost/耗时/edits 有效",
+ "baseline_high": {
+  "cost_cny": 0.637728,
+  "elapsed_s": 150.794,
+  "edits": 354,
+  "rejected_segments": 155
+ }
+}

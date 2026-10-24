@@ -420,6 +420,8 @@ def analyze_lecture(
         timeout_s=float(_get(cfg, "compose.analyze_timeout_s", 600)),
         base_url=str(_get(cfg, "compose.base_url", "") or "") or None,
         model=str(_get(cfg, "compose.model", "") or "") or None,
+        reasoning_effort=str(_get(cfg, "compose.analyze_reasoning_effort",
+                                  _get(cfg, "compose.reasoning_effort", "high")) or ""),
     )
     card = sanitize_card(parse_card_json(res["text"]), segments, cfg)
     usage = res["usage"]
@@ -720,7 +722,8 @@ def compose_chunk(
     base_url = str(_get(cfg, "compose.base_url", "") or "") or None
     model = str(_get(cfg, "compose.model", "") or "") or None
     allowed_drop = _allowed_drop_digits(card)
-    usage_total = {"prompt_tokens": 0, "completion_tokens": 0, "cache_hit_tokens": 0}
+    usage_total = {"prompt_tokens": 0, "completion_tokens": 0,
+                   "cache_hit_tokens": 0, "reasoning_tokens": 0}
     text_out = ""
     validation: Dict[str, Any] = {"ok": False, "reasons": ["no_attempt"], "warnings": []}
     attempts = 0
@@ -732,6 +735,7 @@ def compose_chunk(
             res = _chat_with_deadline(
                 cfg, messages,
                 timeout_s=timeout, base_url=base_url, model=model,
+                reasoning_effort=str(_get(cfg, "compose.reasoning_effort", "high") or ""),
             )
         except CorrectError as exc:
             validation = {"ok": False, "reasons": [f"api_error:{exc}"], "warnings": []}

@@ -26,6 +26,7 @@ from app.models import FLAG_REJECTED_CHUNK, FLAG_REJECTED_SEGMENT
 from app.pipeline.correct import (
     Chunk,
     CorrectError,
+    _normalize_usage,
     _num_runs,
     _salvage_segments,
     _seg_guard,
@@ -493,6 +494,35 @@ def test_system_prompt_fixed(cfg):
 
 
 # ================================================================ HTTP 客户端（mock）
+def test_chat_completion_reasoning_payload(make_cfg):
+    """reasoning_effort 落进请求体：low/high/max 开思考，none 关思考。"""
+    with MockServer([ok("好")]) as server:
+        cfg = make_cfg(server)
+        chat_completion(cfg, [{"role": "user", "content": "hi"}], reasoning_effort="max")
+        body = server.requests[0]["body"]
+        assert body["thinking"] == {"type": "enabled"}
+        assert body["reasoning_effort"] == "max"
+    with MockServer([ok("好")]) as server:
+        cfg = make_cfg(server)
+        chat_completion(cfg, [{"role": "user", "content": "hi"}], reasoning_effort="none")
+        body = server.requests[0]["body"]
+        assert body["thinking"] == {"type": "disabled"}
+        assert "reasoning_effort" not in body
+
+
+def test_normalize_usage_reads_reasoning_tokens():
+    usage = _normalize_usage({
+        "prompt_tokens": 100, "completion_tokens": 50,
+        "prompt_cache_hit_tokens": 10,
+        "completion_tokens_details": {"reasoning_tokens": 40},
+    })
+    assert usage == {"prompt_tokens": 100, "completion_tokens": 50,
+                     "cache_hit_tokens": 10, "reasoning_tokens": 40}
+    # 幂等：correct_job 会对已归一化的 usage 再归一一次，不能把 reasoning 抹成 0
+    again = _normalize_usage(usage)
+    assert again["reasoning_tokens"] == 40
+
+
 def test_chat_completion_single_roundtrip(make_cfg):
     with MockServer([ok("修正后的正文。")]) as server:
         cfg = make_cfg(server)
@@ -582,7 +612,8 @@ def test_correct_job_no_key_writes_empty_and_keeps_transcript(cfg, monkeypatch):
     assert updated_report["correct"]["enabled"] is False
     assert updated_report["correct"]["chunks"] == 0
     assert updated_report["correct"]["usage"] == {
-        "prompt_tokens": 0, "completion_tokens": 0, "cache_hit_tokens": 0,
+        "prompt_tokens": 0, "completion_tokens": 0,
+        "cache_hit_tokens": 0, "reasoning_tokens": 0,
     }
     assert "correct_s" in updated_report["timing"]
     assert events and events[-1][0] == "correct" and events[-1][1] == "done"
@@ -641,7 +672,8 @@ def test_correct_job_multi_chunk_concurrency(make_cfg, cfg):
     # usage 必须随 report 落盘，才能与 cost/账单对账（P10 后补）
     updated_report = json.loads((job_out / "report.json").read_text(encoding="utf-8"))
     assert updated_report["correct"]["usage"] == {
-        "prompt_tokens": 8000, "completion_tokens": 6000, "cache_hit_tokens": 0,
+        "prompt_tokens": 8000, "completion_tokens": 6000,
+        "cache_hit_tokens": 0, "reasoning_tokens": 0,
     }
 
     transcript = json.loads((job_out / "transcript.json").read_text(encoding="utf-8"))
@@ -684,6 +716,9 @@ def test_correct_job_single_chunk_roundtrip(make_cfg, cfg):
         assert "24_x.m4a" in user_content
         assert "【热词表】" in user_content
         assert "【待改文本】" in user_content
+        assert body.get("thinking") == {"type": "enabled"}
+        assert body.get("reasoning_effort") == "low"  # 默认纠错强度 */
+
         assert "亚里士多德" in user_content  # 默认热词表命中
         assert original_1.replace("，", "").replace("。", "")[:6] in user_content
 
@@ -721,7 +756,8 @@ def test_correct_job_single_chunk_roundtrip(make_cfg, cfg):
     assert updated_report["correct"]["cost_cny"] == pytest.approx(0.01502, rel=1e-9)
     # usage 与 cost 同源落盘：prompt 4000 / completion 3000 / cache 1000
     assert updated_report["correct"]["usage"] == {
-        "prompt_tokens": 4000, "completion_tokens": 3000, "cache_hit_tokens": 1000,
+        "prompt_tokens": 4000, "completion_tokens": 3000,
+        "cache_hit_tokens": 1000, "reasoning_tokens": 0,
     }
     assert updated_report["timing"]["decode_s"] == 1.0
     assert updated_report["timing"]["correct_s"] >= 0.0

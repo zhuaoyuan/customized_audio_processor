@@ -261,6 +261,21 @@ def test_compose_job_writes_manuscript_and_skips_on_second_run(cfg, monkeypatch)
     assert len(calls) == n_calls
 
 
+def test_compose_job_passes_reasoning_effort(cfg, monkeypatch):
+    """分块用 compose.reasoning_effort，课程档案用 analyze_reasoning_effort。"""
+    job_id = "job_eff"
+    _make_transcript(cfg, job_id)
+    calls = _install_fake(monkeypatch, _card(_segments()))
+    local = cfg.replace({"compose.reasoning_effort": "max",
+                         "compose.analyze_reasoning_effort": "low"})
+    result = compose_job(job_id, local, chunk_chars=600, concurrency=1)
+    assert result["ok"]
+    card_calls = [c for c in calls if "整讲逐句转写" in c["user"]]
+    chunk_calls = [c for c in calls if "【待整理转写】" in c["user"]]
+    assert card_calls and all(c.get("reasoning_effort") == "low" for c in card_calls)
+    assert chunk_calls and all(c.get("reasoning_effort") == "max" for c in chunk_calls)
+
+
 def test_compose_job_uses_chunk_cache(cfg, monkeypatch):
     job_id = "job_cache"
     _make_transcript(cfg, job_id)
@@ -311,6 +326,10 @@ def test_config_rejects_bad_compose_values():
         load_config(overrides={"compose.min_ratio": 0.9, "compose.max_ratio": 0.5})
     with pytest.raises(ConfigError):
         load_config(overrides={"compose.concurrency": 99})
+    with pytest.raises(ConfigError):
+        load_config(overrides={"compose.reasoning_effort": "ultra"})
+    with pytest.raises(ConfigError):
+        load_config(overrides={"compose.analyze_reasoning_effort": "medium"})
 
 
 def test_cli_registers_compose_subcommand():
