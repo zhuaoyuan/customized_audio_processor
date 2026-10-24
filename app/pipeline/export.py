@@ -363,6 +363,8 @@ def build_report(
     """拼 ``report.json``（契约 §4.1 的字段名；额外段：denoise/loudness/output）。"""
     levels_in = analyze.levels or {}
     trim_in = analyze.trim or {}
+    # P3-T4 之后补：回读（measure_m4a）自身耗时的分项，便于诊断 60s 级回读
+    meas_timings = m4a_meas.get("timings") if isinstance(m4a_meas.get("timings"), dict) else {}
     report: Dict[str, Any] = {
         "id": job_id,
         "source": str(source),
@@ -417,6 +419,12 @@ def build_report(
             "size_bytes": m4a_info.get("size_bytes"),
             "duration_s": m4a_info.get("duration_s"),
             "target_bit_rate": m4a_info.get("target_bit_rate"),
+        },
+        "measure": {
+            "decoded_duration_s": m4a_meas.get("decoded_duration_s"),
+            "ebur128_s": meas_timings.get("ebur128_s"),
+            "peak_s": meas_timings.get("peak_s"),
+            "asl_s": meas_timings.get("asl_s"),
         },
         "timing": {k: (round(float(v), 2) if isinstance(v, (int, float)) else v)
                    for k, v in timings.items()},
@@ -496,6 +504,8 @@ def render_job(
     cache_root = Path(cache_dir) if cache_dir else cfg.path("cache_dir")
     job_out = out_root / job_id
     caches = _cache_paths(cache_root, job_id)
+    # 回读临时 wav 的 per-job 目录（放 cache_dir，避免外置输出盘慢 + 多 job 并发时重名）
+    measure_tmp = cache_root / f"{job_id}.measure"
     tmp_m4a = job_out / _TMP_ENCODE
     timings: Dict[str, float] = {}
     stage = "decode"
@@ -606,6 +616,10 @@ def render_job(
         # 6) 编码 + 真峰值/ASL 闭环（AAC 码流过冲 → 下调 ceiling 重渲染）
         stage = "export"
         job_out.mkdir(parents=True, exist_ok=True)
+        # 回读的 dec44/dec16 临时 wav 约 1.2 GB，写到 cache_dir 的 per-job 子目录
+        # （默认 C: 本地盘）而不是输出盘；外置/慢盘（实测 D: USB SSD 写 936 MB
+        # 需 ~27 s）会把它拖成 60 s 级。per-job 子目录避免多 job 并发时临时文件重名。
+        measure_tmp.mkdir(parents=True, exist_ok=True)
         m4a_path = job_out / PRODUCT_AUDIO
         target_tp = float(cfg.get("loudness.limiter.target_tp_dbtp", -1.0) if cfg else -1.0)
         max_iters = int(cfg.get("loudness.limiter.max_iterations", 3) if cfg else 3)
@@ -620,7 +634,7 @@ def render_job(
             encode_m4a(caches["norm44"], tmp_m4a, cfg)
             encode_s += time.perf_counter() - t0
             t0 = time.perf_counter()
-            m4a_meas = measure_m4a(tmp_m4a, speech_intervals, cfg, tmp_dir=job_out)
+            m4a_meas = measure_m4a(tmp_m4a, speech_intervals, cfg, tmp_dir=measure_tmp)
             measure_s += time.perf_counter() - t0
             m4a_info = probe_audio(tmp_m4a)
             tp = m4a_meas.get("tp_dbtp")
@@ -661,7 +675,12 @@ def render_job(
         tmp_m4a.replace(m4a_path)
         m4a_info = probe_audio(m4a_path)
         m4a_info["target_bit_rate"] = target_bitrate
-        m4a_meas = measure_m4a(m4a_path, speech_intervals, cfg, tmp_dir=job_out)
+        # 循环内最后一次 measure_m4a 测的就是最终字节（replace 只改路径），不再对
+        # clean.m4a 重复回读一遍——旧实现这里多花一次 ~20–68 s 且完全不计时。
+        if not m4a_meas:  # 兜底：loudness.limiter.max_iterations 配成 0 时
+            t0 = time.perf_counter()
+            m4a_meas = measure_m4a(m4a_path, speech_intervals, cfg, tmp_dir=measure_tmp)
+            measure_s += time.perf_counter() - t0
         timings["encode_s"] = encode_s
         timings["measure_s"] = measure_s
 
@@ -680,6 +699,11 @@ def render_job(
         write_json(job_out / PRODUCT_REPORT, report)
         timings["write_s"] = time.perf_counter() - t0
         timings["total_s"] = time.perf_counter() - started
+        # write_s/total_s 只能在首写之后得到；回填后重写一次（~ms），让 report 的
+        # timing 与返回的 timings 一致（旧实现 report 里没有 write_s）。
+        report["timing"] = {k: (round(float(v), 2) if isinstance(v, (int, float)) else v)
+                            for k, v in timings.items()}
+        write_json(job_out / PRODUCT_REPORT, report)
 
         result.update({
             "ok": True, "stage": "export", "report": report,
@@ -708,6 +732,7 @@ def render_job(
             tmp_m4a.unlink(missing_ok=True)
         except OSError:  # pragma: no cover
             pass
+        shutil.rmtree(measure_tmp, ignore_errors=True)
         if not keep_intermediates:
             for key in ("denoised", "clean44", "norm44"):
                 try:

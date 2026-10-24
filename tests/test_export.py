@@ -123,7 +123,8 @@ def test_build_report_contract_and_json_safe():
         m4a_meas={"lufs": -20.5, "lra": 8.0, "tp_dbtp": -2.0, "asl_out_dbfs": -20.0,
                   "max_abs": 0.79, "n_over_threshold": 0,
                   "window5m_spread_out_db": 0.9,
-                  "decoded_duration_s": 9.0, "timings": {}},
+                  "decoded_duration_s": 9.0,
+                  "timings": {"ebur128_s": 1.2, "peak_s": 0.5, "asl_s": 0.4}},
         denoise_info={"mode": "afftdn", "filter": "highpass=f=80,afftdn=nr=12:nf=-30:tn=1",
                       "nr": 12.0, "snr_db": 25.0, "elapsed_s": 3.0},
         timings={"decode_s": 1.0, "denoise_s": 3.0, "trim_s": 1.0, "render_s": 12.0,
@@ -142,6 +143,10 @@ def test_build_report_contract_and_json_safe():
     assert report["trim"]["speech_preserved_ratio"] == pytest.approx(1.0)
     assert report["output"]["codec"] == "aac"
     assert report["loudness"]["gain"]["max_rate_db_s"] == 0.8
+    # 回读耗时子项（P3-T4 补）：不再丢掉 measure_m4a 的 ebur128/peak/asl 分项
+    assert report["measure"] == {
+        "decoded_duration_s": 9.0, "ebur128_s": 1.2, "peak_s": 0.5, "asl_s": 0.4,
+    }
     # report 必须能无损 JSON 往返（无 NaN/Inf）
     text = json.dumps(report, ensure_ascii=False, allow_nan=False)
     assert json.loads(text)["id"] == "t"
@@ -224,3 +229,83 @@ def test_render_job_missing_source_returns_failure(tmp_path: Path, cfg):
     assert result["ok"] is False
     assert result["stage"] in ("decode", "analyze", "denoise", "trim", "loudness", "export")
     assert result["error"]
+
+
+def test_render_job_measures_readback_once_in_cache_dir(tmp_path: Path, cfg, monkeypatch):
+    """回归：最终 clean.m4a 不再二次回读；回读临时 wav 落 cache_dir；分项计时进 report。
+
+    旧实现 export.py 在 ``tmp_m4a.replace()`` 后又对 clean.m4a 跑一次 ``measure_m4a``，
+    且这次不计时（本机 D: 外置盘上多花 ~68 s）。这里用假阶段锁住「只回读一次」。
+    """
+    import app.pipeline.export as export_mod
+
+    job_id = "deadbeef_once"
+    cache_dir = tmp_path / "cache"
+    out_dir = tmp_path / "out"
+    source = tmp_path / "src.m4a"
+    source.write_bytes(b"fake")
+
+    decoded = DecodeResult(ok=True, wav16k=str(tmp_path / "a16.wav"),
+                           wav44k=str(tmp_path / "a44.wav"), duration_s=9.0,
+                           sample_rate=16000, bit_rate=59053)
+    analyze = AnalyzeResult(
+        ok=True, duration_s=9.0, sample_rate=16000,
+        vad={"engine": "silero-v6", "speech_ratio": 0.5, "n_segments": 1},
+        levels={"asl_in_dbfs": -15.0, "snr_db": 20.0},
+        trim={"head_s": 0.0, "tail_s": 9.0, "flags": []},
+        segments=[[0.0, 9.0]],
+    )
+    plan = TrimPlan(kept=[KeptSpan(0.0, 9.0, 0.0, 9.0)], removed=[],
+                    clean_duration_s=9.0, orig_duration_s=9.0,
+                    head_s=0.0, tail_s=9.0, internal_cut_s=0.0)
+    gain = GainInfo(type="static+slow_adaptive", gain_db=-5.0, min_db=-8.0, max_db=-2.0,
+                    max_rate_db_s=0.8, limiter_triggers=1)
+    loud = SimpleNamespace(
+        asl_in_dbfs=-15.0, asl_out_dbfs=-20.0, asl_dev_db=0.0, gain_db=-5.0,
+        gain=gain, v2={"clamp_db": 3.0},
+        limiter={"ceiling_dbtp": -2.75, "iterations": 1},
+        iterations=1, tp_wav_dbtp=-2.7, lufs_out=-20.5,
+        timings={"total_s": 5.0},
+    )
+
+    calls = []
+
+    def fake_measure(m4a, intervals, cfg_, tmp_dir=None):
+        calls.append((Path(m4a), Path(tmp_dir) if tmp_dir is not None else None))
+        return {"lufs": -20.5, "lra": 8.0, "tp_dbtp": -2.0, "asl_out_dbfs": -20.0,
+                "max_abs": 0.79, "n_over_threshold": 0, "window5m_spread_out_db": 0.9,
+                "decoded_duration_s": 9.0,
+                "timings": {"ebur128_s": 0.1, "peak_s": 0.2, "asl_s": 0.3}}
+
+    monkeypatch.setattr(export_mod, "run_decode", lambda *a, **k: decoded)
+    monkeypatch.setattr(export_mod, "_load_analyze", lambda *a, **k: analyze)
+    monkeypatch.setattr(export_mod, "denoise_44k", lambda *a, **k: tmp_path / "den.wav")
+    monkeypatch.setattr(export_mod, "build_filter_chain", lambda *a, **k: ("highpass=f=80", None))
+    monkeypatch.setattr(export_mod, "resolve_nr", lambda *a, **k: 12.0)
+    monkeypatch.setattr(export_mod, "plan_trim", lambda *a, **k: plan)
+    monkeypatch.setattr(export_mod, "render_clean", lambda *a, **k: None)
+    monkeypatch.setattr(export_mod, "chain_clean_segments", lambda *a, **k: [(0.0, 9.0)])
+    monkeypatch.setattr(export_mod.loud_mod, "render", lambda *a, **k: loud)
+    monkeypatch.setattr(export_mod, "measure_m4a", fake_measure)
+    monkeypatch.setattr(export_mod, "probe_audio", lambda *a, **k: {
+        "codec_name": "aac", "sample_rate": 44100, "channels": 1,
+        "format_bit_rate": 99000, "size_bytes": 123, "duration_s": 9.0})
+
+    def fake_encode(wav, m4a, cfg_):
+        Path(m4a).write_bytes(b"fake-m4a")
+        return {"elapsed_s": 0.1}
+
+    monkeypatch.setattr(export_mod, "encode_m4a", fake_encode)
+
+    result = export_mod.render_job(job_id, source, cfg, out_dir=out_dir, cache_dir=cache_dir)
+
+    assert result["ok"] is True, result.get("error")
+    assert len(calls) == 1  # 旧实现是 2 次（循环内 + 替换后的最终回读）
+    assert calls[0][1] == cache_dir / f"{job_id}.measure"  # 临时 wav 不落输出盘
+    assert not calls[0][1].exists()  # per-job 临时目录收尾清理
+    assert (out_dir / job_id / "clean.m4a").is_file()
+    report = result["report"]
+    assert report["measure"] == {"decoded_duration_s": 9.0, "ebur128_s": 0.1,
+                                 "peak_s": 0.2, "asl_s": 0.3}
+    assert "write_s" in report["timing"]
+    assert "write_s" in result["timings"]

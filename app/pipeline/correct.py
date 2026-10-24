@@ -1075,13 +1075,19 @@ def _update_report(
     cost_cny: float,
     elapsed_s: float,
     rejected_segments: int = 0,
+    usage: Optional[Dict[str, int]] = None,
 ) -> Dict[str, Any]:
-    """report.json 读-改-写：只增/换 ``correct`` 与 ``timing.correct_s``，保留既有字段。"""
+    """report.json 读-改-写：只增/换 ``correct`` 与 ``timing.correct_s``，保留既有字段。
+
+    ``usage`` 是本次纠错的 token 用量（prompt/completion/cache_hit），与 ``cost_cny``
+    同源落盘，便于事后按 token 对账（此前只写 cost，无法核对）。无 key/空文本时为 0。
+    """
     path = job_out / PRODUCT_REPORT
     report = _read_json(path)
     if not isinstance(report, dict):
         report = {}
     report.setdefault("id", job_id)
+    usage = usage or {}
     report["correct"] = {
         "enabled": bool(enabled),
         "chunks": int(chunks),
@@ -1090,6 +1096,11 @@ def _update_report(
         "rejected_segments": int(rejected_segments),
         "cost_cny": round(float(cost_cny), 6),
         "elapsed_s": round(float(elapsed_s), 3),
+        "usage": {
+            "prompt_tokens": int(usage.get("prompt_tokens", 0) or 0),
+            "completion_tokens": int(usage.get("completion_tokens", 0) or 0),
+            "cache_hit_tokens": int(usage.get("cache_hit_tokens", 0) or 0),
+        },
     }
     timing = report.get("timing")
     if not isinstance(timing, dict):
@@ -1136,6 +1147,7 @@ def correct_job(
         "rejected": 0,
         "rejected_segments": 0,
         "cost_cny": 0.0,
+        "usage": {"prompt_tokens": 0, "completion_tokens": 0, "cache_hit_tokens": 0},
         "elapsed_s": 0.0,
         "error": "",
         "corrections": None,
@@ -1164,6 +1176,7 @@ def correct_job(
             "rejected": result.get("rejected"),
             "rejected_segments": result.get("rejected_segments"),
             "cost_cny": result.get("cost_cny"),
+            "usage": dict(result.get("usage") or {}),
             "elapsed_s": result["elapsed_s"],
         })
         return result
@@ -1359,7 +1372,7 @@ def correct_job(
         report = _update_report(
             job_out, job_id, enabled=True, chunks=len(chunks), edits=len(items),
             rejected=len(rejected_chunks), cost_cny=cost_cny, elapsed_s=elapsed,
-            rejected_segments=len(segment_rejections),
+            rejected_segments=len(segment_rejections), usage=usage_total,
         )
         log.info(
             "纠错完成：%s chunks=%d edits=%d rejected=%d rejected_segments=%d 改段=%d "

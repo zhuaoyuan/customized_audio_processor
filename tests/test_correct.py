@@ -581,6 +581,9 @@ def test_correct_job_no_key_writes_empty_and_keeps_transcript(cfg, monkeypatch):
     assert updated_report["timing"]["decode_s"] == 2.2
     assert updated_report["correct"]["enabled"] is False
     assert updated_report["correct"]["chunks"] == 0
+    assert updated_report["correct"]["usage"] == {
+        "prompt_tokens": 0, "completion_tokens": 0, "cache_hit_tokens": 0,
+    }
     assert "correct_s" in updated_report["timing"]
     assert events and events[-1][0] == "correct" and events[-1][1] == "done"
 
@@ -633,7 +636,13 @@ def test_correct_job_multi_chunk_concurrency(make_cfg, cfg):
     assert result["rejected"] == 0
     assert result["edits"] == 40  # 每段 1 处 做→坐
     assert result["usage"]["prompt_tokens"] == 8000  # 2 块 × 4000
+    assert result["usage"]["completion_tokens"] == 6000  # 2 块 × 3000
     assert result["cost_cny"] == pytest.approx(0.032, rel=1e-6)
+    # usage 必须随 report 落盘，才能与 cost/账单对账（P10 后补）
+    updated_report = json.loads((job_out / "report.json").read_text(encoding="utf-8"))
+    assert updated_report["correct"]["usage"] == {
+        "prompt_tokens": 8000, "completion_tokens": 6000, "cache_hit_tokens": 0,
+    }
 
     transcript = json.loads((job_out / "transcript.json").read_text(encoding="utf-8"))
     assert [item["text"] for item in transcript] == [t.replace("做", "坐") for t in before_texts]
@@ -710,6 +719,10 @@ def test_correct_job_single_chunk_roundtrip(make_cfg, cfg):
     assert updated_report["correct"]["edits"] == corrections["total"]
     assert updated_report["correct"]["rejected"] == 0
     assert updated_report["correct"]["cost_cny"] == pytest.approx(0.01502, rel=1e-9)
+    # usage 与 cost 同源落盘：prompt 4000 / completion 3000 / cache 1000
+    assert updated_report["correct"]["usage"] == {
+        "prompt_tokens": 4000, "completion_tokens": 3000, "cache_hit_tokens": 1000,
+    }
     assert updated_report["timing"]["decode_s"] == 1.0
     assert updated_report["timing"]["correct_s"] >= 0.0
     assert events and events[-1][1] == "done"
