@@ -1,0 +1,72 @@
+{
+  "ok": true,
+  "enabled": true,
+  "skipped": false,
+  "chunks": 7,
+  "edits": 0,
+  "rejected": 7,
+  "cost_cny": 0.433873,
+  "elapsed_s": 101.216,
+  "wall_s": 101.217,
+  "plan_chunks": 7,
+  "chunk_chars": [
+    2498,
+    2480,
+    2490,
+    2490,
+    2481,
+    2493,
+    2445
+  ],
+  "n_segments": 1175,
+  "changed_segments": 0,
+  "flagged_segments": 1175,
+  "rejected_chunks": [
+    {
+      "chunk": 1,
+      "diff_ratio": 0.029223,
+      "reason": "unsafe_writeback"
+    },
+    {
+      "chunk": 2,
+      "diff_ratio": 0.042339,
+      "reason": "unsafe_writeback"
+    },
+    {
+      "chunk": 3,
+      "diff_ratio": 0.023695,
+      "reason": "unsafe_writeback"
+    },
+    {
+      "chunk": 4,
+      "diff_ratio": 0.039759,
+      "reason": "unsafe_writeback"
+    },
+    {
+      "chunk": 5,
+      "diff_ratio": 0.032245,
+      "reason": "unsafe_writeback"
+    },
+    {
+      "chunk": 6,
+      "diff_ratio": 0.026875,
+      "reason": "unsafe_writeback"
+    },
+    {
+      "chunk": 7,
+      "diff_ratio": 0.023313,
+      "reason": "unsafe_writeback"
+    }
+  ],
+  "items_total": 0,
+  "report_correct": {
+    "enabled": true,
+    "chunks": 7,
+    "edits": 0,
+    "rejected": 7,
+    "cost_cny": 0.433873,
+    "elapsed_s": 101.198
+  },
+  "items_head": [],
+  "error": ""
+}

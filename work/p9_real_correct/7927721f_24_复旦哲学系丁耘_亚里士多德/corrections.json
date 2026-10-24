@@ -1,0 +1,1946 @@
+{
+  "total": 202,
+  "items": [
+    {
+      "orig": "罐",
+      "fixed": "灌",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "原助",
+      "fixed": "著",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "提",
+      "fixed": "形",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "情",
+      "fixed": "形",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "喜恶",
+      "fixed": "形而",
+      "reason": "专名/术语（热词：形而上学）",
+      "chunk": 1
+    },
+    {
+      "orig": "晴",
+      "fixed": "形",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "不琢",
+      "fixed": "目中",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "行",
+      "fixed": "形",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "刑二",
+      "fixed": "形而",
+      "reason": "专名/术语（热词：形而上学）",
+      "chunk": 1
+    },
+    {
+      "orig": "总",
+      "fixed": "从",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "天",
+      "fixed": "篇",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "斯特",
+      "fixed": "士多德",
+      "reason": "专名/术语（热词：亚里士多德）",
+      "chunk": 1
+    },
+    {
+      "orig": "斯",
+      "fixed": "士多",
+      "reason": "专名/术语（热词：亚里士多德）",
+      "chunk": 1
+    },
+    {
+      "orig": "手表",
+      "fixed": "智慧",
+      "reason": "专名/术语（热词：智慧）",
+      "chunk": 1
+    },
+    {
+      "orig": "证",
+      "fixed": "论",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "格",
+      "fixed": "各",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "克",
+      "fixed": "可",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "格",
+      "fixed": "各",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "克",
+      "fixed": "可",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "具",
+      "fixed": "句",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "商",
+      "fixed": "而",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "所",
+      "fixed": "士多",
+      "reason": "专名/术语（热词：亚里士多德）",
+      "chunk": 1
+    },
+    {
+      "orig": "所",
+      "fixed": "士多",
+      "reason": "专名/术语（热词：亚里士多德）",
+      "chunk": 1
+    },
+    {
+      "orig": "些",
+      "fixed": "学",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "牙杆",
+      "fixed": "耶格尔",
+      "reason": "专名/术语（热词：耶格尔）",
+      "chunk": 1
+    },
+    {
+      "orig": "罗",
+      "fixed": "多",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "行",
+      "fixed": "形",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "片",
+      "fixed": "篇",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "式",
+      "fixed": "而",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "重",
+      "fixed": "成",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "",
+      "fixed": "德",
+      "reason": "补字（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "片",
+      "fixed": "篇",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "刚",
+      "fixed": "康",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "件",
+      "fixed": "卷",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "平",
+      "fixed": "形",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "守同",
+      "fixed": "寿彭",
+      "reason": "专名/术语（热词：吴寿彭）",
+      "chunk": 1
+    },
+    {
+      "orig": "志鹏",
+      "fixed": "寿彭",
+      "reason": "专名/术语（热词：吴寿彭）",
+      "chunk": 1
+    },
+    {
+      "orig": "傲",
+      "fixed": "奥",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "傲",
+      "fixed": "奥",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "释放地",
+      "fixed": "译",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 2
+    },
+    {
+      "orig": "建",
+      "fixed": "真",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 2
+    },
+    {
+      "orig": "张",
+      "fixed": "章",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 2
+    },
+    {
+      "orig": "罗罗文",
+      "fixed": "洛布本",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 2
+    },
+    {
+      "orig": "争",
+      "fixed": "真",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 2
+    },
+    {
+      "orig": "北答",
+      "fixed": "贝塔",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 2
+    },
+    {
+      "orig": "",
+      "fixed": "尔",
+      "reason": "补字（候选）",
+      "chunk": 2
+    },
+    {
+      "orig": "行",
+      "fixed": "性",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 2
+    },
+    {
+      "orig": "行式",
+      "fixed": "形而",
+      "reason": "专名/术语（热词：形而上学）",
+      "chunk": 2
+    },
+    {
+      "orig": "等一下",
+      "fixed": "德尔塔",
+      "reason": "专名/术语（热词：德尔塔卷）",
+      "chunk": 2
+    },
+    {
+      "orig": "旅行",
+      "fixed": "理念",
+      "reason": "专名/术语（热词：理念）",
+      "chunk": 2
+    },
+    {
+      "orig": "资",
+      "fixed": "质",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 2
+    },
+    {
+      "orig": "翻",
+      "fixed": "译",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 2
+    },
+    {
+      "orig": "刑",
+      "fixed": "形",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 2
+    },
+    {
+      "orig": "迪",
+      "fixed": "蒂",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 2
+    },
+    {
+      "orig": "片",
+      "fixed": "篇",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 2
+    },
+    {
+      "orig": "走",
+      "fixed": "这",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 2
+    },
+    {
+      "orig": "物",
+      "fixed": "",
+      "reason": "删除多余字（候选）",
+      "chunk": 2
+    },
+    {
+      "orig": "",
+      "fixed": "料",
+      "reason": "补字（候选）",
+      "chunk": 2
+    },
+    {
+      "orig": "物",
+      "fixed": "",
+      "reason": "删除多余字（候选）",
+      "chunk": 2
+    },
+    {
+      "orig": "",
+      "fixed": "料",
+      "reason": "补字（候选）",
+      "chunk": 2
+    },
+    {
+      "orig": "物",
+      "fixed": "",
+      "reason": "删除多余字（候选）",
+      "chunk": 2
+    },
+    {
+      "orig": "",
+      "fixed": "料",
+      "reason": "补字（候选）",
+      "chunk": 2
+    },
+    {
+      "orig": "意",
+      "fixed": "义",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 2
+    },
+    {
+      "orig": "新",
+      "fixed": "训",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "行儿",
+      "fixed": "形而",
+      "reason": "专名/术语（热词：形而上学）",
+      "chunk": 3
+    },
+    {
+      "orig": "立",
+      "fixed": "分",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "一",
+      "fixed": "",
+      "reason": "删除多余字（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "一",
+      "fixed": "译",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "",
+      "fixed": "多",
+      "reason": "补字（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "签",
+      "fixed": "看",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "完",
+      "fixed": "乱",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "张",
+      "fixed": "章",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "北",
+      "fixed": "贝",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "张",
+      "fixed": "章",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "一思",
+      "fixed": "厄普西",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "张",
+      "fixed": "章",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "张",
+      "fixed": "章",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "评",
+      "fixed": "平",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "评",
+      "fixed": "平",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "雷套",
+      "fixed": "泽塔",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "迫",
+      "fixed": "助",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "截",
+      "fixed": "接",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "北",
+      "fixed": "贝",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "港",
+      "fixed": "伽",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "次",
+      "fixed": "章",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "评",
+      "fixed": "平",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "评",
+      "fixed": "平",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "张屏",
+      "fixed": "章平",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "侦查",
+      "fixed": "泽塔",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "张",
+      "fixed": "章",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "夸",
+      "fixed": "",
+      "reason": "删除多余字（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "",
+      "fixed": "当",
+      "reason": "补字（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "子盖",
+      "fixed": "德格",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "聚",
+      "fixed": "集",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "开发教",
+      "fixed": "卡帕卷",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "开发",
+      "fixed": "卡帕",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 3
+    },
+    {
+      "orig": "张",
+      "fixed": "章",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "张",
+      "fixed": "章",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "象",
+      "fixed": "而",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "比",
+      "fixed": "B",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "嫌",
+      "fixed": "贤",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "修",
+      "fixed": "士多",
+      "reason": "专名/术语（热词：亚里士多德）",
+      "chunk": 4
+    },
+    {
+      "orig": "修",
+      "fixed": "士多",
+      "reason": "专名/术语（热词：亚里士多德）",
+      "chunk": 4
+    },
+    {
+      "orig": "选",
+      "fixed": "贤",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "扰",
+      "fixed": "然",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "者",
+      "fixed": "德",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "权嫌",
+      "fixed": "前贤",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "的",
+      "fixed": "德",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "正",
+      "fixed": "真",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "预",
+      "fixed": "欲",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "忠",
+      "fixed": "真",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "员",
+      "fixed": "原",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "发",
+      "fixed": "翻",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "字",
+      "fixed": "词",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "国",
+      "fixed": "文",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "干",
+      "fixed": "翻",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "珍",
+      "fixed": "真",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "值",
+      "fixed": "知",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "行",
+      "fixed": "形",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "破",
+      "fixed": "迫",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "李向",
+      "fixed": "理想",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "实",
+      "fixed": "诗",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "师",
+      "fixed": "诗",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "合",
+      "fixed": "和",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "声",
+      "fixed": "争",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "话",
+      "fixed": "画",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 4
+    },
+    {
+      "orig": "职",
+      "fixed": "知",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 5
+    },
+    {
+      "orig": "猪",
+      "fixed": "诸",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 5
+    },
+    {
+      "orig": "猪",
+      "fixed": "诸",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 5
+    },
+    {
+      "orig": "斯特团",
+      "fixed": "士多德",
+      "reason": "专名/术语（热词：亚里士多德）",
+      "chunk": 5
+    },
+    {
+      "orig": "斯伯",
+      "fixed": "士多",
+      "reason": "专名/术语（热词：亚里士多德）",
+      "chunk": 5
+    },
+    {
+      "orig": "此",
+      "fixed": "词",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 5
+    },
+    {
+      "orig": "演",
+      "fixed": "眼",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 5
+    },
+    {
+      "orig": "时",
+      "fixed": "",
+      "reason": "删除多余字（候选）",
+      "chunk": 5
+    },
+    {
+      "orig": "刑为",
+      "fixed": "形而",
+      "reason": "专名/术语（热词：形而上学）",
+      "chunk": 5
+    },
+    {
+      "orig": "修",
+      "fixed": "士",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 5
+    },
+    {
+      "orig": "其",
+      "fixed": "希",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 5
+    },
+    {
+      "orig": "鼠",
+      "fixed": "属",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 5
+    },
+    {
+      "orig": "珍",
+      "fixed": "真",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 5
+    },
+    {
+      "orig": "平",
+      "fixed": "凭",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 5
+    },
+    {
+      "orig": "淑明",
+      "fixed": "寿彭",
+      "reason": "专名/术语（热词：吴寿彭）",
+      "chunk": 5
+    },
+    {
+      "orig": "珍",
+      "fixed": "真",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 5
+    },
+    {
+      "orig": "于",
+      "fixed": "与",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 5
+    },
+    {
+      "orig": "事",
+      "fixed": "失",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 5
+    },
+    {
+      "orig": "俄",
+      "fixed": "罗",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 5
+    },
+    {
+      "orig": "升",
+      "fixed": "成",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 5
+    },
+    {
+      "orig": "车",
+      "fixed": "只",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 5
+    },
+    {
+      "orig": "如",
+      "fixed": "卢",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 5
+    },
+    {
+      "orig": "克",
+      "fixed": "",
+      "reason": "删除多余字（候选）",
+      "chunk": 5
+    },
+    {
+      "orig": "在网",
+      "fixed": "再往",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 6
+    },
+    {
+      "orig": "辈",
+      "fixed": "杯",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 6
+    },
+    {
+      "orig": "层",
+      "fixed": "成",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 6
+    },
+    {
+      "orig": "格",
+      "fixed": "各",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 6
+    },
+    {
+      "orig": "克",
+      "fixed": "可",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 6
+    },
+    {
+      "orig": "时",
+      "fixed": "始",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 6
+    },
+    {
+      "orig": "制的",
+      "fixed": "理智",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 6
+    },
+    {
+      "orig": "班",
+      "fixed": "觉",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 6
+    },
+    {
+      "orig": "卢",
+      "fixed": "努",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 6
+    },
+    {
+      "orig": "缘",
+      "fixed": "源",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 6
+    },
+    {
+      "orig": "螺子",
+      "fixed": "努斯",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 6
+    },
+    {
+      "orig": "里",
+      "fixed": "理",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 6
+    },
+    {
+      "orig": "执行",
+      "fixed": "直线",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 6
+    },
+    {
+      "orig": "早",
+      "fixed": "短",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 6
+    },
+    {
+      "orig": "时",
+      "fixed": "始",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 6
+    },
+    {
+      "orig": "时",
+      "fixed": "始",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 6
+    },
+    {
+      "orig": "剩",
+      "fixed": "胜",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 6
+    },
+    {
+      "orig": "副属",
+      "fixed": "复述",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 6
+    },
+    {
+      "orig": "清价",
+      "fixed": "经验",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 6
+    },
+    {
+      "orig": "轮",
+      "fixed": "论",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 6
+    },
+    {
+      "orig": "交",
+      "fixed": "教",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 6
+    },
+    {
+      "orig": "交",
+      "fixed": "教",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 6
+    },
+    {
+      "orig": "道",
+      "fixed": "糙",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "斯",
+      "fixed": "士",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "击",
+      "fixed": "具",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "针",
+      "fixed": "阵",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "出",
+      "fixed": "住",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "格",
+      "fixed": "各",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "",
+      "fixed": "可伦理",
+      "reason": "补字（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "敬畏",
+      "fixed": "泾渭",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "为",
+      "fixed": "谓",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "当然",
+      "fixed": "希腊",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "须",
+      "fixed": "需",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "须",
+      "fixed": "需",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "客",
+      "fixed": "格尔",
+      "reason": "专名/术语（热词：耶格尔）",
+      "chunk": 7
+    },
+    {
+      "orig": "个钱",
+      "fixed": "何学",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "走",
+      "fixed": "做",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "张",
+      "fixed": "章",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "来",
+      "fixed": "更",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "芝",
+      "fixed": "知",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "斯",
+      "fixed": "神学",
+      "reason": "专名/术语（热词：神学）",
+      "chunk": 7
+    },
+    {
+      "orig": "度",
+      "fixed": "渡",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "元",
+      "fixed": "落",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "教",
+      "fixed": "译",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "正",
+      "fixed": "真",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "张",
+      "fixed": "章",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "人",
+      "fixed": "原",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "院",
+      "fixed": "原",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "布",
+      "fixed": "格",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "格",
+      "fixed": "哲",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "源",
+      "fixed": "原",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "败",
+      "fixed": "摄",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    },
+    {
+      "orig": "零",
+      "fixed": "铃",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 7
+    }
+  ],
+  "rejected_chunks": [],
+  "segment_rejections": [
+    {
+      "chunk": 1,
+      "segment": 23,
+      "segment_in_chunk": 23,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 1,
+      "segment": 25,
+      "segment_in_chunk": 25,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 1,
+      "segment": 40,
+      "segment_in_chunk": 40,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 1,
+      "segment": 77,
+      "segment_in_chunk": 77,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 1,
+      "segment": 87,
+      "segment_in_chunk": 87,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 1,
+      "segment": 88,
+      "segment_in_chunk": 88,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 1,
+      "segment": 99,
+      "segment_in_chunk": 99,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 1,
+      "segment": 108,
+      "segment_in_chunk": 108,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 1,
+      "segment": 130,
+      "segment_in_chunk": 130,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 1,
+      "segment": 147,
+      "segment_in_chunk": 147,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 1,
+      "segment": 153,
+      "segment_in_chunk": 153,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 1,
+      "segment": 165,
+      "segment_in_chunk": 165,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 1,
+      "segment": 166,
+      "segment_in_chunk": 166,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 1,
+      "segment": 178,
+      "segment_in_chunk": 178,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 2,
+      "segment": 195,
+      "segment_in_chunk": 5,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 2,
+      "segment": 196,
+      "segment_in_chunk": 6,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 2,
+      "segment": 200,
+      "segment_in_chunk": 10,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 2,
+      "segment": 207,
+      "segment_in_chunk": 17,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 2,
+      "segment": 214,
+      "segment_in_chunk": 24,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 2,
+      "segment": 219,
+      "segment_in_chunk": 29,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 2,
+      "segment": 220,
+      "segment_in_chunk": 30,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 2,
+      "segment": 241,
+      "segment_in_chunk": 51,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 2,
+      "segment": 242,
+      "segment_in_chunk": 52,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 2,
+      "segment": 254,
+      "segment_in_chunk": 64,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 2,
+      "segment": 256,
+      "segment_in_chunk": 66,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 2,
+      "segment": 264,
+      "segment_in_chunk": 74,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 2,
+      "segment": 267,
+      "segment_in_chunk": 77,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 2,
+      "segment": 272,
+      "segment_in_chunk": 82,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 2,
+      "segment": 283,
+      "segment_in_chunk": 93,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 2,
+      "segment": 293,
+      "segment_in_chunk": 103,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 2,
+      "segment": 307,
+      "segment_in_chunk": 117,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 2,
+      "segment": 310,
+      "segment_in_chunk": 120,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 2,
+      "segment": 311,
+      "segment_in_chunk": 121,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 2,
+      "segment": 315,
+      "segment_in_chunk": 125,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 2,
+      "segment": 333,
+      "segment_in_chunk": 143,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 3,
+      "segment": 387,
+      "segment_in_chunk": 44,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 3,
+      "segment": 388,
+      "segment_in_chunk": 45,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 3,
+      "segment": 396,
+      "segment_in_chunk": 53,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 3,
+      "segment": 406,
+      "segment_in_chunk": 63,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 3,
+      "segment": 409,
+      "segment_in_chunk": 66,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 3,
+      "segment": 415,
+      "segment_in_chunk": 72,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 3,
+      "segment": 420,
+      "segment_in_chunk": 77,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 3,
+      "segment": 423,
+      "segment_in_chunk": 80,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 3,
+      "segment": 428,
+      "segment_in_chunk": 85,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 3,
+      "segment": 452,
+      "segment_in_chunk": 109,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 3,
+      "segment": 453,
+      "segment_in_chunk": 110,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 3,
+      "segment": 462,
+      "segment_in_chunk": 119,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 3,
+      "segment": 468,
+      "segment_in_chunk": 125,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 3,
+      "segment": 481,
+      "segment_in_chunk": 138,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 3,
+      "segment": 492,
+      "segment_in_chunk": 149,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 4,
+      "segment": 530,
+      "segment_in_chunk": 37,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 4,
+      "segment": 531,
+      "segment_in_chunk": 38,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 4,
+      "segment": 549,
+      "segment_in_chunk": 56,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 4,
+      "segment": 554,
+      "segment_in_chunk": 61,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 4,
+      "segment": 572,
+      "segment_in_chunk": 79,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 4,
+      "segment": 581,
+      "segment_in_chunk": 88,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 4,
+      "segment": 586,
+      "segment_in_chunk": 93,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 4,
+      "segment": 591,
+      "segment_in_chunk": 98,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 4,
+      "segment": 607,
+      "segment_in_chunk": 114,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 4,
+      "segment": 609,
+      "segment_in_chunk": 116,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 4,
+      "segment": 611,
+      "segment_in_chunk": 118,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 4,
+      "segment": 643,
+      "segment_in_chunk": 150,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 4,
+      "segment": 647,
+      "segment_in_chunk": 154,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 4,
+      "segment": 653,
+      "segment_in_chunk": 160,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 4,
+      "segment": 656,
+      "segment_in_chunk": 163,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 4,
+      "segment": 657,
+      "segment_in_chunk": 164,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 4,
+      "segment": 658,
+      "segment_in_chunk": 165,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 4,
+      "segment": 665,
+      "segment_in_chunk": 172,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 4,
+      "segment": 670,
+      "segment_in_chunk": 177,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 5,
+      "segment": 685,
+      "segment_in_chunk": 9,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 5,
+      "segment": 714,
+      "segment_in_chunk": 38,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 5,
+      "segment": 716,
+      "segment_in_chunk": 40,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 5,
+      "segment": 724,
+      "segment_in_chunk": 48,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 5,
+      "segment": 728,
+      "segment_in_chunk": 52,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 5,
+      "segment": 734,
+      "segment_in_chunk": 58,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 5,
+      "segment": 754,
+      "segment_in_chunk": 78,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 5,
+      "segment": 757,
+      "segment_in_chunk": 81,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 5,
+      "segment": 758,
+      "segment_in_chunk": 82,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 5,
+      "segment": 766,
+      "segment_in_chunk": 90,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 5,
+      "segment": 767,
+      "segment_in_chunk": 91,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 5,
+      "segment": 787,
+      "segment_in_chunk": 111,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 5,
+      "segment": 798,
+      "segment_in_chunk": 122,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 5,
+      "segment": 816,
+      "segment_in_chunk": 140,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 5,
+      "segment": 822,
+      "segment_in_chunk": 146,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 5,
+      "segment": 823,
+      "segment_in_chunk": 147,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 5,
+      "segment": 833,
+      "segment_in_chunk": 157,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 5,
+      "segment": 834,
+      "segment_in_chunk": 158,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 5,
+      "segment": 843,
+      "segment_in_chunk": 167,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 6,
+      "segment": 859,
+      "segment_in_chunk": 12,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 6,
+      "segment": 860,
+      "segment_in_chunk": 13,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 6,
+      "segment": 861,
+      "segment_in_chunk": 14,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 6,
+      "segment": 862,
+      "segment_in_chunk": 15,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 6,
+      "segment": 893,
+      "segment_in_chunk": 46,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 6,
+      "segment": 904,
+      "segment_in_chunk": 57,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 6,
+      "segment": 916,
+      "segment_in_chunk": 69,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 6,
+      "segment": 917,
+      "segment_in_chunk": 70,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 6,
+      "segment": 921,
+      "segment_in_chunk": 74,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 6,
+      "segment": 934,
+      "segment_in_chunk": 87,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 6,
+      "segment": 944,
+      "segment_in_chunk": 97,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 6,
+      "segment": 948,
+      "segment_in_chunk": 101,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 6,
+      "segment": 949,
+      "segment_in_chunk": 102,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 6,
+      "segment": 961,
+      "segment_in_chunk": 114,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 6,
+      "segment": 985,
+      "segment_in_chunk": 138,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 6,
+      "segment": 986,
+      "segment_in_chunk": 139,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 6,
+      "segment": 1016,
+      "segment_in_chunk": 169,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 7,
+      "segment": 1026,
+      "segment_in_chunk": 6,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 7,
+      "segment": 1027,
+      "segment_in_chunk": 7,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 7,
+      "segment": 1032,
+      "segment_in_chunk": 12,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 7,
+      "segment": 1033,
+      "segment_in_chunk": 13,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 7,
+      "segment": 1042,
+      "segment_in_chunk": 22,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 7,
+      "segment": 1067,
+      "segment_in_chunk": 47,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 7,
+      "segment": 1068,
+      "segment_in_chunk": 48,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 7,
+      "segment": 1070,
+      "segment_in_chunk": 50,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 7,
+      "segment": 1085,
+      "segment_in_chunk": 65,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 7,
+      "segment": 1098,
+      "segment_in_chunk": 78,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 7,
+      "segment": 1111,
+      "segment_in_chunk": 91,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 7,
+      "segment": 1115,
+      "segment_in_chunk": 95,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 7,
+      "segment": 1121,
+      "segment_in_chunk": 101,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 7,
+      "segment": 1125,
+      "segment_in_chunk": 105,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 7,
+      "segment": 1146,
+      "segment_in_chunk": 126,
+      "reason": "diff_too_large"
+    },
+    {
+      "chunk": 7,
+      "segment": 1167,
+      "segment_in_chunk": 147,
+      "reason": "diff_too_large"
+    }
+  ]
+}

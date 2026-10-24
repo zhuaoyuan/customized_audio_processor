@@ -1,0 +1,109 @@
+{
+  "ok": true,
+  "mode": "rerun",
+  "n": 2,
+  "generated_at": "2026-10-22T09:07:38+08:00",
+  "rows": [
+    {
+      "job_id": "621cb91c_0_20140227_丁耘_西方哲学",
+      "source": "C:\\projects\\local\\audio_processer\\data\\0_20140227-丁耘 西方哲学(20140227-丁耘 西方哲学)_normal..m4a",
+      "clean_s": 2745.28,
+      "asl_out_dbfs": -20.02,
+      "asl_dev_db": -0.02,
+      "true_peak_out_dbtp": -1.3,
+      "clipped_samples": 0,
+      "cut_ratio": 0.099,
+      "render_total_s": 191.89,
+      "asr_s": 62.31,
+      "total_wall_s": 254.43,
+      "n_segments": 998,
+      "chars": 9858,
+      "ok": true,
+      "error": "",
+      "duration_s": 3047.2
+    },
+    {
+      "job_id": "4db18037_20_丁耘理想国_古希腊哲学",
+      "source": "C:\\projects\\local\\audio_processer\\data\\20_丁耘理想国.古希腊哲学(20141219-丁耘  古希腊哲学)_normal..m4a",
+      "clean_s": 5869.6,
+      "asl_out_dbfs": -20.06,
+      "asl_dev_db": -0.06,
+      "true_peak_out_dbtp": -1.9,
+      "clipped_samples": 0,
+      "cut_ratio": 0.046,
+      "render_total_s": 662.49,
+      "asr_s": 137.49,
+      "total_wall_s": 800.41,
+      "n_segments": 1695,
+      "chars": 26031,
+      "ok": true,
+      "error": "",
+      "duration_s": 6151.407
+    }
+  ],
+  "summary": {
+    "mode": "rerun",
+    "out_dir": "C:\\projects\\local\\audio_processer\\out_p8",
+    "cache_dir": "C:\\projects\\local\\audio_processer\\work\\cache_p8",
+    "n_inputs": 2,
+    "batch_ok": true,
+    "stopped_reason": "",
+    "skipped": [],
+    "n": 2,
+    "n_ok": 2,
+    "n_failed": 0,
+    "sum_input_s": 9198.607,
+    "sum_clean_s": 8614.88,
+    "sum_render_total_s": 854.38,
+    "sum_asr_s": 199.8,
+    "sum_wall_s": 1054.84,
+    "render_rtf": 0.0929,
+    "asr_rtf": 0.0232,
+    "full_chain_rtf": 0.1147,
+    "sum_wall_h": 0.293,
+    "sum_input_h": 2.555,
+    "elapsed_s": 1054.868,
+    "asl_spread_db": 0.04,
+    "asl_min_dbfs": -20.06,
+    "asl_max_dbfs": -20.02,
+    "tp_max_dbtp": -1.3,
+    "clipped_total": 0,
+    "max_render_total_s": 662.5,
+    "baseline_checked": true,
+    "baseline_csv": "C:\\projects\\local\\audio_processer\\work\\regress\\audio.csv",
+    "cut_ratio_max_dev_pp": 0.0,
+    "baseline_asl_max_dev_db": 0.0,
+    "baseline_tp_max_dev_db": 0.0,
+    "baseline_rows": 6,
+    "timestamp": {
+      "path": "C:\\projects\\local\\audio_processer\\work\\measure_f24.json",
+      "start_abs_median": 0.18,
+      "start_p90_abs": 0.47,
+      "end_abs_median": 0.26,
+      "end_p90_abs": 0.59,
+      "thresholds": {
+        "abs_median_s": 0.5,
+        "p90_abs_s": 1.5
+      },
+      "ok": true
+    },
+    "asr_baseline_checked": true,
+    "asr_deviation": [
+      {
+        "job_id": "621cb91c_0_20140227_丁耘_西方哲学",
+        "key": "f00",
+        "n_segments_dev_ratio": 0.0,
+        "chars_dev_ratio": 0.0
+      },
+      {
+        "job_id": "4db18037_20_丁耘理想国_古希腊哲学",
+        "key": "f20",
+        "n_segments_dev_ratio": 0.0,
+        "chars_dev_ratio": 0.0
+      }
+    ],
+    "failures_count": 0,
+    "ok": true
+  },
+  "failures": []
+}

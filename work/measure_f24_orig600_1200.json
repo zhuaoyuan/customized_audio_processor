@@ -1,0 +1,129 @@
+{
+  "ok": true,
+  "job_id": "7927721f_24_复旦哲学系丁耘_亚里士多德",
+  "transcript": "out\\7927721f_24_复旦哲学系丁耘_亚里士多德\\transcript.json",
+  "wav16k": "work\\cache\\7927721f_24_复旦哲学系丁耘_亚里士多德.clean16k.wav",
+  "audio_duration_s": 3806.47,
+  "window": {
+    "start": 55.76,
+    "end": 647.43,
+    "dur": 591.67,
+    "axis": "clean",
+    "requested": {
+      "start": 55.76,
+      "dur": 591.67
+    },
+    "clamped": false
+  },
+  "method": {
+    "name": "faster_whisper_word_boundary",
+    "reference": "faster-whisper base word timestamps",
+    "boundary_rule": "ref_start=min(word.start in seg), ref_end=max(word.end in seg)",
+    "match_rule": "word midpoint (start+end)/2 within [seg.start, seg.end]",
+    "edge_margin_s": 1.0,
+    "window_axis": "clean",
+    "ref_model": "base",
+    "beam_size": 1,
+    "language": "zh",
+    "word_timestamps": true,
+    "vad_filter": false
+  },
+  "reference": {
+    "model": "base",
+    "device": "cpu",
+    "compute_type": "int8",
+    "beam_size": 1,
+    "language": "zh",
+    "word_timestamps": true,
+    "vad_filter": false,
+    "threads": 8,
+    "load_s": 1.25,
+    "wall_s": 73.89,
+    "n_words": 1644,
+    "rtf": 0.1249
+  },
+  "n_transcript_segments": 1175,
+  "n_segments_in_window": 185,
+  "n_matched": 169,
+  "boundaries": {
+    "n_segments_in_window": 185,
+    "n_matched": 169,
+    "start_signed": {
+      "n": 169,
+      "median": -0.17,
+      "abs_median": 0.2,
+      "mean": -0.111,
+      "std": 0.33,
+      "p90_abs": 0.58,
+      "max_abs": 1.27
+    },
+    "end_signed": {
+      "n": 169,
+      "median": 0.23,
+      "abs_median": 0.27,
+      "mean": 0.194,
+      "std": 0.363,
+      "p90_abs": 0.612,
+      "max_abs": 1.71
+    },
+    "start_abs": {
+      "n": 169,
+      "median": 0.2,
+      "abs_median": 0.2,
+      "mean": 0.266,
+      "std": 0.225,
+      "p90_abs": 0.58,
+      "max_abs": 1.27
+    },
+    "end_abs": {
+      "n": 169,
+      "median": 0.27,
+      "abs_median": 0.27,
+      "mean": 0.325,
+      "std": 0.253,
+      "p90_abs": 0.612,
+      "max_abs": 1.71
+    },
+    "chars_transcript": 2282,
+    "chars_words": 1854
+  },
+  "summary": {
+    "n": 169,
+    "start_abs_median": 0.2,
+    "start_p90_abs": 0.58,
+    "start_signed_median": -0.17,
+    "end_abs_median": 0.27,
+    "end_p90_abs": 0.612,
+    "end_signed_median": 0.23
+  },
+  "chars": {
+    "transcript": 2282,
+    "reference_words": 1854,
+    "ratio_reference_over_transcript": 0.8124
+  },
+  "acceptance": {
+    "start_abs_median_le_0.5": true,
+    "start_p90_abs_le_1.5": true,
+    "end_abs_median_le_0.5": true,
+    "end_p90_abs_le_1.5": true,
+    "pass": true,
+    "thresholds": {
+      "abs_median_s": 0.5,
+      "p90_abs_s": 1.5
+    }
+  },
+  "baseline": {
+    "source": "docs/research/timeline-poc.md §3 / work/timeline/24_形而上学/eval_ts_600_1200.json",
+    "axis": "original",
+    "window_s": [
+      600.0,
+      1200.0
+    ],
+    "start_abs_median": 0.21,
+    "start_p90_abs": 0.654,
+    "end_abs_median": 0.355,
+    "end_p90_abs": 0.93,
+    "note": "PoC 在原始音轨 600–1200s 测；本工具窗口是 clean 轴，仅作量级对照"
+  },
+  "elapsed_s": 76.18
+}

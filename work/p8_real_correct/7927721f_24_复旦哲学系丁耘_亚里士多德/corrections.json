@@ -1,0 +1,41 @@
+{
+  "total": 0,
+  "items": [],
+  "rejected_chunks": [
+    {
+      "chunk": 1,
+      "diff_ratio": 0.029223,
+      "reason": "unsafe_writeback"
+    },
+    {
+      "chunk": 2,
+      "diff_ratio": 0.042339,
+      "reason": "unsafe_writeback"
+    },
+    {
+      "chunk": 3,
+      "diff_ratio": 0.023695,
+      "reason": "unsafe_writeback"
+    },
+    {
+      "chunk": 4,
+      "diff_ratio": 0.039759,
+      "reason": "unsafe_writeback"
+    },
+    {
+      "chunk": 5,
+      "diff_ratio": 0.032245,
+      "reason": "unsafe_writeback"
+    },
+    {
+      "chunk": 6,
+      "diff_ratio": 0.026875,
+      "reason": "unsafe_writeback"
+    },
+    {
+      "chunk": 7,
+      "diff_ratio": 0.023313,
+      "reason": "unsafe_writeback"
+    }
+  ]
+}

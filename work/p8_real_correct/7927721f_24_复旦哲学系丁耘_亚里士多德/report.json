@@ -1,0 +1,267 @@
+{
+  "id": "7927721f_24_复旦哲学系丁耘_亚里士多德",
+  "source": "data\\24_【复旦哲学系丁耘】 亚里士多德《形而上学》(01)_normal..m4a",
+  "duration_s": 4673.294,
+  "sample_rate": 16000,
+  "bit_rate": 59053,
+  "decode": {
+    "repaired": false,
+    "ok": true
+  },
+  "vad": {
+    "engine": "silero-v6",
+    "speech_ratio": 0.6811,
+    "n_segments": 1291
+  },
+  "levels": {
+    "asl_in_dbfs": -10.1,
+    "asl_p56_in_dbfs": -9.55,
+    "lufs_in": -10.0,
+    "true_peak_in_dbtp": 3.7,
+    "noise_floor_dbfs": -28.18,
+    "snr_db": 18.09,
+    "window5m_spread_in_db": 4.36,
+    "asl_clean_dbfs": -9.56,
+    "asl_out_dbfs": -20.04,
+    "asl_dev_db": -0.04,
+    "lufs_out": -19.9,
+    "lra_out": 8.7,
+    "true_peak_out_dbtp": -2.5,
+    "max_abs_out": 0.7459,
+    "clipped_samples_out": 0,
+    "window5m_spread_out_db": 0.98
+  },
+  "trim": {
+    "head_s": 479.5,
+    "tail_s": 4560.5,
+    "internal_cut_s": 274.54,
+    "clean_dur_s": 3806.46,
+    "cut_ratio": 0.18548672520924214,
+    "speech_preserved_ratio": 1.0,
+    "speech_preserved_ratio_incl_head_tail": 0.94256,
+    "n_kept": 52,
+    "n_removed": 54,
+    "head_method": "window_asr",
+    "flags": []
+  },
+  "denoise": {
+    "mode": "afftdn",
+    "filter": "highpass=f=80,afftdn=nr=12:nf=-30:tn=1",
+    "nr": 12.0,
+    "snr_db": 18.09,
+    "elapsed_s": 15.44
+  },
+  "output": {
+    "file": "clean.m4a",
+    "codec": "aac",
+    "sample_rate": 44100,
+    "channels": 1,
+    "bit_rate": 99250,
+    "size_bytes": 47224140,
+    "duration_s": 3806.46,
+    "target_bit_rate": "96k",
+    "formats": [
+      "md",
+      "srt",
+      "txt"
+    ]
+  },
+  "timing": {
+    "decode_s": 2.95,
+    "analyze_s": 0.0,
+    "denoise_s": 15.44,
+    "trim_s": 2.51,
+    "render_s": 128.79,
+    "encode_s": 41.08,
+    "measure_s": 19.24,
+    "total_s": 230.15,
+    "asr_s": 242.56,
+    "export_text_s": 0.02,
+    "correct_s": 101.198,
+    "diarize_s": 0.01
+  },
+  "loudness": {
+    "gain_db": -10.24,
+    "gain": {
+      "type": "v2",
+      "gain_db": -10.24,
+      "min_db": -13.24,
+      "max_db": -7.24,
+      "max_rate_db_s": 0.4,
+      "limiter_triggers": 21
+    },
+    "v2": {
+      "win_s": 20.0,
+      "hop_s": 5.0,
+      "clamp_db": 3.0,
+      "min_speech_s": 3.0,
+      "max_rate_db_s": 0.4,
+      "n_windows_total": 762,
+      "n_windows_used": 704,
+      "ref_level_db": -9.562,
+      "degraded": false,
+      "gain_min_db": -13.24,
+      "gain_max_db": -7.24,
+      "rate_control_db_s": 0.4,
+      "control_times_s": [
+        15.0,
+        20.0,
+        25.0,
+        30.0,
+        50.0,
+        55.0,
+        60.0,
+        65.0
+      ],
+      "enabled": true,
+      "drift_in_db": 4.36,
+      "drift_source": "input",
+      "drift_threshold_db": 6.0,
+      "high_drift": false,
+      "clamp_db_used": 3.0,
+      "n_block": 190323,
+      "block_ms": 20.0,
+      "window5m_in": {},
+      "window5m_out": {
+        "n_windows": 13,
+        "windows": [
+          {
+            "t0": 0.0,
+            "t1": 300.0,
+            "speech_s": 102.9,
+            "asl_dbfs": -20.19
+          },
+          {
+            "t0": 300.0,
+            "t1": 600.0,
+            "speech_s": 152.6,
+            "asl_dbfs": -20.21
+          },
+          {
+            "t0": 600.0,
+            "t1": 900.0,
+            "speech_s": 151.3,
+            "asl_dbfs": -20.04
+          },
+          {
+            "t0": 900.0,
+            "t1": 1200.0,
+            "speech_s": 171.7,
+            "asl_dbfs": -20.94
+          },
+          {
+            "t0": 1200.0,
+            "t1": 1500.0,
+            "speech_s": 169.6,
+            "asl_dbfs": -19.89
+          },
+          {
+            "t0": 1500.0,
+            "t1": 1800.0,
+            "speech_s": 124.7,
+            "asl_dbfs": -20.13
+          },
+          {
+            "t0": 1800.0,
+            "t1": 2100.0,
+            "speech_s": 108.1,
+            "asl_dbfs": -20.01
+          },
+          {
+            "t0": 2100.0,
+            "t1": 2400.0,
+            "speech_s": 134.5,
+            "asl_dbfs": -19.98
+          },
+          {
+            "t0": 2400.0,
+            "t1": 2700.0,
+            "speech_s": 121.9,
+            "asl_dbfs": -19.76
+          },
+          {
+            "t0": 2700.0,
+            "t1": 3000.0,
+            "speech_s": 108.3,
+            "asl_dbfs": -19.89
+          },
+          {
+            "t0": 3000.0,
+            "t1": 3300.0,
+            "speech_s": 153.5,
+            "asl_dbfs": -19.8
+          },
+          {
+            "t0": 3300.0,
+            "t1": 3600.0,
+            "speech_s": 144.3,
+            "asl_dbfs": -19.63
+          },
+          {
+            "t0": 3600.0,
+            "t1": 3806.5,
+            "speech_s": 100.0,
+            "asl_dbfs": -19.38
+          }
+        ],
+        "win_s": 300.0,
+        "hop_s": 300.0,
+        "p5": -20.5,
+        "p50": -19.98,
+        "p95": -19.53,
+        "spread_db": 0.97,
+        "half_spread_db": 0.49,
+        "min": -20.94,
+        "max": -19.38
+      },
+      "gain_mean_db": -9.47
+    },
+    "limiter": {
+      "ceiling_dbtp": -2.75,
+      "ceiling_effective_dbtp": -2.75,
+      "oversample": 4,
+      "attack_ms": 5.0,
+      "release_ms": 150.0,
+      "iterations": 2,
+      "trigger_ratio": 2.8e-05,
+      "trigger_events": 21,
+      "min_gain_db": -0.613,
+      "mean_gain_db": -0.0,
+      "clipped_samples": 0,
+      "tp_4x_dbtp": -2.74,
+      "n_chunks": 32,
+      "chunk_s": 120.0,
+      "context_s": 1.0,
+      "elapsed_s": 54.685,
+      "target_tp_dbtp": -1.0,
+      "tp_ok": true
+    },
+    "iterations": 1,
+    "tp_wav_dbtp": -2.7,
+    "lufs_wav": -19.8,
+    "asl_dev_wav_db": -0.0
+  },
+  "ok": true,
+  "asr": {
+    "engine": "sensevoice",
+    "model": "int8",
+    "n_segments": 1175,
+    "chars": 15524,
+    "n_empty": 0,
+    "rtf": 0.0624,
+    "elapsed_s": 242.56
+  },
+  "speakers": {
+    "n": 1,
+    "method": "none",
+    "diar_version": "p4-t3-v1"
+  },
+  "correct": {
+    "enabled": true,
+    "chunks": 7,
+    "edits": 0,
+    "rejected": 7,
+    "cost_cny": 0.433873,
+    "elapsed_s": 101.198
+  }
+}

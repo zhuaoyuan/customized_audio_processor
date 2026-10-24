@@ -1,0 +1,322 @@
+{
+  "ok": true,
+  "enabled": true,
+  "reason": "",
+  "diff_ratio": 0.033095,
+  "items": 94,
+  "usage": {
+    "prompt_tokens": 3081,
+    "completion_tokens": 21932,
+    "cache_hit_tokens": 0
+  },
+  "cost_cny": 0.090809,
+  "elapsed_s": 102.786,
+  "wall_s": 103.35,
+  "input_chars": 4200,
+  "fixed_chars": 4210,
+  "error": "",
+  "mapping": "lines",
+  "segment_rejections": [],
+  "items_detail": [
+    {
+      "orig": "神密大师",
+      "fixed": "形而上学",
+      "reason": "专名/术语（热词：形而上学）",
+      "chunk": 1
+    },
+    {
+      "orig": "贯",
+      "fixed": "灌",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "学商",
+      "fixed": "形而",
+      "reason": "专名/术语（热词：形而上学）",
+      "chunk": 1
+    },
+    {
+      "orig": "学",
+      "fixed": "形",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "行式",
+      "fixed": "形而",
+      "reason": "专名/术语（热词：形而上学）",
+      "chunk": 1
+    },
+    {
+      "orig": "严助",
+      "fixed": "原著",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "即使",
+      "fixed": "就是",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "有名",
+      "fixed": "",
+      "reason": "删除多余字（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "木琢",
+      "fixed": "目中",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "。",
+      "fixed": "",
+      "reason": "删除多余字（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "行",
+      "fixed": "形",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "一",
+      "fixed": "译",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "理。",
+      "fixed": "",
+      "reason": "删除多余字（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "不",
+      "fixed": "",
+      "reason": "删除多余字（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "",
+      "fixed": "啊",
+      "reason": "补字（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "德",
+      "fixed": "多",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "德",
+      "fixed": "多",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "格",
+      "fixed": "而",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "情式",
+      "fixed": "形而",
+      "reason": "专名/术语（热词：形而上学）",
+      "chunk": 1
+    },
+    {
+      "orig": "译",
+      "fixed": "义",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "修的",
+      "fixed": "士多德",
+      "reason": "专名/术语（热词：亚里士多德）",
+      "chunk": 1
+    },
+    {
+      "orig": "撑",
+      "fixed": "称",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "修",
+      "fixed": "士多",
+      "reason": "专名/术语（热词：亚里士多德）",
+      "chunk": 1
+    },
+    {
+      "orig": "击",
+      "fixed": "具",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "击",
+      "fixed": "具",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "格",
+      "fixed": "各",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "克",
+      "fixed": "可",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "格",
+      "fixed": "各",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "克",
+      "fixed": "可",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "。",
+      "fixed": "理",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "具",
+      "fixed": "字",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "罗",
+      "fixed": "各马可伦理学",
+      "reason": "专名/术语（热词：伦理学）",
+      "chunk": 1
+    },
+    {
+      "orig": "象",
+      "fixed": "而",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "象",
+      "fixed": "而",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "里",
+      "fixed": "理",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "索",
+      "fixed": "士多",
+      "reason": "专名/术语（热词：亚里士多德）",
+      "chunk": 1
+    },
+    {
+      "orig": "修",
+      "fixed": "士多",
+      "reason": "专名/术语（热词：亚里士多德）",
+      "chunk": 1
+    },
+    {
+      "orig": "些",
+      "fixed": "学",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "雅戈",
+      "fixed": "耶格",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "河",
+      "fixed": "而",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "号",
+      "fixed": "而",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "片",
+      "fixed": "篇",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "式",
+      "fixed": "而",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "的",
+      "fixed": "德",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "刑事",
+      "fixed": "形而",
+      "reason": "专名/术语（热词：形而上学）",
+      "chunk": 1
+    },
+    {
+      "orig": "科",
+      "fixed": "康",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "程",
+      "fixed": "陈",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "二",
+      "fixed": "阿尔",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "夜",
+      "fixed": "一眼",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    },
+    {
+      "orig": "世鹏",
+      "fixed": "寿彭",
+      "reason": "同音/近音错字或专名（候选）",
+      "chunk": 1
+    }
+  ]
+}

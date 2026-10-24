@@ -1,0 +1,32 @@
+{
+  "job_id": "7927721f_24_复旦哲学系丁耘_亚里士多德",
+  "ok": true,
+  "skipped": false,
+  "n_segments": 1175,
+  "chars": 15524,
+  "n_empty": 0,
+  "rtf": 0.0624,
+  "elapsed_s": 242.56,
+  "asr": {
+    "engine": "sensevoice",
+    "model": "int8",
+    "n_segments": 1175,
+    "chars": 15524,
+    "n_empty": 0,
+    "rtf": 0.0624,
+    "elapsed_s": 242.56
+  },
+  "transcript": "C:\\projects\\local\\audio_processer\\out\\7927721f_24_复旦哲学系丁耘_亚里士多德\\transcript.json",
+  "transcript_segments": 1175,
+  "clean16k": "C:\\projects\\local\\audio_processer\\work\\cache\\7927721f_24_复旦哲学系丁耘_亚里士多德.clean16k.wav",
+  "clean16k_dur_s": 3806.47,
+  "clean_dur_s": 3806.46,
+  "aac_padding_s": 0.0104,
+  "wall_s": 242.57,
+  "speakers": {
+    "n": 1,
+    "method": "none"
+  },
+  "timing_asr_s": 242.56,
+  "run_at": "2026-10-21T22:09:53+0800"
+}

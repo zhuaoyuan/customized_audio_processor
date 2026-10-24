@@ -4,6 +4,10 @@ work/*.local.*
 configs/local.yaml
 configs/*.local.yaml
 
+# ---- 本地一键运行脚本（含 API key / 本机路径，不入库）----
+run_abc.ps1
+run_abc.cmd
+
 # ---- 原始数据（体积大，本地保留，不入库）----
 data/
 out/*.m4a
@@ -19,6 +23,9 @@ out/logs/
 out/quarantine/
 out/review/
 out/uploads/
+# 每个 job 的输出目录（按 job id 生成，本地保留，不入库）
+out/*/
+dist/
 work/locks/
 work/cache_p6/
 out_p6/
@@ -28,6 +35,9 @@ out_demo/
 work/cache/
 work/cache_p8/
 work/cache_demo/
+work/compose_cache/
+work/compose_proto/
+work/compose_real_smoke/
 work/pip_cache/
 work/pytest_tmp/
 work/pytest_tmp_*/
@@ -70,6 +80,8 @@ work/**/ebur_test.txt
 work/**/*.log
 work/bench/hf_home/
 work/bench/models/
+# 误放在包目录下的转写草稿（本地保留，不入库）
+app/transcript.md
 
 # ---- Python 缓存 ----
 __pycache__/

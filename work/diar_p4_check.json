@@ -1,0 +1,205 @@
+{
+  "generated_at": "2026-10-21T22:08:08",
+  "method": "sample_speakers（pyannote-seg + cam++ + FastClustering/threshold + 质心归并）",
+  "config": {
+    "sample_minutes": 15.0,
+    "sample_segments": 3,
+    "body_margin_s": 120.0,
+    "threshold": 0.7,
+    "min_speaker_s": 5.0,
+    "min_speaker_ratio": 0.03
+  },
+  "note": "旧 work/scan/diar 样本起点不在正文（f24 233.7<479.5 头裁；f00 152.4 课前闲聊），本文件全部用 clean 轴正文样本重跑；判定 n=1 则 6 文件全部 none/主讲是正确结果。",
+  "files": {
+    "f24": {
+      "body_sampled": {
+        "job_id": "7927721f_24_复旦哲学系丁耘_亚里士多德",
+        "clean16k": "C:\\projects\\local\\audio_processer\\work\\cache\\7927721f_24_复旦哲学系丁耘_亚里士多德.clean16k.wav",
+        "clean_dur_s": 3806.47,
+        "elapsed_s": 205.06,
+        "windows": [
+          [
+            564.412,
+            864.412
+          ],
+          [
+            1753.235,
+            2053.235
+          ],
+          [
+            2942.059,
+            3242.059
+          ]
+        ],
+        "n_windows": 3,
+        "threshold": 0.7,
+        "merge_threshold": 0.7,
+        "raw_clusters": 14,
+        "raw_n_segments": 108,
+        "merged_clusters": 10,
+        "per_speaker_s": {
+          "0": 784.198,
+          "1": 2.784,
+          "2": 1.468,
+          "4": 0.742,
+          "3": 0.742,
+          "5": 0.726,
+          "6": 0.624,
+          "7": 0.557,
+          "8": 0.422,
+          "9": 0.354
+        },
+        "per_raw_speaker_s": {
+          "0:1": 264.853,
+          "2:0": 256.582,
+          "1:0": 255.793,
+          "0:3": 4.405,
+          "2:7": 2.784,
+          "2:1": 2.565,
+          "1:7": 1.468,
+          "1:2": 0.742,
+          "2:8": 0.742,
+          "1:3": 0.726,
+          "1:10": 0.624,
+          "0:0": 0.557,
+          "1:4": 0.422,
+          "1:1": 0.354
+        },
+        "main_ratio": 0.9894,
+        "min_speaker_s": 5.0,
+        "min_speaker_ratio": 0.03,
+        "n_stable": 1,
+        "stable": [
+          {
+            "cluster": 0,
+            "dur_s": 784.198,
+            "ratio": 0.9894
+          }
+        ],
+        "is_multi": false,
+        "verdict": "single",
+        "timings": {
+          "diar_s": 190.59,
+          "embed_s": 11.85,
+          "merge_s": 0.001,
+          "total_s": 205.06
+        }
+      },
+      "window_600_1200": {
+        "job_id": "7927721f_24_复旦哲学系丁耘_亚里士多德",
+        "clean16k": "C:\\projects\\local\\audio_processer\\work\\cache\\7927721f_24_复旦哲学系丁耘_亚里士多德.clean16k.wav",
+        "clean_dur_s": 3806.47,
+        "elapsed_s": 174.85,
+        "windows": [
+          [
+            600.0,
+            1200.0
+          ]
+        ],
+        "n_windows": 1,
+        "threshold": 0.7,
+        "merge_threshold": 0.7,
+        "raw_clusters": 3,
+        "raw_n_segments": 59,
+        "merged_clusters": 2,
+        "per_speaker_s": {
+          "0": 543.696,
+          "1": 0.624
+        },
+        "per_raw_speaker_s": {
+          "0:0": 541.181,
+          "0:1": 2.515,
+          "0:7": 0.624
+        },
+        "main_ratio": 0.9989,
+        "min_speaker_s": 5.0,
+        "min_speaker_ratio": 0.03,
+        "n_stable": 1,
+        "stable": [
+          {
+            "cluster": 0,
+            "dur_s": 543.696,
+            "ratio": 0.9989
+          }
+        ],
+        "is_multi": false,
+        "verdict": "single",
+        "timings": {
+          "diar_s": 162.73,
+          "embed_s": 12.12,
+          "merge_s": 0.004,
+          "total_s": 174.85
+        }
+      }
+    },
+    "f00": {
+      "body_sampled": {
+        "job_id": "621cb91c_0_20140227_丁耘_西方哲学",
+        "clean16k": "C:\\projects\\local\\audio_processer\\work\\cache\\621cb91c_0_20140227_丁耘_西方哲学.clean16k.wav",
+        "clean_dur_s": 2745.295,
+        "elapsed_s": 342.98,
+        "windows": [
+          [
+            387.549,
+            687.549
+          ],
+          [
+            1222.648,
+            1522.648
+          ],
+          [
+            2057.746,
+            2357.746
+          ]
+        ],
+        "n_windows": 3,
+        "threshold": 0.7,
+        "merge_threshold": 0.7,
+        "raw_clusters": 12,
+        "raw_n_segments": 88,
+        "merged_clusters": 6,
+        "per_speaker_s": {
+          "0": 856.442,
+          "1": 5.383,
+          "2": 1.232,
+          "3": 1.215,
+          "4": 0.557,
+          "5": 0.304
+        },
+        "per_raw_speaker_s": {
+          "0:0": 272.853,
+          "2:0": 256.147,
+          "1:0": 167.08,
+          "1:3": 63.214,
+          "1:1": 57.121,
+          "2:4": 31.033,
+          "0:5": 8.994,
+          "0:11": 5.383,
+          "1:2": 1.232,
+          "1:6": 1.215,
+          "0:1": 0.557,
+          "0:7": 0.304
+        },
+        "main_ratio": 0.99,
+        "min_speaker_s": 5.0,
+        "min_speaker_ratio": 0.03,
+        "n_stable": 1,
+        "stable": [
+          {
+            "cluster": 0,
+            "dur_s": 856.442,
+            "ratio": 0.99
+          }
+        ],
+        "is_multi": false,
+        "verdict": "single",
+        "timings": {
+          "diar_s": 329.66,
+          "embed_s": 13.31,
+          "merge_s": 0.001,
+          "total_s": 342.98
+        }
+      }
+    }
+  }
+}

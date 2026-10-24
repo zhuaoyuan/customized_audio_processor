@@ -1,0 +1,44 @@
+{
+  "ok": false,
+  "enabled": true,
+  "reason": "number_changed",
+  "diff_ratio": 0.033333,
+  "items": 0,
+  "usage": {
+    "prompt_tokens": 3050,
+    "completion_tokens": 19339,
+    "cache_hit_tokens": 0
+  },
+  "cost_cny": 0.080406,
+  "elapsed_s": 96.177,
+  "wall_s": 96.284,
+  "input_chars": 4200,
+  "fixed_chars": 4200,
+  "error": "",
+  "validation": {
+    "ok": false,
+    "reason": "number_changed",
+    "diff_ratio": 0.033333,
+    "chars_orig": 4200,
+    "chars_fixed": 4218,
+    "n_sentences_orig": 117,
+    "n_sentences_fixed": 113,
+    "sentence_change_ratio": 0.03418803418803419,
+    "numbers_orig": [
+      "1",
+      "1",
+      "12",
+      "14",
+      "2",
+      "4",
+      "4",
+      "456789",
+      "7"
+    ],
+    "book_marks_orig": [
+      0,
+      0
+    ]
+  },
+  "items_detail": []
+}
