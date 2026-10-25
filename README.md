@@ -11,7 +11,7 @@
 
 ## 状态
 
-当前版本 **v0.2.1**（v0.2.0 的 P0–P10 + `finalize` 交付目录整理）。
+当前版本 **v0.2.2**（v0.2.1 的 finalize + P2-T4/T5 片头闲聊/边缘静音自动裁 + P3-T2 低 SNR 自动切 GTCRN）。
 
 - ✅ P0 基础设施、P1 解码、P2 分析、P3 渲染（降噪/裁剪/响度）、P4 ASR + 说话人、P5 纠错 + 文本导出
 - ✅ P6 编排器与 CLI：断点续跑、失败隔离、磁盘水位、quarantine、`run / batch / retry / status / serve`
@@ -25,6 +25,9 @@
 - ✅ v0.2.1 交付目录整理（`finalize`）：job id 改为 `<hash8>_<原始文件名主体>`（修复 `04下`/`08上`/`08下`
   被 20 字截断成同名 `…_物理学` 的问题）；`clean.m4a` → `output/audio/`、`manuscript.md` 副本 →
   `output/manuscript/`；幂等 + `--dry-run`；`out/1` 的 14 个 job 已迁移
+- ✅ v0.2.2 听感反馈两项通用修复：**片头闲聊/边缘静音自动裁**（30 s 块级「连续 90 s 持续讲课」
+  兜底 + 片头片尾非语音切除，f00 head 0→89.5 s）；**低 SNR 自动切 GTCRN**（`denoise.mode: auto`，
+  SNR<12 dB 走 16k 神经网络降噪 + VAD 引导增益下限，兼顾降噪与「不吞字/不断句」）
 
 `data/` 下 6 个真实样例（576 min）已跑完，产物在 `out/<job_id>/`（跑过 `finalize` 后 job 目录名是
 `<hash8>_<原始文件名主体>`，成品在 `out/output/`），任务库是 `out/jobs.db`。
@@ -53,10 +56,16 @@ work\venv\Scripts\python -m app.cli --version
 | 用途 | 路径（默认） |
 |---|---|
 | ASR（SenseVoice int8 + tokens） | `work/bench/models/sensevoice/`（`model.int8.onnx`、`tokens.txt`） |
-| 降噪（RNNoise） | `work/bench/models/rnnoise/sh.rnnn` |
+| 降噪（RNNoise，`denoise.mode=arnndn` 用） | `work/bench/models/rnnoise/sh.rnnn` |
+| 降噪（GTCRN，`denoise.mode=auto\|gtcrn` 低 SNR 用） | `work/bench/models/gtcrn/gtcrn_simple.onnx`（0.51 MB） |
 | 说话人（可选，默认 `diar.mode=none` 不加载） | `work/diar/models/` |
 
 模型目录可用环境变量 `MODEL_DIR` 覆盖；其余路径见 `configs/default.yaml` 的 `paths` 段。
+
+**降噪选路**：`denoise.mode` 默认 `auto`——P2 的 SNR < `denoise.auto_gtcrn_below_snr_db`（12 dB）时
+用 GTCRN（16 kHz 神经网络；带 VAD 引导的逐帧增益下限 −8/−24 dB，避免「吞轻声字/断句」），
+否则用 ffmpeg `afftdn`（RTF≈0.002，便宜两个数量级）；想固定档位就显式写 `afftdn`/`gtcrn`/`arnndn`/`off`。
+GTCRN 只吃 16 kHz，内部按 600 s 分块推理后 `aresample=44100`，产物契约与 afftdn 完全一致。
 
 **LLM 纠错是可选的**：设置 `$env:DEEPSEEK_API_KEY='sk-...'` 才会真正调用；
 不设置时 `correct` 阶段自动 `enabled=false` 并写空 `corrections.json`，**不阻塞**整条流水线。

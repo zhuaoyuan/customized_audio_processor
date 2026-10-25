@@ -231,8 +231,14 @@ def test_boundary_head_detected(cfg):
     assert result["head"]["windows"][0]["teaching"] is False
 
 
-def test_boundary_head_keeps_soft_intro(cfg):
-    """f00 形态：0–120 s 是课前寒暄（cps 1.5，软窗口），不应被切掉。"""
+def test_boundary_head_trims_soft_chatter(cfg):
+    """f00 形态（v7 起行为改变）：0–120 s 是课前寒暄，但 120 s 起持续讲课 → 裁掉寒暄。
+
+    旧行为（v6）：「软窗口向前吸收」把 head 留在 0，交付音频开头 90 s 闲聊被保留
+    （用户 2026-10-25 反馈「一开始有一段无意义且有杂音的片段」）。
+    v7 起：head==0 时用 30 s 块级「连续 3 块达标 = 90 s 持续讲课」兜底，且要求起点前
+    有 ≥2 个近空块（证明是「先空/先闲聊」），于是边界落在 119.5 s。
+    """
     duration = 600.0
     x = np.zeros(int(duration * SR), dtype=np.float32)
     # 0–30 s 与 60–90 s 有声、其余静音 → 0–120 s 窗口 cps≈1.5（软窗口，未达标）
@@ -243,9 +249,82 @@ def test_boundary_head_keeps_soft_intro(cfg):
     result = detect_boundaries(x, segs, duration, cfg, FakeTranscriber(), SR)
     assert result["head"]["windows"][0]["cps"] == pytest.approx(1.5, abs=0.1)
     assert result["head"]["windows"][0]["teaching"] is False
-    # 达标窗口从 120 s 开始，但向前吸收了软窗口 → 头边界回到 0
-    assert result["head"]["boundary_s"] == 0.0
-    assert result["head"]["window_start_s"] == 0.0
+    assert result["head"]["boundary_s"] == pytest.approx(119.5, abs=0.01)
+    assert "head_chatter_trim" in result["head"]["flags"]
+    assert result["head"]["chatter_trim"]["block_index"] == 4
+
+
+def test_sustained_teaching_start_unit():
+    """纯函数：块级「持续讲课」起点 + 上限 + 近空块数量三重判据。"""
+    from app.pipeline.analyze import _sustained_teaching_start
+
+    class StubChars:
+        def __init__(self, cps_by_block):
+            self.cps_by_block = list(cps_by_block) + [0.0] * 16
+
+        def cps(self, t0, t1):
+            return self.cps_by_block[int(round(t0 // 30))]
+
+        def chars(self, t0, t1):
+            return int(self.cps(t0, t1) * (t1 - t0))
+
+        def chars(self, t0, t1):
+            return int(self.cps(t0, t1) * (t1 - t0))
+
+    # 3.13, 0.87, 0.23, 3.00, 3.60, 4.00 → 从第 3 块（90 s）起持续讲课
+    got = _sustained_teaching_start(
+        StubChars([3.13, 0.87, 0.23, 3.0, 3.6, 4.0]),
+        chunk_s=30.0, max_start_s=120.0, need_blocks=3, min_cps=2.0,
+        quiet_cps=1.0, min_quiet_blocks=2,
+    )
+    assert got is not None
+    assert got["boundary_s"] == pytest.approx(89.5)
+    assert got["block_index"] == 3 and got["quiet_blocks"] == 2
+
+    # 近空块不足 2 个（开头是轻声但连续的讲课）→ 不裁
+    none = _sustained_teaching_start(
+        StubChars([2.5, 1.2, 1.1, 1.0, 2.2, 2.4, 2.6]),
+        chunk_s=30.0, max_start_s=120.0, need_blocks=3, min_cps=2.0,
+        quiet_cps=1.0, min_quiet_blocks=2,
+    )
+    assert none is None
+
+    # 讲课起点超过上限（150 s > 120 s）→ 不裁
+    late = _sustained_teaching_start(
+        StubChars([0.0, 0.2, 0.1, 1.5, 1.8, 3.0, 3.2, 3.4]),
+        chunk_s=30.0, max_start_s=120.0, need_blocks=3, min_cps=2.0,
+        quiet_cps=1.0, min_quiet_blocks=2,
+    )
+    assert late is None
+
+
+def test_auto_edge_trim_unit():
+    """边缘非语音：片头空白只切 head==0 的情况；片尾空白总是可切。"""
+    from app.pipeline.analyze import auto_edge_trim
+
+    head, tail, flags = auto_edge_trim(
+        [(7.74, 40.0), (45.0, 120.0)], 130.0, 0.0, 130.0,
+        lead_min_s=1.0, trail_min_s=3.0, pad_s=0.5,
+    )
+    assert head == pytest.approx(7.24) and tail == pytest.approx(120.5)
+    assert flags == ["head_leading_nonspeech", "tail_trailing_nonspeech"]
+
+    # head 已经 >0（窗口法/闲聊规则处理过）→ 不再往前推
+    head2, tail2, flags2 = auto_edge_trim(
+        [(7.74, 40.0)], 130.0, 20.0, 130.0,
+        lead_min_s=1.0, trail_min_s=3.0, pad_s=0.5,
+    )
+    assert head2 == 20.0
+    assert tail2 == pytest.approx(40.5)
+    assert flags2 == ["tail_trailing_nonspeech"]
+
+    # 空白太短（< 阈值）→ 不动
+    h3, t3, f3 = auto_edge_trim([(0.3, 89.5)], 90.0, 0.0, 90.0,
+                                lead_min_s=1.0, trail_min_s=3.0, pad_s=0.5)
+    assert (h3, t3, f3) == (0.0, 90.0, [])
+
+    # 没有语音段 → 不动
+    assert auto_edge_trim([], 90.0, 0.0, 90.0) == (0.0, 90.0, [])
 
 
 def test_boundary_head_refined_to_30s(cfg):
@@ -457,8 +536,11 @@ def test_analyze_wav_without_asr(cfg, tmp_path: Path):
     assert result.vad["speech_ratio"] == pytest.approx(400 / 640, abs=1e-3)
     assert "head_uncertain" in result.trim["flags"]
     assert result.levels["asl_in_dbfs"] == pytest.approx(-13.98, abs=0.3)  # 0.2 幅值 → -14 dB
-    assert result.trim["head_s"] == 0.0
-    assert result.trim["tail_s"] == pytest.approx(640.0)
+    # v7 起：ASR 关闭时边界不确定，但片头 0–100 s 是 VAD 明确判定的非语音 → 仍然自动切掉
+    assert result.trim["head_s"] == pytest.approx(99.5)
+    assert "head_leading_nonspeech" in result.trim["flags"]
+    assert result.trim["tail_s"] == pytest.approx(500.5)
+    assert "tail_trailing_nonspeech" in result.trim["flags"]
     # 缓存命中
     cached = analyze_wav(wav, cfg, job_id="t", run_boundary=False, segments=segs)
     assert cached.from_cache is True
@@ -569,8 +651,9 @@ def test_data_boundaries_six_files(decoded_samples, session_cfg):
     assert 105.0 <= heads["f06"] <= 140.0, f"f06 head={heads['f06']}"
     assert 85.0 <= heads["f20"] <= 100.0, f"f20 head={heads['f20']}"
     assert heads["f05"] <= 10.0, heads["f05"]
-    assert heads["f00"] <= 10.0, heads["f00"]
-    assert heads["f04"] <= 10.0, heads["f04"]
+    # v7：f00 片头是 90 s 课前闲聊（块级持续讲课判据）→ 裁到 ≈89.5；f04 片头是 10 s 空白 → ≈10.25
+    assert 85.0 <= heads["f00"] <= 100.0, f"f00 head={heads['f00']}"
+    assert 5.0 <= heads["f04"] <= 20.0, f"f04 head={heads['f04']}"
     # 片尾：f00/f20 其实一直讲到结尾（30 s 块级精修补回），f24 尾部是噪声
     assert tails["f00"] >= 3040.0, tails["f00"]
     assert tails["f20"] >= 6146.0, tails["f20"]

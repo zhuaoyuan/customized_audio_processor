@@ -60,7 +60,9 @@ CHUNK_FRAMES = 200_000
 
 CACHE_SUFFIX = ".analyze.json"
 #: 分析结果缓存版本：算法/口径变化时 +1，自动让旧缓存失效
-ANALYZE_VERSION = 6
+#: v7：新增「课前闲聊/片头片尾空白」自动切除（head_chatter_trim / head_leading_nonspeech /
+#: tail_trailing_nonspeech），见 :func:`_sustained_teaching_start` 与 :func:`auto_edge_trim`。
+ANALYZE_VERSION = 7
 
 
 class AnalyzeError(RuntimeError):
@@ -634,6 +636,97 @@ def _refine_tail_end(
     return end
 
 
+def _sustained_teaching_start(
+    chars: "_ChunkTranscriber",
+    *,
+    chunk_s: float,
+    max_start_s: float,
+    need_blocks: int,
+    min_cps: float,
+    quiet_cps: float,
+    min_quiet_blocks: int,
+) -> Optional[Dict[str, Any]]:
+    """在 ``[0, max_start_s]`` 内找「持续讲课」的起点（30 s 块级）。
+
+    为什么需要它（2026-10-25 用户反馈：片头 0–90 s 是课前闲聊，但窗口法判成了「软窗口」
+    并向前吸收，head 落到 0）：
+    - 120 s 窗口的字符率会被「闲聊 + 静音」平均掉：本文件 0–120 s cps=1.81（<2.0，非讲课），
+      但 120–240 s 已达 3.87 —— 窗口法于是把 0–120 s 当软窗口留着；
+    - 30 s 块级能看到真实结构：``3.13, 0.87, 0.23, 3.00, 3.60, 4.00``，即「闲聊 → 空 → 持续讲课」；
+    - 但**首块 3.13 cps 也不低**，所以不能简单取「第一个达标块」（那会把边界拉回 0），
+      必须要求「连续 need_blocks 块都达标」（默认 3 块 = 90 s 持续讲课）才算进入讲课。
+
+    判据（三条同时满足才返回边界，宁可不裁也不误切）：
+    1. 从第 b 块起连续 ``need_blocks`` 个块的 cps ≥ ``min_cps``；
+    2. ``b*chunk_s <= max_start_s``（默认 120 s；更晚的起点交给人工，不自动裁）；
+    3. b 之前至少有 ``min_quiet_blocks`` 个块的 cps < ``quiet_cps``（默认 2 块）——
+       证明开头确实「先空/先闲聊」，而不是一段连续但轻声的讲课（轻声讲课不会出现近空白块）。
+
+    返回 ``{block_index, boundary_s, block_s, block_cps, quiet_blocks}``；不满足返回 None。
+    """
+    if chars is None or chunk_s <= 0:
+        return None
+    max_b = int(max(0.0, max_start_s) // chunk_s + 1e-9)
+    if max_b < 0:
+        return None
+    block_cps: List[float] = []
+    for b in range(0, max_b + need_blocks):
+        t0 = b * chunk_s
+        t1 = t0 + chunk_s
+        block_cps.append(float(chars.cps(t0, t1)))
+    for b in range(0, max_b + 1):
+        window = block_cps[b:b + need_blocks]
+        if len(window) < need_blocks or any(c < min_cps for c in window):
+            continue
+        quiet = sum(1 for c in block_cps[:b] if c < quiet_cps)
+        if quiet < min_quiet_blocks:
+            continue
+        return {
+            "block_index": b,
+            "boundary_s": round(max(0.0, b * chunk_s - 0.5), 3),
+            "block_s": float(chunk_s),
+            "block_cps": [round(c, 2) for c in block_cps[:b + need_blocks]],
+            "quiet_blocks": quiet,
+        }
+    return None
+
+
+def auto_edge_trim(
+    segments: Sequence[Sequence[float]],
+    duration: float,
+    head_s: float,
+    tail_s: float,
+    *,
+    lead_min_s: float = 1.0,
+    trail_min_s: float = 3.0,
+    pad_s: float = 0.5,
+) -> Tuple[float, float, List[str]]:
+    """头尾「边缘非语音」自动切除（纯函数，P2-T5）。
+
+    用户反馈（2026-10-25）：片头 0–7.7 s 没有语音，但 0.5–1.0 s 有一记削顶的咔哒/轰隆
+    （源峰值 +3.8 dBFS），交付音频把这段噪声原样留在开头；片尾同理有收设备/房间噪声。
+
+    规则（只动 VAD 明确判为非语音的区段）：
+    - ``head_s == 0`` 且首段语音前空白 ≥ ``lead_min_s`` → ``head = 首段起点 − pad``；
+      head 已经 >0 时不改（那说明窗口法/闲聊规则已经处理过开头，不能再往下推）。
+    - 末段语音后空白 ≥ ``trail_min_s`` → ``tail = 末段终点 + pad``。
+
+    返回 ``(head_s, tail_s, flags)``；没有任何改动时 flags 为空。
+    """
+    flags: List[str] = []
+    if not segments:
+        return head_s, tail_s, flags
+    first_start = max(0.0, float(segments[0][0]))
+    last_end = min(float(duration), float(segments[-1][1]))
+    if abs(float(head_s)) <= 1e-9 and first_start - pad_s >= lead_min_s:
+        head_s = round(max(0.0, min(float(duration), first_start - pad_s)), 3)
+        flags.append("head_leading_nonspeech")
+    if float(tail_s) >= float(duration) - 1e-6 and float(duration) - last_end >= trail_min_s:
+        tail_s = round(max(head_s, min(float(duration), last_end + pad_s)), 3)
+        flags.append("tail_trailing_nonspeech")
+    return head_s, tail_s, flags
+
+
 def detect_boundaries(
     x: np.ndarray,
     segments: Sequence[Sequence[float]],
@@ -727,6 +820,23 @@ def detect_boundaries(
         head["cps"] = round(head_rates[idx].cps, 2)
         if start_idx != idx:
             head["extended_back_s"] = round(head_rates[start_idx].t0, 3)
+    # 兜底：窗口法/软窗口吸收后仍是「不裁头」，再检查开头是否「先空/先闲聊、后持续讲课」
+    # （用户 2026-10-25 反馈：片头 90 s 课前闲聊被留在交付音频里）。只在 head==0 时触发，
+    # 不影响已有的 f20（89.5）/f06（119.5）/f24（479.5）等边界。
+    if idx is not None and idx >= 1 and head["boundary_s"] <= 1e-9:
+        auto = _sustained_teaching_start(
+            chars,
+            chunk_s=chunk_s,
+            max_start_s=float(cfg.get("trim.head_auto_max_s", 120.0)),
+            need_blocks=int(cfg.get("trim.head_auto_run_blocks", 3)),
+            min_cps=min_cps,
+            quiet_cps=soft_cps,
+            min_quiet_blocks=int(cfg.get("trim.head_auto_min_quiet_blocks", 2)),
+        )
+        if auto is not None and auto["boundary_s"] > 1e-9:
+            head["boundary_s"] = auto["boundary_s"]
+            head["flags"].append("head_chatter_trim")
+            head["chatter_trim"] = auto
     head["windows"] = [w.as_dict() for w in head_rates]
 
     # ---------------- 尾：从末尾往前扫，找到即停
@@ -1061,6 +1171,22 @@ def analyze_wav(
     tail_s = float(boundary["tail"]["boundary_s"])
     head_method = "window_asr" if boundary["method"] == "window_asr" else boundary["method"]
     flags = sorted(set(boundary["head"]["flags"] + boundary["tail"]["flags"]))
+
+    # 6.4) 边缘非语音自动切除：片头空白/咔哒（head==0 时）与片尾空白（P2-T5）
+    trimmed_head, trimmed_tail, edge_flags = auto_edge_trim(
+        seg_list, duration, head_s, tail_s,
+        lead_min_s=float(cfg.get("trim.edge_nonspeech_min_s", 1.0)) if cfg else 1.0,
+        trail_min_s=float(cfg.get("trim.tail_nonspeech_min_s", 3.0)) if cfg else 3.0,
+        pad_s=float(cfg.get("trim.boundary_pad_s", 0.5)) if cfg else 0.5,
+    )
+    if edge_flags:
+        head_s, tail_s = trimmed_head, trimmed_tail
+        flags = sorted(set(flags) | set(edge_flags))
+        log.info(
+            "边缘非语音自动切除：%s head %.2f→%.2f tail %.2f→%.2f（%s）",
+            job_id, float(boundary["head"]["boundary_s"]), head_s,
+            float(boundary["tail"]["boundary_s"]), tail_s, ",".join(edge_flags),
+        )
 
     # 6.5) 人工抽听修正（configs/manual_review.yaml；只覆盖边界，不改算法）
     trim: Dict[str, Any] = {

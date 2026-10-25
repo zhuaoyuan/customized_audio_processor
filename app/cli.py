@@ -459,6 +459,8 @@ def cmd_config_check(args: argparse.Namespace, cfg: Config) -> int:
     add("model", "sensevoice_dir", cfg.model_path("sensevoice_dir"), True) if model.get("sensevoice_dir") else None
     if model.get("rnnoise_model"):
         add("model", "rnnoise_model", cfg.model_path("rnnoise_model"), False)
+    if model.get("gtcrn_model"):
+        add("model", "gtcrn_model", cfg.model_path("gtcrn_model"), False)
     if model.get("whisper_cache"):
         add("model", "whisper_cache", cfg.model_path("whisper_cache"), True)
     if model.get("diar_dir"):

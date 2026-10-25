@@ -25,6 +25,7 @@ paths:
     sensevoice_dir: ${paths.models_root}/sensevoice
     whisper_cache: ${paths.models_root}/whisper
     rnnoise_model: ${paths.models_root}/rnnoise/sh.rnnn
+    gtcrn_model: ${paths.models_root}/gtcrn/gtcrn_simple.onnx
     diar_dir: work/diar/models
     silero_vad: ""                 # 空 = 用 faster_whisper 包内自带 assets
 
@@ -98,10 +99,23 @@ trim:
   internal_silence_min_s: 3.0      # 内部非语音 ≥3 s 切除
   internal_guard_s: 0.25           # 切除两侧保护带
   keep_fragments: true             # <3 s 碎片语音保留
+  # —— 课前闲聊 / 片头片尾空白自动切除（v0.2.2，P2-T4/T5；用户 2026-10-25 反馈）——
+  # 窗口法会把「闲聊+静音」平均成软窗口留着（本库 f00 片头 90 s 闲聊被保留）；
+  # 这里用 30 s 块级「连续 N 块达标才算讲课」兜底，只在 head==0 时触发，不影响既有边界。
+  head_auto_max_s: 120.0           # 自动裁课前的上限：讲课起点晚于此值则交人工，不自动裁
+  head_auto_run_blocks: 3          # 连续 3 个 30 s 块 cps≥2.0（=90 s 持续讲课）才算进入讲课
+  head_auto_min_quiet_blocks: 2    # 起点前至少 2 个近空/软块（cps<1.0），证明确实是「先空/先闲聊」
+  edge_nonspeech_min_s: 1.0        # head==0 时，首段语音前空白 ≥ 此值 → 当作头边界切掉（片头咔哒/底噪）
+  tail_nonspeech_min_s: 3.0        # 末段语音后空白 ≥ 此值 → 当作尾边界切掉（收设备/房间噪声）
 
 # ---------------------------------------------------------------- 降噪
 denoise:
-  mode: afftdn                     # afftdn | arnndn | highpass | off
+  mode: auto                       # auto | afftdn | gtcrn | arnndn | highpass | off
+  # auto：SNR < auto_gtcrn_below_snr_db 时用 gtcrn（NN 降噪，16k），否则用 afftdn。
+  # 依据（2026-10-25 实测，f00 SNR 10.8 dB）：afftdn 在低 SNR 时已饱和（nr 16/20/24/30 结果完全一样，
+  # 100–300 Hz 只降 1 dB，听感「隆隆」）；GTCRN 停顿底噪再降 ~22 dB，但会吞轻声字 →
+  # 用「VAD 引导的增益下限」把语音段最大衰减限制在 floor_speech_db，兼顾连续性与降噪。
+  auto_gtcrn_below_snr_db: 12.0    # mode=auto 时的切换阈值
   highpass_hz: 80
   afftdn:
     nr: 12.0
@@ -110,6 +124,12 @@ denoise:
   arnndn:
     model: sh.rnnn                 # 相对模型目录（Windows 盘符冒号会破坏 filter 解析）
     resample_sr: 48000             # rnnoise 只支持 48k，须 aresample 进出
+  gtcrn:
+    chunk_s: 600.0                 # 分块跑 denoiser（控制内存；块间 0.5 s 交叉淡化）
+    overlap_s: 0.5
+    floor_speech_db: -8.0          # 语音帧（VAD）的增益下限：太小会吞字/发闷，太大降噪变弱
+    floor_pause_db: -24.0          # 非语音帧的增益下限：决定停顿底噪能压多深
+    gain_smooth_ms: 60.0           # 增益时间平滑（抑制逐帧抖动导致的「不连续」）
   low_snr_db: 12.0                 # SNR 低于此值时提示可升 nr/切 arnndn
   low_snr_nr: 16.0                 # SNR < low_snr_db 且 mode=afftdn 时用的 nr 值
 

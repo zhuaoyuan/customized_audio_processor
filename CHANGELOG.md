@@ -1,7 +1,37 @@
 # CHANGELOG
 
-本项目遵循「按阶段里程碑」记录（非严格 SemVer 发布节奏）；当前已发布版本 **v0.2.1** = P0–P10 +
-交付目录整理（v0.2.0 = P0–P10，P9 纠错质量修复、P10 全文成稿并入；v0.1.0 = P0–P8）。
+本项目遵循「按阶段里程碑」记录（非严格 SemVer 发布节奏）；当前已发布版本 **v0.2.2** = P0–P10 +
+交付目录整理 + P2-T4/T5（片头闲聊自动裁）+ P3-T2（低 SNR 自动切 GTCRN）。
+（v0.2.1 = finalize 交付目录整理；v0.2.0 = P0–P10，P9 纠错质量修复、P10 全文成稿并入；v0.1.0 = P0–P8）
+
+## [0.2.2] - 2026-10-25 · 片头闲聊自动裁 + 低 SNR 降噪升级（用户听感反馈）
+
+用户抽听 `out/2`（f00 20140227 西方哲学）后反馈两点：①一开始有一段无意义且有杂音的片段
+（课前闲聊 + 片头咔哒）；②正式讲课过程仍有背景杂音（20:00 左右）。两处都做成**通用规则**，
+不写逐文件特例：
+
+- **片头闲聊自动裁（P2-T4，`ANALYZE_VERSION` 6→7）**：窗口法 0–120 s cps=1.81（<2.0 但 ≥ 软阈值
+  1.0）会被「向前吸收软窗口」留在 0；新增 30 s 块级兜底 `_sustained_teaching_start()`：
+  head==0 时，若找到「连续 3 块（90 s）cps≥2.0、且起点前有 ≥2 个近空块（cps<1.0）」的持续讲课起点，
+  且起点 ≤ `trim.head_auto_max_s`（默认 120 s），就把 head 挪到该起点（flag `head_chatter_trim`）。
+  本文件 head 0→89.5；f04 head 0→10.25（同理走边缘规则）；f20/f24/f06 等既有边界不变。
+  为什么不能只调 cps：闲聊块 cps 可达 3.13（比讲课阈值还高），只有「连续多块持续达标」才能区分。
+- **片头/片尾边缘非语音自动切（P2-T5）**：`auto_edge_trim()`——head==0 且首段语音前空白
+  ≥ `trim.edge_nonspeech_min_s`（默认 1.0 s）→ head=首段起点−pad（本文件 0–7.74 s 含 +3.8 dBFS
+  削顶咔哒）；末段语音后空白 ≥ `trim.tail_nonspeech_min_s`（默认 3 s）→ tail=末段终点+pad。
+  六个样例 job 里影响 f00（−7.7 s 咔哒已被闲聊规则覆盖）与 f04（−10.25 s）。
+- **降噪：低 SNR 自动切 GTCRN（P3-T2）**：`denoise.mode: auto`（新默认）——SNR <
+  `denoise.auto_gtcrn_below_snr_db`（12 dB）走 GTCRN（sherpa-onnx，16k，RTF≈0.05），否则仍走
+  ffmpeg afftdn（RTF≈0.002）。实测 f00：afftdn 已饱和（nr 16/20/24/30 结果完全一样；100–300 Hz
+  噪声只降 ~1 dB → 听感「隆隆」），GTCRN 停顿底噪再降 ~22 dB，但会吞轻声字 → 加
+  **VAD 引导的逐帧增益下限**（语音帧 −8 dB / 停顿帧 −24 dB + 60 ms 平滑 + 输入相位）：
+  语音帧 p1 增益 −17.7→−11.2 dB，被压 >10 dB 的语音帧 4.6%→0.8%，停顿底噪与纯 GTCRN 持平。
+  模型 `work/bench/models/gtcrn/gtcrn_simple.onnx`（0.51 MB）已在仓库外置目录，配置项
+  `paths.models.gtcrn_model` / `denoise.gtcrn.*`。
+- **测试**：`tests/test_analyze.py` 新增 `_sustained_teaching_start` / `auto_edge_trim` 单测并更新
+  「软窗口不裁」用例（现在应裁）；`tests/test_denoise.py` 新增 14 个 GTCRN/auto 用例；
+  `tests/test_trim.py` 六文件 EXPECTED 同步 f00/f04 新边界（总 clean 32082.2→32003.0 s）。
+  全量 `pytest` 全绿。
 
 ## [0.2.1] - 2026-10-25 · 交付目录整理（finalize）
 

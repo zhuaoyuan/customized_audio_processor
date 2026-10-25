@@ -82,6 +82,7 @@ work/bench/hf_home/
 work/bench/models/
 # 误放在包目录下的转写草稿（本地保留，不入库）
 app/transcript.md
+tmp/
 
 # ---- Python 缓存 ----
 __pycache__/

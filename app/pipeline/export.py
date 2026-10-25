@@ -57,6 +57,8 @@ from .denoise import (
     DenoiseError,
     build_filter_chain,
     denoise_44k,
+    denoise_gtcrn_44k,
+    resolve_mode,
     resolve_nr,
 )
 from .trim import (
@@ -562,24 +564,54 @@ def render_job(
         notify("analyze", "done", {"from_cache": analyze_res.from_cache,
                                    "elapsed_s": timings["analyze_s"]})
 
-        # 3) 降噪（44.1k，输出 work/cache/<id>.denoised44k.wav）
+        # 3) 降噪（输出 work/cache/<id>.denoised44k.wav）
+        #    mode=auto 时按 SNR 选路：低 SNR → GTCRN（16k 神经网络 + VAD 引导增益下限），
+        #    其余走 ffmpeg 滤镜链（afftdn，RTF≈0.002）。两条路产物契约相同（44.1k/mono/f32）。
         stage = "denoise"
         t0 = time.perf_counter()
         snr_db = analyze_res.levels.get("snr_db") if analyze_res.levels else None
-        denoised = denoise_44k(Path(decoded.wav44k), cfg, job_id, snr_db=snr_db)
+        mode_used = resolve_mode(cfg, snr_db)
+        if mode_used == "gtcrn":
+            wav16k = Path(decoded.wav16k) if decoded.wav16k else None
+            if wav16k is None or not wav16k.is_file():
+                # 16k 分析轴缓存可能已被清理，按需补解一次
+                refetched = run_decode(
+                    source_p, cache_dir=cache_root, job_id=job_id, need_44k=False,
+                    cfg=cfg, force=False,
+                )
+                wav16k = Path(refetched.wav16k) if refetched.ok and refetched.wav16k else None
+            if wav16k is None or not wav16k.is_file():
+                raise ExportError("降噪失败：GTCRN 需要 16k 分析轴 wav，但补解失败")
+            denoised = denoise_gtcrn_44k(
+                wav16k, cfg, job_id, segments=analyze_res.segments or None
+            )
+        else:
+            denoised = denoise_44k(Path(decoded.wav44k), cfg, job_id, snr_db=snr_db)
         timings["denoise_s"] = time.perf_counter() - t0
         nr_used = resolve_nr(cfg, snr_db=snr_db)
         try:
-            af, _cwd = build_filter_chain(cfg, nr=nr_used, src_sr=SR44)
+            af, _cwd = build_filter_chain(cfg, nr=nr_used, src_sr=SR44) if mode_used == "afftdn" else ""
         except Exception:  # pragma: no cover - 仅用于报告
             af = ""
-        denoise_info = {
-            "mode": str(cfg.get("denoise.mode", "afftdn") if cfg else "afftdn"),
-            "filter": af,
-            "nr": nr_used,
-            "snr_db": snr_db,
-            "elapsed_s": round(timings["denoise_s"], 2),
-        }
+        if mode_used == "gtcrn":
+            denoise_info = {
+                "mode": "gtcrn",
+                "filter": "",
+                "nr": None,
+                "snr_db": snr_db,
+                "floor_speech_db": float(cfg.get("denoise.gtcrn.floor_speech_db", -8.0)),
+                "floor_pause_db": float(cfg.get("denoise.gtcrn.floor_pause_db", -24.0)),
+                "smooth_ms": float(cfg.get("denoise.gtcrn.gain_smooth_ms", 60.0)),
+                "elapsed_s": round(timings["denoise_s"], 2),
+            }
+        else:
+            denoise_info = {
+                "mode": mode_used,
+                "filter": af,
+                "nr": nr_used,
+                "snr_db": snr_db,
+                "elapsed_s": round(timings["denoise_s"], 2),
+            }
         notify("denoise", "done", dict(denoise_info))
 
         # 4) 裁剪（44.1k clean wav + kept 映射）

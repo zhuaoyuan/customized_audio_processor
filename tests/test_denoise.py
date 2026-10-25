@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
-"""P3-T1 降噪单测：滤镜链纯函数 + ffmpeg 封装 + 错误路径 + 44.1k 渲染轴契约。
+"""P3-T1 降噪单测：滤镜链纯函数 + ffmpeg 封装 + 错误路径 + 44.1k 渲染轴契约
++ GTCRN（16k 神经网络 + VAD 增益下限）。
 
 分两层：
 - **纯函数用例**（默认跑）：``build_filter_chain`` 各 mode、arnndn 的 cwd/相对路径/48k
-  往返、``resolve_nr`` 的低 SNR 升 nr、参数校验；
+  往返、``resolve_nr`` 的低 SNR 升 nr、``resolve_mode`` 的 auto 规则、``gain_floor_curve``
+  的下限/平滑、参数校验；
 - **ffmpeg 用例**（``requires_ffmpeg``）：afftdn/off 真跑、产物采样率与时长校验、超时；
 - **denoise_44k 契约用例**：用 monkeypatch 替换 ``denoise_wav`` 捕获 nr 决策（不依赖真实
-  rnnoise 模型），另有一条真跑 afftdn 验证产物 44.1k/mono/float32。
+  rnnoise 模型），另有一条真跑 afftdn 验证产物 44.1k/mono/float32；
+- **GTCRN 用例**：缺 sherpa_onnx 或 ``gtcrn_simple.onnx`` 时整体 skip（``pytest.skip``），
+  有模型时真跑合成信号（纯噪声降噪量 / 1 kHz 音调保留 / 44.1k 输出契约）。
 """
 
 from __future__ import annotations
@@ -18,15 +22,20 @@ import numpy as np
 import pytest
 import scipy.io.wavfile as wavfile
 
-from app.config import Config
+from app.config import Config, ConfigError
 from app.pipeline import denoise as denoise_mod
 from app.pipeline.decode import read_wav_float32, wav_info
 from app.pipeline.denoise import (
     CACHE_SUFFIX_DENOISED44K,
+    CACHE_SUFFIX_GTCRN16K,
     DenoiseError,
     build_filter_chain,
     denoise_44k,
+    denoise_gtcrn_44k,
     denoise_wav,
+    gain_floor_curve,
+    gtcrn_denoise_wav16k,
+    resolve_mode,
     resolve_nf,
     resolve_nr,
 )
@@ -34,6 +43,7 @@ from app.pipeline.denoise import (
 from conftest import requires_ffmpeg
 
 DEFAULT_AFFTDN = "highpass=f=80,afftdn=nr=12:nf=-30:tn=1"
+GTCRN_SR = 16000
 
 
 # ---------------------------------------------------------------- 造测试音频
@@ -410,3 +420,272 @@ def test_denoise_44k_contract_real_afftdn(cfg, tmp_path: Path):
     assert info.channels == 1
     assert info.sampwidth == 4
     assert info.duration_s == pytest.approx(1.0, abs=0.05)
+
+
+# ================================================================ GTCRN 降噪
+# 增益下限纯函数 + resolve_mode + 合成信号真跑 + 44.1k 渲染轴契约。
+# 依赖 sherpa_onnx 与 work/bench/models/gtcrn/gtcrn_simple.onnx，二者缺一时 skip。
+
+
+# ---------------------------------------------------------------- GTCRN 辅助
+def _gtcrn_model_path(cfg: Config) -> Path:
+    """与 ``denoise._gtcrn_model_path`` 同规则取模型路径；缺依赖时 skip。"""
+    pytest.importorskip("sherpa_onnx")
+    try:
+        return Path(cfg.model_path("gtcrn_model"))
+    except ConfigError:
+        pass
+    try:
+        return Path(cfg.path("models_root")) / "gtcrn" / "gtcrn_simple.onnx"
+    except ConfigError:  # pragma: no cover - 配置 fixture 一定有 models_root
+        pytest.skip("配置里没有 paths.models_root，跳过 GTCRN 用例")
+
+
+def _require_gtcrn(cfg: Config) -> Path:
+    """GTCRN 模型/依赖齐备才继续，否则 skip（CI 无模型时不阻塞其它用例）。"""
+    model = _gtcrn_model_path(cfg)
+    if not model.is_file():
+        pytest.skip(f"GTCRN 模型不存在：{model}")
+    return model
+
+
+def _write_wav16k(path: Path, x: np.ndarray) -> Path:
+    """写 16 kHz float32 单声道 WAV（GTCRN 输入的最小样例）。"""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    wavfile.write(str(path), GTCRN_SR, np.asarray(x, dtype=np.float32))
+    return path
+
+
+def _tone_amp(x: np.ndarray, freq: float = 1000.0, sr: int = GTCRN_SR) -> float:
+    """用正交投影估 ``freq`` 的单频分量幅度（对噪声不敏感）。"""
+    x = np.asarray(x, dtype=np.float64)
+    t = np.arange(x.size) / float(sr)
+    cos_part = 2.0 / x.size * float(np.dot(x, np.cos(2 * np.pi * freq * t)))
+    sin_part = 2.0 / x.size * float(np.dot(x, np.sin(2 * np.pi * freq * t)))
+    return float(np.hypot(cos_part, sin_part))
+
+
+def _rms(x: np.ndarray) -> float:
+    x = np.asarray(x, dtype=np.float64)
+    return float(np.sqrt(np.mean(x * x)))
+
+
+# ---------------------------------------------------------------- 增益下限曲线
+def test_gain_floor_curve_length_and_segment_values():
+    n_frames, hop, frame_ms = 200, 0.008, 32.0
+    segments = [[0.4, 0.8]]
+    curve = gain_floor_curve(
+        n_frames, hop, frame_ms, segments,
+        floor_speech_db=-8.0, floor_pause_db=-24.0, smooth_ms=0.0,
+    )
+    assert curve.shape == (n_frames,)
+    centers = np.arange(n_frames) * hop + frame_ms / 2000.0  # 帧中心
+    inside = (centers >= 0.4) & (centers < 0.8)
+    assert inside.any() and (~inside).any()
+    assert np.allclose(curve[inside], -8.0)
+    assert np.allclose(curve[~inside], -24.0)
+    # 空段 / None → 整段停顿下限（纯噪声场景）
+    assert np.allclose(gain_floor_curve(n_frames, hop, frame_ms, [], smooth_ms=0.0), -24.0)
+    assert np.allclose(gain_floor_curve(n_frames, hop, frame_ms, None, smooth_ms=0.0), -24.0)
+    # n_frames=0（末块边界）返回空数组而不是抛错
+    assert gain_floor_curve(0, hop, frame_ms, segments).size == 0
+
+
+def test_gain_floor_curve_smoothing_reduces_step():
+    n_frames, hop, frame_ms = 400, 0.008, 32.0
+    segments = [[0.5, 1.5]]
+    sharp = gain_floor_curve(n_frames, hop, frame_ms, segments, smooth_ms=0.0)
+    smoothed = gain_floor_curve(n_frames, hop, frame_ms, segments, smooth_ms=200.0)
+    assert smoothed.shape == sharp.shape
+    sharp_step = float(np.max(np.abs(np.diff(sharp))))
+    smooth_step = float(np.max(np.abs(np.diff(smoothed))))
+    assert sharp_step == pytest.approx(16.0)  # −24 → −8 的硬阶梯
+    assert smooth_step < sharp_step * 0.5  # 平滑把跳变摊到 ~200 ms 上
+    # 平滑不越界、也不改变平台值
+    assert smoothed.min() >= -24.0 - 1e-9
+    assert smoothed.max() <= -8.0 + 1e-9
+    centers = np.arange(n_frames) * hop + frame_ms / 2000.0
+    deep = (centers > 0.7) & (centers < 1.3)
+    assert np.allclose(smoothed[deep], -8.0, atol=0.5)
+
+
+def test_gain_floor_curve_rejects_bad_params():
+    with pytest.raises(DenoiseError, match="不能 > 0"):
+        gain_floor_curve(10, 0.008, 32.0, [], floor_speech_db=1.0)
+    with pytest.raises(DenoiseError, match="停顿"):
+        gain_floor_curve(10, 0.008, 32.0, [], floor_speech_db=-8.0, floor_pause_db=-2.0)
+    with pytest.raises(DenoiseError, match="帧移"):
+        gain_floor_curve(10, 0.0, 32.0, [])
+    with pytest.raises(DenoiseError, match="VAD 段"):
+        gain_floor_curve(10, 0.008, 32.0, [("a", 1)])
+
+
+# ---------------------------------------------------------------- resolve_mode
+def test_resolve_mode_explicit_wins(cfg):
+    for mode in ("afftdn", "arnndn", "highpass", "off", "gtcrn"):
+        custom = cfg.replace({"denoise.mode": mode})
+        assert resolve_mode(custom) == mode
+        assert resolve_mode(custom, snr_db=1.0) == mode  # SNR 不覆盖显式配置
+    # 缺键 → 代码默认 afftdn（不依赖 default.yaml）
+    assert resolve_mode(Config({"denoise": {}})) == "afftdn"
+
+
+def test_resolve_mode_auto_follows_snr(cfg):
+    auto = cfg.replace({"denoise.mode": "auto"})
+    # 真文件实测 SNR 10.8 dB < 12 → GTCRN
+    assert resolve_mode(auto, snr_db=10.8) == "gtcrn"
+    assert resolve_mode(auto, snr_db=12.0) == "afftdn"  # 等于阈值不切
+    assert resolve_mode(auto, snr_db=25.6) == "afftdn"
+    assert resolve_mode(auto) == "afftdn"  # 没跑电平统计 → 保守走 afftdn
+    # 阈值可配
+    custom = auto.replace({"denoise.auto_gtcrn_below_snr_db": 20.0})
+    assert resolve_mode(custom, snr_db=19.9) == "gtcrn"
+    assert resolve_mode(custom, snr_db=20.0) == "afftdn"
+
+
+def test_resolve_mode_rejects_unknown_and_gtcrn_not_filter_chain(cfg):
+    with pytest.raises(DenoiseError, match="未知降噪模式"):
+        resolve_mode(cfg.replace({"denoise.mode": "banana"}))
+    # gtcrn 是有效模式，但**不能**拼成 ffmpeg 滤镜链（必须走 denoise_gtcrn_44k）
+    with pytest.raises(DenoiseError, match="gtcrn"):
+        build_filter_chain(cfg, mode="gtcrn")
+
+
+def test_gtcrn_model_path_and_models_root_fallback(cfg, tmp_path: Path):
+    # 默认配置里 paths.models.gtcrn_model 指向 ${paths.models_root}/gtcrn/gtcrn_simple.onnx
+    path = denoise_mod._gtcrn_model_path(cfg)
+    assert path.name == "gtcrn_simple.onnx"
+    assert path.parent.name == "gtcrn"
+    # 没有 gtcrn_model 键时按 models_root/gtcrn/gtcrn_simple.onnx 拼（灰度/旧配置兼容）
+    minimal = Config({"paths": {"models_root": str(tmp_path)}})
+    assert denoise_mod._gtcrn_model_path(minimal) == tmp_path / "gtcrn" / "gtcrn_simple.onnx"
+
+
+# ---------------------------------------------------------------- 输入契约 / 错误路径
+def test_gtcrn_denoise_wav16k_missing_input_and_bad_contract(cfg, tmp_path: Path):
+    with pytest.raises(DenoiseError, match="不存在"):
+        gtcrn_denoise_wav16k(tmp_path / "nope.wav", tmp_path / "out.wav", cfg)
+    # 44.1k 输入 → 明确拒绝（GTCRN 只吃 16k）
+    src44 = _write_wav(tmp_path / "in44k.wav", seconds=0.5)
+    with pytest.raises(DenoiseError, match="16000"):
+        gtcrn_denoise_wav16k(src44, tmp_path / "out.wav", cfg)
+
+
+def test_gtcrn_denoise_wav16k_missing_model(cfg, tmp_path: Path):
+    src = _write_wav16k(tmp_path / "in16k.wav", np.zeros(GTCRN_SR, dtype=np.float32))
+    missing = tmp_path / "missing" / "gtcrn_simple.onnx"
+    # 默认配置里的 gtcrn_model 已在 load 时解析成绝对路径，所以要显式改指向缺失文件
+    custom = cfg.replace({
+        "paths.models_root": str(tmp_path / "missing"),
+        "paths.models.gtcrn_model": str(missing),
+    })
+    with pytest.raises(DenoiseError, match="模型不存在"):
+        gtcrn_denoise_wav16k(src, tmp_path / "out16k.wav", custom)
+
+
+def test_energy_vad_fallback_on_burst():
+    # 兜底能量 VAD：只有中间 1 s 有音，且不能把整段都判成语音
+    x = np.zeros(3 * GTCRN_SR, dtype=np.float32)
+    t = np.arange(GTCRN_SR) / GTCRN_SR
+    x[GTCRN_SR:2 * GTCRN_SR] = (0.1 * np.sin(2 * np.pi * 440.0 * t)).astype(np.float32)
+    segments = denoise_mod._energy_vad_segments(x, GTCRN_SR)
+    assert segments
+    covered = sum(max(0.0, min(end, 2.0) - max(start, 1.0)) for start, end in segments)
+    assert covered > 0.5
+    assert all(0.0 <= start < end <= 3.0 for start, end in segments)
+    # 全零信号 → 没有语音段
+    assert denoise_mod._energy_vad_segments(np.zeros(3 * GTCRN_SR, np.float32), GTCRN_SR) == []
+
+
+# ---------------------------------------------------------------- 真跑（需要模型）
+def test_gtcrn_denoise_wav16k_noise_energy_drop(cfg, tmp_path: Path):
+    _require_gtcrn(cfg)
+    rng = np.random.default_rng(0)
+    noise = (0.05 * rng.normal(size=3 * GTCRN_SR)).astype(np.float32)
+    src = _write_wav16k(tmp_path / "noise16k.wav", noise)
+    dst = tmp_path / "noise_gtcrn16k.wav"
+
+    # level_match=False：中位帧电平对齐会把「整段都是噪声」的信号整体抬回输入电平
+    # （没有语音可对齐，对齐量可达 +37 dB），从而看不出 GTCRN 的降噪量；这里关掉对齐，
+    # 直接验证 GTCRN + 增益下限本身对噪声的压制（生产路径默认 True，见 tone 用例）。
+    result = gtcrn_denoise_wav16k(
+        src, dst, cfg, segments=[], level_match=False,
+    )
+
+    assert result["ok"] is True
+    assert result["mode"] == "gtcrn"
+    assert result["src_sr"] == GTCRN_SR and result["dst_sr"] == GTCRN_SR
+    assert result["floor_speech_db"] == -8.0
+    assert result["floor_pause_db"] == -24.0
+    assert result["smooth_ms"] == 60.0
+    assert result["duration_s"] == pytest.approx(3.0, abs=0.01)
+    assert result["rtf"] is not None and result["rtf"] > 0
+    assert Path(result["dst"]) == dst.resolve()
+
+    sr_out, y = read_wav_float32(dst)
+    assert sr_out == GTCRN_SR
+    assert len(y) == len(noise)  # 长度必须与输入一致（模型会少吐 128 采样，已补齐）
+    drop_db = 20.0 * np.log10(_rms(y) / _rms(noise))
+    assert drop_db < -10.0
+
+
+def test_gtcrn_denoise_wav16k_keeps_tone(cfg, tmp_path: Path):
+    _require_gtcrn(cfg)
+    rng = np.random.default_rng(0)
+    n = 3 * GTCRN_SR
+    t = np.arange(n) / GTCRN_SR
+    x = (0.1 * np.sin(2 * np.pi * 1000.0 * t) + 0.02 * rng.normal(size=n)).astype(np.float32)
+    src = _write_wav16k(tmp_path / "tone16k.wav", x)
+    amp_in = _tone_amp(x)
+
+    # 1) 生产默认下限（语音 −8 dB）：音调即便被 GTCRN 当噪声压掉，也必须被下限托住
+    dst_default = tmp_path / "tone_default.wav"
+    gtcrn_denoise_wav16k(src, dst_default, cfg, segments=[[0.0, 3.0]])
+    _, y_default = read_wav_float32(dst_default)
+    gain_default_db = 20.0 * np.log10(_tone_amp(y_default) / amp_in)
+    assert gain_default_db >= -8.0 - 1.0  # 下限是「最多压 8 dB」的硬保证
+
+    # 2) 把语音下限放到 −2 dB 后验证「保留 ±3 dB」：GTCRN 会把稳态 1 kHz 音调整段压掉，
+    #    默认 −8 dB 下限下不可能满足 ±3 dB（会被钳在 −8 dB），所以这里用 −2 dB 下限
+    #    验证下限机制本身确实把音调分量原样保住（不门掉）。
+    custom = cfg.replace({"denoise.gtcrn.floor_speech_db": -2.0})
+    dst_floor = tmp_path / "tone_floor2.wav"
+    result = gtcrn_denoise_wav16k(src, dst_floor, custom, segments=[[0.0, 3.0]])
+    assert result["floor_speech_db"] == -2.0
+    sr_out, y = read_wav_float32(dst_floor)
+    assert sr_out == GTCRN_SR and len(y) == n
+    gain_db = 20.0 * np.log10(_tone_amp(y) / amp_in)
+    assert abs(gain_db) <= 3.0
+
+
+@requires_ffmpeg
+def test_denoise_gtcrn_44k_contract(cfg, tmp_path: Path):
+    _require_gtcrn(cfg)
+    rng = np.random.default_rng(1)
+    n = GTCRN_SR  # 1 s，够验证采样率/时长/位宽即可
+    t = np.arange(n) / GTCRN_SR
+    x = (0.1 * np.sin(2 * np.pi * 440.0 * t) + 0.02 * rng.normal(size=n)).astype(np.float32)
+    src = _write_wav16k(tmp_path / "src16k.wav", x)
+
+    dst = denoise_gtcrn_44k(src, cfg, "jobgtcrn", segments=[[0.0, 1.0]])
+
+    cache = cfg.path("cache_dir")
+    assert dst == cache / f"jobgtcrn{CACHE_SUFFIX_DENOISED44K}"
+    assert (cache / f"jobgtcrn{CACHE_SUFFIX_GTCRN16K}").is_file()  # 中间 16k 产物
+    assert dst.is_file()
+    info = wav_info(dst)
+    assert info.sample_rate == 44100
+    assert info.channels == 1
+    assert info.sampwidth == 4  # float32
+    assert info.duration_s == pytest.approx(1.0, abs=0.05)
+
+
+def test_denoise_gtcrn_44k_rejects_bad_inputs(cfg, tmp_path: Path):
+    # 这些校验都在加载模型之前，因此无模型/无 sherpa 时也能跑
+    with pytest.raises(DenoiseError, match="job_id"):
+        denoise_gtcrn_44k(tmp_path / "nope.wav", cfg, "")
+    with pytest.raises(DenoiseError, match="不存在"):
+        denoise_gtcrn_44k(tmp_path / "nope.wav", cfg, "jobx")
+    src44 = _write_wav(tmp_path / "src44k.wav", seconds=0.5)
+    with pytest.raises(DenoiseError, match="16000"):
+        denoise_gtcrn_44k(src44, cfg, "job44")

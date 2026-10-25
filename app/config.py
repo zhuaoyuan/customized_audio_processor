@@ -50,7 +50,7 @@ _ENV_MAP = {
 _PLACEHOLDER_RE = re.compile(r"\$\{([^}]+)\}")
 
 _LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
-_DENOISE_MODES = ("afftdn", "arnndn", "highpass", "off")
+_DENOISE_MODES = ("auto", "afftdn", "gtcrn", "arnndn", "highpass", "off")
 _DIAR_MODES = ("none", "sampled", "full")
 _UNRELATED_MODES = ("conservative", "off", "aggressive")
 _SAMPLE_FMTS = ("pcm_f32le", "pcm_s16le", "pcm_s24le", "pcm_s32le")
